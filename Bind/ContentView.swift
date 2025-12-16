@@ -69,13 +69,19 @@ struct TravelDocument: Identifiable, Codable, Equatable {
     let holderName: String
     let detailValue: String
     
+    // NEW FIELDS (Optional to maintain backward compatibility with JSON)
+    var nationality: String?
+    var birthDate: Date?
+    var issueDate: Date?
+    var expiryDate: Date?
+    
     // Internal storage for Codable colors
     private let primaryColorData: CodableColor
     private let secondaryColorData: CodableColor
     
     let iconName: String
     let airline: String 
-    var isActive: Bool = true // NEW: Toggle state property
+    var isActive: Bool = true // Toggle state property
     
     // Public computed properties for View usage
     var primaryColor: Color { primaryColorData.color }
@@ -87,7 +93,11 @@ struct TravelDocument: Identifiable, Codable, Equatable {
          title: String, 
          subtitle: String, 
          holderName: String, 
-         detailValue: String, 
+         detailValue: String,
+         nationality: String? = nil,
+         birthDate: Date? = nil,
+         issueDate: Date? = nil,
+         expiryDate: Date? = nil,
          primaryColor: Color, 
          secondaryColor: Color, 
          iconName: String, 
@@ -100,6 +110,10 @@ struct TravelDocument: Identifiable, Codable, Equatable {
         self.subtitle = subtitle
         self.holderName = holderName
         self.detailValue = detailValue
+        self.nationality = nationality
+        self.birthDate = birthDate
+        self.issueDate = issueDate
+        self.expiryDate = expiryDate
         self.primaryColorData = CodableColor(color: primaryColor)
         self.secondaryColorData = CodableColor(color: secondaryColor)
         self.iconName = iconName
@@ -225,16 +239,18 @@ struct PassportCoverView: View {
     var body: some View {
         ZStack {
             // Dark Navy Leather Texture
-            Color(red: 0.05, green: 0.05, blue: 0.2)
+            document.primaryColor
             
             VStack(spacing: 30) {
                 Spacer()
                 
-                Text("UNITED KINGDOM OF\nGREAT BRITAIN\nAND NORTHERN IRELAND")
-                    .font(.system(size: 14, weight: .bold, design: .serif))
+                // DYNAMIC TITLE (Split title into multiple lines if needed)
+                Text(document.title.uppercased())
+                    .font(.system(size: 16, weight: .bold, design: .serif))
                     .multilineTextAlignment(.center)
                     .foregroundColor(Color(red: 0.85, green: 0.75, blue: 0.5)) // Gold
                     .tracking(1)
+                    .padding(.horizontal)
                 
                 Image(systemName: "crown.fill") // Simplified crest
                     .resizable()
@@ -271,43 +287,144 @@ struct PassportInteriorView: View {
     let document: TravelDocument
     let isOpen: Bool // Controls the vertical fold
     
+    // Date Formatter Helper
+    private var dateFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "dd MMM yyyy"
+        return formatter
+    }
+    
+    // Name Splitter Helper (Simple Logic)
+    var names: (surname: String, given: String) {
+        let components = document.holderName.components(separatedBy: " ")
+        if let last = components.last {
+            let given = components.dropLast().joined(separator: " ")
+            return (last.uppercased(), given.isEmpty ? last.uppercased() : given.uppercased())
+        }
+        return (document.holderName.uppercased(), "")
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
             
-            // --- TOP PAGE (Blank/Visas) ---
+            // --- TOP PAGE (Visas & Stamps) ---
             ZStack {
                 // 1. CONTENT (Visible when open)
                 ZStack {
-                    Color(red: 0.98, green: 0.96, blue: 0.93)
+                    Color(red: 0.98, green: 0.96, blue: 0.93) // Paper
                     
-                    // Watermark
-                    Image(systemName: "crown.fill")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 150)
-                        .opacity(0.06)
-                        .foregroundColor(.blue)
-                    
-                    // Page Text
-                    VStack {
-                        Spacer()
-                        Text("VISAS")
-                            .font(.system(size: 16, weight: .bold, design: .serif))
-                            .tracking(4)
-                            .foregroundColor(.black.opacity(0.2))
-                        Spacer()
+                    // A. Background Guilloche Waves (Subtle)
+                    GeometryReader { geo in
+                        Path { path in
+                            for i in 0..<8 {
+                                let y = CGFloat(i) * 35
+                                path.move(to: CGPoint(x: 0, y: y))
+                                path.addCurve(
+                                    to: CGPoint(x: geo.size.width, y: y),
+                                    control1: CGPoint(x: geo.size.width / 3, y: y - 25),
+                                    control2: CGPoint(x: geo.size.width * 2 / 3, y: y + 25)
+                                )
+                            }
+                        }
+                        .stroke(Color.blue.opacity(0.05), lineWidth: 1)
                     }
                     
-                    // Page Number
-                    VStack {
-                        Spacer()
-                        HStack {
-                            Spacer()
-                            Text("1")
-                                .font(.system(size: 12, design: .monospaced))
-                                .foregroundColor(.black.opacity(0.6))
-                                .padding(15)
+                    // B. Center Watermark
+                    Image(systemName: "globe.europe.africa.fill")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 130)
+                        .foregroundColor(Color.blue.opacity(0.06))
+                        .offset(y: 10)
+                    
+                    // C. Playful Stamps Layer
+                    Group {
+                        // Stamp 1: Blue Entry (LHR)
+                        VStack(spacing: 2) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "airplane.arrival")
+                                Text("LHR")
+                            }
+                            .font(.system(size: 12, weight: .bold)) // Larger
+                            
+                            Text("18 AUG 2024")
+                                .font(.system(size: 10, design: .monospaced)) // Larger
+                            
+                            Text("IMMIGRATION")
+                                .font(.system(size: 7)) // Larger
                         }
+                        .padding(8) // Larger padding
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6) // Larger radius
+                                .stroke(Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.4), lineWidth: 2) // Dull
+                        )
+                        .foregroundColor(Color(red: 0.1, green: 0.2, blue: 0.5).opacity(0.4)) // Dull
+                        .rotationEffect(.degrees(-15))
+                        .offset(x: -85, y: -45) // Spaced out
+                        
+                        // Stamp 2: Red Exit (CDG)
+                        ZStack {
+                            Circle()
+                                .stroke(Color(red: 0.7, green: 0.1, blue: 0.1).opacity(0.4), lineWidth: 2) // Dull
+                                .frame(width: 75, height: 75) // Larger
+                            
+                            VStack(spacing: 1) {
+                                Text("DEPARTURE")
+                                    .font(.system(size: 7, weight: .black)) // Larger
+                                Image(systemName: "arrow.up.right")
+                                    .font(.system(size: 14, weight: .bold)) // Larger
+                                Text("CDG - PARIS")
+                                    .font(.system(size: 8, weight: .bold)) // Larger
+                            }
+                            .foregroundColor(Color(red: 0.7, green: 0.1, blue: 0.1).opacity(0.4)) // Dull
+                        }
+                        .rotationEffect(.degrees(20))
+                        .offset(x: 75, y: -30) // Spaced out
+                        
+                        // Stamp 3: Green Eco/Nature
+                        VStack(spacing: 0) {
+                            Image(systemName: "leaf.fill")
+                                .font(.system(size: 14)) // Larger
+                            Text("ECO CHECK")
+                                .font(.system(size: 8, weight: .bold)) // Larger
+                        }
+                        .padding(8) // Larger
+                        .overlay(
+                            Capsule().stroke(Color.green.opacity(0.35), lineWidth: 1.5) // Dull
+                        )
+                        .foregroundColor(Color.green.opacity(0.35)) // Dull
+                        .rotationEffect(.degrees(40))
+                        .offset(x: -45, y: 70) // Spaced out
+                        
+                        // Stamp 4: Purple Playful Star
+                        VStack(spacing: 1) {
+                            Image(systemName: "star.fill")
+                                .font(.system(size: 10)) // Larger
+                            Text("VISA")
+                                .font(.system(size: 10, weight: .bold)) // Larger
+                            Text("CLASS A")
+                                .font(.system(size: 6)) // Larger
+                        }
+                        .padding(10) // Larger
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 3)
+                                .stroke(Color.purple.opacity(0.35), lineWidth: 2) // Dull
+                        )
+                        .foregroundColor(Color.purple.opacity(0.35)) // Dull
+                        .rotationEffect(.degrees(-8))
+                        .offset(x: 70, y: 60) // Spaced out
+                    }
+                    .compositingGroup() // Blend them together slightly
+                    .opacity(0.7) // Overall duller
+                    
+                    // D. Header
+                    VStack {
+                        Text("VISAS")
+                            .font(.system(size: 12, weight: .bold, design: .serif))
+                            .tracking(6)
+                            .foregroundColor(.black.opacity(0.2))
+                            .padding(.top, 12)
+                        Spacer()
                     }
                 }
                 // Hide content when folded to prevent mirrored text issues
@@ -355,7 +472,7 @@ struct PassportInteriorView: View {
                 VStack(spacing: 0) {
                     // Header Bar
                     HStack {
-                        Text("UNITED KINGDOM OF\nGREAT BRITAIN")
+                        Text(document.title.uppercased())
                             .font(.system(size: 9, weight: .bold))
                             .foregroundColor(.black)
                             .multilineTextAlignment(.center)
@@ -374,47 +491,69 @@ struct PassportInteriorView: View {
                         // Photo Area
                         VStack {
                             ZStack {
+                                // 1. Photo Background with Gradient
                                 Rectangle()
-                                    .fill(Color.gray.opacity(0.2))
-                                    .frame(width: 80, height: 110)
-                                    .overlay(
-                                        Image(systemName: "person.fill")
-                                            .resizable()
-                                            .padding(15)
-                                            .foregroundColor(.gray)
+                                    .fill(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [Color(white: 0.85), Color(white: 0.75)]),
+                                            startPoint: .top,
+                                            endPoint: .bottom
+                                        )
                                     )
-                                    .border(Color.black.opacity(0.1), width: 1)
+                                    .frame(width: 110, height: 145) // Increased photo size
                                 
-                                // Hologram effect overlay
-                                Text("GBR")
-                                    .font(.caption2)
-                                    .fontWeight(.black)
-                                    .foregroundColor(.white.opacity(0.6))
-                                    .rotationEffect(.degrees(-45))
+                                // 2. Realistic Silhouette (Not Stretched)
+                                Image(systemName: "person.fill")
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit) // Fix stretching
+                                    .frame(width: 80) // Larger person icon
+                                    .foregroundColor(Color(white: 0.4))
+                                    .offset(y: 15) // Adjusted offset
+                                
+                                // 3. Border
+                                Rectangle()
+                                    .stroke(Color.black.opacity(0.1), lineWidth: 1)
+                                    .frame(width: 110, height: 145) // Match photo size
                             }
+                            .clipped() // Ensure person doesn't spill out
                         }
                         
                         // Fields
                         VStack(alignment: .leading, spacing: 6) {
                             FieldView(label: "Type", value: "P")
-                            FieldView(label: "Code", value: "GBR")
+                            // Use detailValue for Passport No
                             FieldView(label: "Passport No.", value: document.detailValue)
-                            FieldView(label: "Surname", value: "WALTERS")
-                            FieldView(label: "Given Names", value: "ALEXANDER")
-                            FieldView(label: "Nationality", value: "BRITISH CITIZEN")
-                            FieldView(label: "Date of Birth", value: "12 JUN 1985")
+                            
+                            // Split Name Logic
+                            FieldView(label: "Surname", value: names.surname)
+                            FieldView(label: "Given Names", value: names.given)
+                            
+                            // Nationality or Fallback to Title
+                            FieldView(label: "Nationality", value: (document.nationality ?? document.title).uppercased())
+                            
+                            // Date of Birth
+                            if let dob = document.birthDate {
+                                FieldView(label: "Date of Birth", value: dateFormatter.string(from: dob).uppercased())
+                            } else {
+                                FieldView(label: "Date of Birth", value: "UNKNOWN")
+                            }
+                            
+                            // Expiry
+                            if let exp = document.expiryDate {
+                                FieldView(label: "Date of Expiry", value: dateFormatter.string(from: exp).uppercased())
+                            }
                         }
                     }
                     .padding(15)
                     
                     Spacer()
                     
-                    // Machine Readable Zone (MRZ)
+                    // Machine Readable Zone (MRZ) - Simulated
                     VStack(spacing: 2) {
-                        Text("P<GBRWALTERS<<ALEXANDER<<<<<<<<<<<<<<<<<<<<<<<")
-                        Text("9832019928GBR8506126M3012316<<<<<<<<<<<<<<04")
+                        Text("P<\(String(document.title.prefix(3)).uppercased())\(names.surname)<<\(names.given.replacingOccurrences(of: " ", with: "<"))<<<<<<<<<<<<")
+                        Text("\(document.detailValue.replacingOccurrences(of: " ", with: ""))\(String(document.title.prefix(3)).uppercased())<<<<<<<<<<<<<<<<<<04")
                     }
-                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    .font(.system(size: 10, weight: .medium, design: .monospaced))
                     .foregroundColor(.black.opacity(0.8))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 15)
@@ -450,6 +589,7 @@ struct FieldView: View {
             Text(value)
                 .font(.system(size: 12, weight: .bold))
                 .foregroundColor(.black)
+                .lineLimit(1)
         }
     }
 }
@@ -1421,8 +1561,42 @@ struct AddDocumentView: View {
     @State private var selectedUniversity = "State Univ"
     @State private var selectedAirline = "British Airways"
     
+    // PASSPORT SPECIFIC FIELDS
+    @State private var nationality: String = ""
+    @State private var birthDate: Date = Date()
+    @State private var issueDate: Date = Date()
+    @State private var expiryDate: Date = Date()
+    
     let bloodTypes = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"]
     let vaccines = ["COVID-19", "Influenza", "Yellow Fever", "Tetanus", "Hepatitis B", "Measles"]
+    
+    // MARK: - NEW: COUNTRY DATA
+    let countries = [
+        "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan",
+        "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi",
+        "Cabo Verde", "Cambodia", "Cameroon", "Canada", "Central African Republic", "Chad", "Chile", "China", "Colombia", "Comoros", "Congo (Congo-Brazzaville)", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czechia",
+        "Denmark", "Djibouti", "Dominica", "Dominican Republic",
+        "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia",
+        "Fiji", "Finland", "France",
+        "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana",
+        "Haiti", "Honduras", "Hungary",
+        "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy",
+        "Jamaica", "Japan", "Jordan",
+        "Kazakhstan", "Kenya", "Kiribati", "Kuwait", "Kyrgyzstan",
+        "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg",
+        "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar",
+        "Namibia", "Nauru", "Nepal", "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Korea", "North Macedonia", "Norway",
+        "Oman",
+        "Pakistan", "Palau", "Palestine State", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal",
+        "Qatar",
+        "Romania", "Russia", "Rwanda",
+        "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Korea", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria",
+        "Tajikistan", "Tanzania", "Thailand", "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu",
+        "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "Uruguay", "Uzbekistan",
+        "Vanuatu", "Venezuela", "Vietnam",
+        "Yemen",
+        "Zambia", "Zimbabwe"
+    ]
     
     // Segmented Airlines by Country
     let airlineSegments: [(country: String, airlines: [String])] = [
@@ -1533,6 +1707,10 @@ struct AddDocumentView: View {
         
         // Defaults
         switch type {
+        case .passport:
+            // Default country
+            _title = State(initialValue: "United Kingdom")
+            _nationality = State(initialValue: "United Kingdom")
         case .driversLicense:
             _title = State(initialValue: "California")
             _subtitle = State(initialValue: "DRIVER LICENSE")
@@ -1606,7 +1784,19 @@ struct AddDocumentView: View {
                                  }
                              }
                          }
-
+                    } else if type == .passport {
+                        // MARK: - NEW: PASSPORT COUNTRY PICKER
+                        Picker("Country", selection: $title) {
+                            ForEach(countries, id: \.self) { country in
+                                Text(country).tag(country)
+                            }
+                        }
+                        // Auto-update Nationality when Country changes
+                        .onChange(of: title) { newValue in
+                            nationality = newValue
+                        }
+                        // No subtitle field for passport
+                        
                     } else {
                         TextField("Title (e.g. Country, State)", text: $title)
                         TextField("Subtitle (e.g. License Type)", text: $subtitle)
@@ -1617,6 +1807,14 @@ struct AddDocumentView: View {
                     if type == .medicalAlert {
                         // Already handled allergies above, use this for Emergency Contact
                         TextField("Emergency Contact", text: $detailValue)
+                    } else if type == .passport {
+                        // MARK: - SPECIFIC PASSPORT FIELDS
+                        TextField("Full Name", text: $holderName)
+                        TextField("Passport Number", text: $detailValue)
+                        TextField("Nationality", text: $nationality) // Auto-filled but editable
+                        
+                        DatePicker("Date of Birth", selection: $birthDate, displayedComponents: .date)
+                        DatePicker("Date of Expiry", selection: $expiryDate, displayedComponents: .date)
                     } else {
                         TextField("Your Name", text: $holderName)
                         TextField("Booking Number", text: $detailValue)
@@ -1676,6 +1874,10 @@ struct AddDocumentView: View {
             subtitle: finalSubtitle,
             holderName: finalHolder,
             detailValue: finalDetail,
+            nationality: type == .passport ? nationality : nil,
+            birthDate: type == .passport ? birthDate : nil,
+            issueDate: type == .passport ? issueDate : nil,
+            expiryDate: type == .passport ? expiryDate : nil,
             primaryColor: getColor(for: type),
             secondaryColor: .white,
             iconName: getIcon(for: type),
@@ -1721,6 +1923,4 @@ struct Bind_Previews: PreviewProvider {
             .preferredColorScheme(.dark)
     }
 }
-
-
 
