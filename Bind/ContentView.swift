@@ -486,8 +486,10 @@ struct PassportInteriorView: View {
                     
                     Divider().background(Color.black).padding(.top, 8)
                     
+                    Spacer() // VERTICAL CENTERING: Push content down
+                    
                     // Data Page Layout
-                    HStack(alignment: .top, spacing: 15) {
+                    HStack(alignment: .center, spacing: 15) { // ALIGNMENT: Center vertical
                         // Photo Area
                         VStack {
                             ZStack {
@@ -544,9 +546,10 @@ struct PassportInteriorView: View {
                             }
                         }
                     }
-                    .padding(15)
+                    .padding(.leading, 10) // ALIGNMENT: More to the left
+                    .padding(.trailing, 15)
                     
-                    Spacer()
+                    Spacer() // VERTICAL CENTERING: Push content up
                     
                     // Machine Readable Zone (MRZ) - Simulated
                     VStack(spacing: 2) {
@@ -1143,8 +1146,11 @@ struct TravelDocsWalletView: View {
     @State private var showAllCardsSheet = false
     @State private var selectedTypeToAdd: TravelDocument.DocumentType? = nil
     
+    // EDIT STATE
+    @State private var documentToEdit: TravelDocument? = nil
+    
     // Scroll/Drag State
-    @State private var baseScrollOffset: CGFloat = 0
+    @AppStorage("walletScrollOffset") private var baseScrollOffset: Double = 0
     @State private var dragOffset: CGFloat = 0
     
     // Configuration
@@ -1180,7 +1186,8 @@ struct TravelDocsWalletView: View {
                         // 1. CALCULATE DYNAMIC POSITION
                         let currentPos = getCircularPosition(for: index)
                         let isPassport = (doc.type == .passport)
-                        let isIDCard = (doc.type == .idCard)
+                        // CHANGED: Group generic ID types together for the flip animation
+                        let isIDCard = (doc.type == .idCard || doc.type == .driversLicense || doc.type == .studentID)
                         let isBoardingPass = (doc.type == .boardingPass)
                         let isSelected = (selectedID == doc.id)
                         
@@ -1250,7 +1257,7 @@ struct TravelDocsWalletView: View {
                         .onEnded { value in
                             guard selectedID == nil else { return }
                             
-                            let totalDrag = baseScrollOffset + value.translation.height
+                            let totalDrag = CGFloat(baseScrollOffset) + value.translation.height
                             let velocity = value.predictedEndTranslation.height / 5
                             let projectedTotal = totalDrag + velocity
                             
@@ -1258,7 +1265,7 @@ struct TravelDocsWalletView: View {
                             let nearestStep = (projectedTotal / snapStep).rounded() * snapStep
                             
                             withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
-                                baseScrollOffset = nearestStep
+                                baseScrollOffset = Double(nearestStep)
                                 dragOffset = 0
                             }
                         }
@@ -1319,6 +1326,13 @@ struct TravelDocsWalletView: View {
                         // Shows when a card is selected
                         if let doc = documents.first(where: { $0.id == selectedID }) {
                             Menu {
+                                // EDIT BUTTON
+                                Button {
+                                    documentToEdit = doc
+                                } label: {
+                                    Label("Edit Card", systemImage: "pencil")
+                                }
+                                
                                 Button(role: .destructive) {
                                     deleteDocument(doc)
                                 } label: {
@@ -1413,6 +1427,15 @@ struct TravelDocsWalletView: View {
                 }
             }
         }
+        // EDIT SHEET: Triggers when user taps "Edit"
+        .sheet(item: $documentToEdit) { doc in
+            AddDocumentView(document: doc) { updatedDoc in
+                // Update the document in place
+                if let index = documents.firstIndex(where: { $0.id == updatedDoc.id }) {
+                    documents[index] = updatedDoc
+                }
+            }
+        }
         // MARK: - NEW: ALL CARDS SHEET WITH TOGGLES
         .sheet(isPresented: $showAllCardsSheet) {
             NavigationView {
@@ -1491,7 +1514,7 @@ struct TravelDocsWalletView: View {
         if totalScrollHeight == 0 { return 0 }
         
         let initialOffset = CGFloat(index) * cardSpacing
-        let currentScroll = baseScrollOffset + dragOffset
+        let currentScroll = CGFloat(baseScrollOffset) + dragOffset
         
         // Combine index offset with scroll
         let rawPosition = initialOffset + currentScroll
@@ -1546,6 +1569,8 @@ struct TravelDocsWalletView: View {
 struct AddDocumentView: View {
     let type: TravelDocument.DocumentType
     let onAdd: (TravelDocument) -> Void
+    let existingID: UUID? // Stores ID if we are editing
+    
     @Environment(\.dismiss) var dismiss
     
     // Form Fields
@@ -1700,34 +1725,63 @@ struct AddDocumentView: View {
         return matches.sorted { $0.1 < $1.1 }.map { (code: $0.0, name: $0.1) }
     }
     
-    // Initialize default values based on type
-    init(type: TravelDocument.DocumentType, onAdd: @escaping (TravelDocument) -> Void) {
-        self.type = type
+    // Initialize default values based on type OR existing document
+    init(type: TravelDocument.DocumentType? = nil, 
+         document: TravelDocument? = nil, 
+         onAdd: @escaping (TravelDocument) -> Void) {
+        
         self.onAdd = onAdd
         
-        // Defaults
-        switch type {
-        case .passport:
-            // Default country
-            _title = State(initialValue: "United Kingdom")
-            _nationality = State(initialValue: "United Kingdom")
-        case .driversLicense:
-            _title = State(initialValue: "California")
-            _subtitle = State(initialValue: "DRIVER LICENSE")
-        case .studentID:
-            _title = State(initialValue: "University")
-            _subtitle = State(initialValue: "STUDENT ID")
-        case .prescription:
-            _title = State(initialValue: "Pharmacy")
-            _subtitle = State(initialValue: "RX PRESCRIPTION")
-        case .vaccineRecord:
-            _title = State(initialValue: "CDC / NHS")
-            _subtitle = State(initialValue: "VACCINATION")
-        case .medicalAlert:
-            _title = State(initialValue: "Medical Alert")
-            _subtitle = State(initialValue: "EMERGENCY INFO")
-        default:
-            break
+        if let doc = document {
+            // EDIT MODE
+            self.type = doc.type
+            self.existingID = doc.id
+            
+            _title = State(initialValue: doc.title)
+            _subtitle = State(initialValue: doc.subtitle)
+            _holderName = State(initialValue: doc.holderName)
+            _detailValue = State(initialValue: doc.detailValue)
+            _nationality = State(initialValue: doc.nationality ?? "")
+            
+            if let dob = doc.birthDate { _birthDate = State(initialValue: dob) }
+            if let iss = doc.issueDate { _issueDate = State(initialValue: iss) }
+            if let exp = doc.expiryDate { _expiryDate = State(initialValue: exp) }
+            
+            // Try to pre-fill airline if it exists in our segments (mostly visual)
+            if !doc.airline.isEmpty {
+                _selectedAirline = State(initialValue: doc.airline)
+            }
+            
+        } else {
+            // ADD MODE
+            let targetType = type ?? .passport
+            self.type = targetType
+            self.existingID = nil
+            
+            // Defaults
+            switch targetType {
+            case .passport:
+                // Default country
+                _title = State(initialValue: "United Kingdom")
+                _nationality = State(initialValue: "United Kingdom")
+            case .driversLicense:
+                _title = State(initialValue: "California")
+                _subtitle = State(initialValue: "DRIVER LICENSE")
+            case .studentID:
+                _title = State(initialValue: "University")
+                _subtitle = State(initialValue: "STUDENT ID")
+            case .prescription:
+                _title = State(initialValue: "Pharmacy")
+                _subtitle = State(initialValue: "RX PRESCRIPTION")
+            case .vaccineRecord:
+                _title = State(initialValue: "CDC / NHS")
+                _subtitle = State(initialValue: "VACCINATION")
+            case .medicalAlert:
+                _title = State(initialValue: "Medical Alert")
+                _subtitle = State(initialValue: "EMERGENCY INFO")
+            default:
+                break
+            }
         }
     }
     
@@ -1821,10 +1875,10 @@ struct AddDocumentView: View {
                     }
                 }
             }
-            .navigationTitle("Add \(type.displayName)")
+            .navigationTitle(existingID != nil ? "Edit \(type.displayName)" : "Add \(type.displayName)")
             .navigationBarItems(
                 leading: Button("Cancel") { dismiss() },
-                trailing: Button("Add") {
+                trailing: Button(existingID != nil ? "Save" : "Add") {
                     saveDocument()
                     dismiss()
                 }
@@ -1869,6 +1923,7 @@ struct AddDocumentView: View {
         if finalHolder.isEmpty { finalHolder = "CARD HOLDER" }
         
         let newDoc = TravelDocument(
+            id: existingID ?? UUID(), // Preserve ID if editing
             type: type,
             title: finalTitle,
             subtitle: finalSubtitle,
