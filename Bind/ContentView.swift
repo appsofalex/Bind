@@ -1468,9 +1468,15 @@ struct TravelDocsWalletView: View {
                     .onDelete { indexSet in
                         documents.remove(atOffsets: indexSet)
                     }
+                    .onMove { indices, newOffset in
+                        documents.move(fromOffsets: indices, toOffset: newOffset)
+                    }
                 }
                 .navigationTitle("All Cards (\(activeDocuments.count)/\(maxCardsOnScreen))")
-                .navigationBarItems(trailing: Button("Done") { showAllCardsSheet = false })
+                .navigationBarItems(
+                    leading: EditButton(),
+                    trailing: Button("Done") { showAllCardsSheet = false }
+                )
             }
         }
     }
@@ -1768,8 +1774,8 @@ struct AddDocumentView: View {
                 _title = State(initialValue: "California")
                 _subtitle = State(initialValue: "DRIVER LICENSE")
             case .studentID:
-                _title = State(initialValue: "University")
-                _subtitle = State(initialValue: "STUDENT ID")
+                _title = State(initialValue: "")
+                _subtitle = State(initialValue: "Student ID")
             case .prescription:
                 _title = State(initialValue: "Pharmacy")
                 _subtitle = State(initialValue: "RX PRESCRIPTION")
@@ -1795,6 +1801,7 @@ struct AddDocumentView: View {
                             ForEach(bloodTypes, id: \.self) { Text($0) }
                         }
                         TextField("Allergies", text: $holderName) // Using holderName for Allergy list
+                            .textInputAutocapitalization(.sentences)
                             .overlay(
                                 Text("e.g. Peanuts, Penicillin").foregroundColor(.gray.opacity(0.5)).allowsHitTesting(false).opacity(holderName.isEmpty ? 1 : 0),
                                 alignment: .leading
@@ -1817,6 +1824,7 @@ struct AddDocumentView: View {
                          
                          // MARK: - NEW: AUTOCOMPLETE AIRPORT FIELD
                          TextField("Destination (Type code or city)", text: $title)
+                             .textInputAutocapitalization(.words)
                          
                          // Show suggestions if typing matches
                          if !filteredAirports.isEmpty {
@@ -1852,8 +1860,10 @@ struct AddDocumentView: View {
                         // No subtitle field for passport
                         
                     } else {
-                        TextField("Title (e.g. Country, State)", text: $title)
+                        TextField(type == .studentID ? "University name" : "Title (e.g. Country, State)", text: $title)
+                            .textInputAutocapitalization(.words)
                         TextField("Subtitle (e.g. License Type)", text: $subtitle)
+                            .textInputAutocapitalization(type == .studentID ? .sentences : .characters)
                     }
                 }
                 
@@ -1861,17 +1871,29 @@ struct AddDocumentView: View {
                     if type == .medicalAlert {
                         // Already handled allergies above, use this for Emergency Contact
                         TextField("Emergency Contact", text: $detailValue)
+                            .textInputAutocapitalization(.words)
                     } else if type == .passport {
                         // MARK: - SPECIFIC PASSPORT FIELDS
                         TextField("Full Name", text: $holderName)
+                            .textInputAutocapitalization(.words)
                         TextField("Passport Number", text: $detailValue)
+                            .textInputAutocapitalization(.characters)
+                            .onChange(of: detailValue) { newValue in
+                                detailValue = newValue.uppercased()
+                            }
                         TextField("Nationality", text: $nationality) // Auto-filled but editable
+                            .textInputAutocapitalization(.words)
                         
                         DatePicker("Date of Birth", selection: $birthDate, displayedComponents: .date)
                         DatePicker("Date of Expiry", selection: $expiryDate, displayedComponents: .date)
                     } else {
                         TextField("Your Name", text: $holderName)
-                        TextField("Booking Number", text: $detailValue)
+                            .textInputAutocapitalization(.words)
+                        TextField(type == .studentID ? "Student number" : "Booking Number", text: $detailValue)
+                            .textInputAutocapitalization(.characters)
+                            .onChange(of: detailValue) { newValue in
+                                detailValue = newValue.uppercased()
+                            }
                     }
                 }
             }
