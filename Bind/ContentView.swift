@@ -1668,6 +1668,7 @@ struct AddDocumentView: View {
     
     let bloodTypes = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"]
     let vaccines = ["COVID-19", "Influenza", "Yellow Fever", "Tetanus", "Hepatitis B", "Measles"]
+    let visaTypes = ["Tourist Visa", "Business Visa", "Student Visa", "Work Visa", "Transit Visa", "Investor Visa", "Spouse Visa", "Visitor Visa"]
     
     // MARK: - NEW: COUNTRY DATA
     let countries = [
@@ -1844,6 +1845,9 @@ struct AddDocumentView: View {
                 // Default country
                 _title = State(initialValue: "United Kingdom")
                 _nationality = State(initialValue: "United Kingdom")
+            case .visa:
+                _title = State(initialValue: "United States")
+                _subtitle = State(initialValue: "Tourist Visa")
             case .driversLicense:
                 _title = State(initialValue: "California")
                 _subtitle = State(initialValue: "DRIVER LICENSE")
@@ -1969,7 +1973,17 @@ struct AddDocumentView: View {
                             nationality = newValue
                         }
                         // No subtitle field for passport
-                        
+                    } else if type == .visa {
+                        Picker("Country", selection: $title) {
+                            ForEach(countries, id: \.self) { country in
+                                Text(country).tag(country)
+                            }
+                        }
+                        Picker("Visa Type", selection: $subtitle) {
+                            ForEach(visaTypes, id: \.self) { type in
+                                Text(type).tag(type)
+                            }
+                        }
                     } else {
                         TextField(type == .studentID ? "University name" : "Title (e.g. Country, State)", text: $title)
                             .textInputAutocapitalization(.words)
@@ -2008,7 +2022,7 @@ struct AddDocumentView: View {
                     } else {
                         TextField("Your Name", text: $holderName)
                             .textInputAutocapitalization(.words)
-                        TextField(type == .studentID ? "Student number" : "Booking Number", text: $detailValue)
+                        TextField(getDetailLabel(), text: $detailValue)
                             .textInputAutocapitalization(.characters)
                             .onChange(of: detailValue) { newValue in
                                 detailValue = newValue.uppercased()
@@ -2024,6 +2038,17 @@ struct AddDocumentView: View {
                     dismiss()
                 }
             )
+        }
+    }
+    
+    private func getDetailLabel() -> String {
+        switch type {
+        case .studentID:
+            return "Student number"
+        case .visa:
+            return "Confirmation Code"
+        default:
+            return "Booking Number"
         }
     }
     
