@@ -70,10 +70,18 @@ struct TravelDocument: Identifiable, Codable, Equatable {
     let detailValue: String
     
     // NEW FIELDS (Optional to maintain backward compatibility with JSON)
+    var origin: String? // NEW: For Boarding Pass
     var nationality: String?
     var birthDate: Date?
     var issueDate: Date?
     var expiryDate: Date?
+    
+    // NEW: Boarding Pass Specific Fields
+    var gate: String?
+    var seat: String?
+    var flightClass: String?
+    var flightDate: Date?
+    var boardingTime: Date?
     
     // Internal storage for Codable colors
     private let primaryColorData: CodableColor
@@ -94,10 +102,16 @@ struct TravelDocument: Identifiable, Codable, Equatable {
          subtitle: String, 
          holderName: String, 
          detailValue: String,
+         origin: String? = nil,
          nationality: String? = nil,
          birthDate: Date? = nil,
          issueDate: Date? = nil,
          expiryDate: Date? = nil,
+         gate: String? = nil,
+         seat: String? = nil,
+         flightClass: String? = nil,
+         flightDate: Date? = nil,
+         boardingTime: Date? = nil,
          primaryColor: Color, 
          secondaryColor: Color, 
          iconName: String, 
@@ -110,10 +124,16 @@ struct TravelDocument: Identifiable, Codable, Equatable {
         self.subtitle = subtitle
         self.holderName = holderName
         self.detailValue = detailValue
+        self.origin = origin
         self.nationality = nationality
         self.birthDate = birthDate
         self.issueDate = issueDate
         self.expiryDate = expiryDate
+        self.gate = gate
+        self.seat = seat
+        self.flightClass = flightClass
+        self.flightDate = flightDate
+        self.boardingTime = boardingTime
         self.primaryColorData = CodableColor(color: primaryColor)
         self.secondaryColorData = CodableColor(color: secondaryColor)
         self.iconName = iconName
@@ -183,7 +203,7 @@ struct DocumentCardView: View {
                     
                     Spacer()
                     
-                    Text(document.subtitle)
+                    Text(document.subtitle.uppercased())
                         .font(.caption)
                         .fontWeight(.bold)
                         .tracking(2)
@@ -696,9 +716,47 @@ struct BoardingPassDetailView: View {
     let document: TravelDocument
     let animate: Bool // Triggers the plane flight
     
+    // Formatter for Date: "14 OCT"
+    var flightDateFormatter: DateFormatter {
+        let f = DateFormatter()
+        f.dateFormat = "dd MMM"
+        return f
+    }
+    
+    // Formatter for Time: "10:20"
+    var timeFormatter: DateFormatter {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm"
+        return f
+    }
+    
+    private func parseAirportInfo(from string: String?) -> (code: String, city: String) {
+        guard let string = string, !string.isEmpty else {
+            return ("TBD", "UNKNOWN")
+        }
+        
+        // Find the last occurrence of " (" to get the code part
+        if let range = string.range(of: " (", options: .backwards) {
+            let city = String(string[..<range.lowerBound])
+            
+            // Extract the code between "(" and ")"
+            let start = string.index(range.lowerBound, offsetBy: 2)
+            if let endRange = string.range(of: ")", options: .backwards, range: start..<string.endIndex) {
+                let code = String(string[start..<endRange.lowerBound])
+                return (code, city.uppercased())
+            }
+        }
+        
+        // Fallback if the format is not "City (CODE)"
+        // Assume the whole string is the code.
+        return (string.uppercased(), "")
+    }
+    
     var body: some View {
         
         let brandColor = getAirlineColor(name: document.airline)
+        let originInfo = parseAirportInfo(from: document.origin)
+        let destinationInfo = parseAirportInfo(from: document.title)
         
         ZStack {
             Color(red: 0.98, green: 0.98, blue: 0.99) // Off-white paper texture
@@ -713,8 +771,6 @@ struct BoardingPassDetailView: View {
                         .font(.system(size: 14, weight: .bold, design: .monospaced))
                         .foregroundColor(.white)
                     Spacer()
-                    Text("ONEWORLD")
-                        .font(.caption2)
                         .foregroundColor(.white.opacity(0.8))
                 }
                 .padding()
@@ -725,23 +781,27 @@ struct BoardingPassDetailView: View {
                 VStack {
                     HStack {
                         VStack(alignment: .leading) {
-                            Text("LHR")
+                            Text(originInfo.code)
                                 .font(.system(size: 40, weight: .black))
                                 .foregroundColor(.black)
-                            Text("LONDON")
-                                .font(.caption)
-                                .fontWeight(.bold)
-                                .foregroundColor(.gray)
+                            if !originInfo.city.isEmpty {
+                                Text(originInfo.city)
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.gray)
+                            }
                         }
                         Spacer()
                         VStack(alignment: .trailing) {
-                            Text("HND")
+                            Text(destinationInfo.code)
                                 .font(.system(size: 40, weight: .black))
                                 .foregroundColor(.black)
-                            Text("TOKYO")
-                                .font(.caption)
-                                .fontWeight(.bold)
-                                .foregroundColor(.gray)
+                            if !destinationInfo.city.isEmpty {
+                                Text(destinationInfo.city)
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.gray)
+                            }
                         }
                     }
                     .padding(.horizontal, 25)
@@ -778,20 +838,20 @@ struct BoardingPassDetailView: View {
                 // 3. Flight Info Grid
                 HStack(alignment: .top, spacing: 0) {
                     VStack(alignment: .leading, spacing: 8) {
-                        FieldView(label: "FLIGHT", value: document.detailValue)
-                        FieldView(label: "DATE", value: "14 OCT")
+                        FieldView(label: "FLIGHT NO.", value: document.detailValue)
+                        FieldView(label: "DATE", value: document.flightDate.map { flightDateFormatter.string(from: $0).uppercased() } ?? "TBD")
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     
                     VStack(alignment: .leading, spacing: 8) {
-                        FieldView(label: "BOARDING", value: "10:20")
-                        FieldView(label: "GATE", value: "B42")
+                        FieldView(label: "TIME", value: document.boardingTime.map { timeFormatter.string(from: $0) } ?? "TBD")
+                        FieldView(label: "GATE", value: document.gate.flatMap { $0.isEmpty ? nil : $0 } ?? "TBD")
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     
                     VStack(alignment: .leading, spacing: 8) {
-                        FieldView(label: "SEAT", value: "4A")
-                        FieldView(label: "CLASS", value: "BUSINESS")
+                        FieldView(label: "SEAT", value: document.seat ?? "ANY")
+                        FieldView(label: "CLASS", value: document.flightClass?.uppercased() ?? "ECONOMY")
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -1598,6 +1658,14 @@ struct AddDocumentView: View {
     @State private var issueDate: Date = Date()
     @State private var expiryDate: Date = Date()
     
+    // BOARDING PASS SPECIFIC FIELDS
+    @State private var origin: String = "" // NEW
+    @State private var gate: String = ""
+    @State private var seat: String = ""
+    @State private var flightClass: String = "Economy"
+    @State private var flightDate: Date = Date()
+    @State private var boardingTime: Date = Date()
+    
     let bloodTypes = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"]
     let vaccines = ["COVID-19", "Influenza", "Yellow Fever", "Tetanus", "Hepatitis B", "Measles"]
     
@@ -1710,20 +1778,18 @@ struct AddDocumentView: View {
         ("ALC", "Alicante"),
         ("PMI", "Palma de Mallorca")
     ]
+    
     // MARK: - NEW: AIRPORT FILTER LOGIC
-    // CHANGED: Returns tuples instead of strings to allow custom layout in the menu
-    var filteredAirports: [(code: String, name: String)] {
-        if title.isEmpty { return [] }
+    func filteredAirports(for query: String) -> [(code: String, name: String)] {
+        if query.isEmpty { return [] }
         
         // 1. Find matches
         let matches = airports.filter { code, name in
-            code.localizedCaseInsensitiveContains(title) || name.localizedCaseInsensitiveContains(title)
+            code.localizedCaseInsensitiveContains(query) || name.localizedCaseInsensitiveContains(query)
         }
         
         // 2. Hide suggestions if the user has already selected a valid full entry
-        // We check if the current `title` matches a fully formatted string from our data
-        // Format used in selection: "Name (Code)"
-        if matches.contains(where: { "\( $0.1 ) (\( $0.0 ))" == title }) {
+        if matches.contains(where: { "\( $0.1 ) (\( $0.0 ))" == query }) {
             return []
         }
         
@@ -1757,6 +1823,14 @@ struct AddDocumentView: View {
             if !doc.airline.isEmpty {
                 _selectedAirline = State(initialValue: doc.airline)
             }
+            
+            // Pre-fill Boarding Pass specifics
+            _origin = State(initialValue: doc.origin ?? "")
+            _gate = State(initialValue: doc.gate ?? "")
+            _seat = State(initialValue: doc.seat ?? "")
+            _flightClass = State(initialValue: doc.flightClass ?? "Economy")
+            if let fd = doc.flightDate { _flightDate = State(initialValue: fd) }
+            if let bt = doc.boardingTime { _boardingTime = State(initialValue: bt) }
             
         } else {
             // ADD MODE
@@ -1822,18 +1896,37 @@ struct AddDocumentView: View {
                              }
                          }
                          
-                         // MARK: - NEW: AUTOCOMPLETE AIRPORT FIELD
+                         // MARK: - NEW: AUTOCOMPLETE AIRPORT FIELDS
+                        TextField("Origin (Type code or city)", text: $origin)
+                            .textInputAutocapitalization(.words)
+                        
+                        // Suggestions for Origin
+                        if !filteredAirports(for: origin).isEmpty {
+                            ForEach(filteredAirports(for: origin), id: \.code) { airport in
+                                Button(action: {
+                                    origin = "\(airport.name) (\(airport.code))"
+                                }) {
+                                    HStack {
+                                        Text(airport.name).foregroundColor(.primary)
+                                        Spacer()
+                                        Text(airport.code)
+                                            .font(.system(.subheadline, design: .monospaced))
+                                            .fontWeight(.bold)
+                                            .foregroundColor(.gray)
+                                    }
+                                }
+                            }
+                        }
+                        
                          TextField("Destination (Type code or city)", text: $title)
                              .textInputAutocapitalization(.words)
                          
-                         // Show suggestions if typing matches
-                         if !filteredAirports.isEmpty {
-                             ForEach(filteredAirports, id: \.code) { airport in
+                         // Suggestions for Destination
+                        if !filteredAirports(for: title).isEmpty {
+                             ForEach(filteredAirports(for: title), id: \.code) { airport in
                                  Button(action: {
-                                     // Set formatted title when selected
                                      title = "\(airport.name) (\(airport.code))"
                                  }) {
-                                     // CHANGED: Custom layout for the menu row
                                      HStack {
                                          Text(airport.name)
                                              .foregroundColor(.primary)
@@ -1846,6 +1939,24 @@ struct AddDocumentView: View {
                                  }
                              }
                          }
+                        
+                        // NEW BOARDING PASS DETAILS
+                        HStack {
+                            TextField("Gate", text: $gate)
+                            Divider()
+                            TextField("Seat", text: $seat)
+                        }
+                        
+                        Picker("Class", selection: $flightClass) {
+                            Text("Economy").tag("Economy")
+                            Text("Premium Economy").tag("Premium Economy")
+                            Text("Business").tag("Business")
+                            Text("First").tag("First")
+                        }
+                        
+                        DatePicker("Flight Date", selection: $flightDate, displayedComponents: .date)
+                        DatePicker("Flight Time", selection: $boardingTime, displayedComponents: .hourAndMinute)
+                        
                     } else if type == .passport {
                         // MARK: - NEW: PASSPORT COUNTRY PICKER
                         Picker("Country", selection: $title) {
@@ -1886,6 +1997,14 @@ struct AddDocumentView: View {
                         
                         DatePicker("Date of Birth", selection: $birthDate, displayedComponents: .date)
                         DatePicker("Date of Expiry", selection: $expiryDate, displayedComponents: .date)
+                    } else if type == .boardingPass {
+                         TextField("Passenger Name", text: $holderName)
+                             .textInputAutocapitalization(.words)
+                         TextField("Flight Number", text: $detailValue)
+                             .textInputAutocapitalization(.characters)
+                             .onChange(of: detailValue) { newValue in
+                                 detailValue = newValue.uppercased()
+                             }
                     } else {
                         TextField("Your Name", text: $holderName)
                             .textInputAutocapitalization(.words)
@@ -1951,10 +2070,18 @@ struct AddDocumentView: View {
             subtitle: finalSubtitle,
             holderName: finalHolder,
             detailValue: finalDetail,
+            origin: type == .boardingPass ? origin : nil,
             nationality: type == .passport ? nationality : nil,
             birthDate: type == .passport ? birthDate : nil,
             issueDate: type == .passport ? issueDate : nil,
             expiryDate: type == .passport ? expiryDate : nil,
+            // Boarding Pass fields
+            gate: type == .boardingPass ? gate : nil,
+            seat: type == .boardingPass ? seat : nil,
+            flightClass: type == .boardingPass ? flightClass : nil,
+            flightDate: type == .boardingPass ? flightDate : nil,
+            boardingTime: type == .boardingPass ? boardingTime : nil,
+            
             primaryColor: getColor(for: type),
             secondaryColor: .white,
             iconName: getIcon(for: type),
