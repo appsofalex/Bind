@@ -17,11 +17,13 @@ struct DocumentCardView: View {
                 endPoint: .bottomTrailing
             )
             
-            // Texture Icon
+            // High-Resolution Texture Icon
             Image(systemName: document.iconName)
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 300)
+                // 1. Render the symbol as a large, vector-based font character for sharpness.
+                .font(.system(size: 300, weight: .thin))
+                // 2. Force the view into a consistent 300x300 frame to ensure
+                //    its center is always in the same place for the .position() modifier.
+                .frame(width: 300, height: 300)
                 .position(x: 300, y: 100)
                 .opacity(0.1)
                 .blur(radius: 2)
@@ -70,9 +72,19 @@ struct DocumentCardView: View {
                     
                     Spacer()
                     
-                    Image(systemName: "qrcode")
-                        .font(.largeTitle)
-                        .foregroundColor(.white.opacity(0.5))
+                    if document.type == .insurance, let phone = document.emergencyPhoneNumber, !phone.isEmpty {
+                        HStack(spacing: 5) {
+                            Image(systemName: "phone.fill")
+                                .font(.callout)
+                            Text(phone)
+                                .font(.system(size: 16, weight: .semibold, design: .monospaced))
+                        }
+                        .foregroundColor(.white.opacity(0.9))
+                    } else {
+                        Image(systemName: "qrcode")
+                            .font(.largeTitle)
+                            .foregroundColor(.white.opacity(0.5))
+                    }
                 }
             }
             .padding(25)

@@ -333,7 +333,7 @@ struct TravelDocsWalletView: View {
         }
         // ADD SHEET: Triggers when the user selects an item from the Menu
         .sheet(item: $selectedTypeToAdd) { type in
-            AddDocumentView(type: type) { newDoc in
+            DocumentFormView(type: type) { newDoc in
                 withAnimation {
                     // 1. If we are at max capacity (6), deactivate the last active card to make room
                     if activeDocuments.count >= maxCardsOnScreen {
@@ -354,7 +354,7 @@ struct TravelDocsWalletView: View {
         }
         // EDIT SHEET: Triggers when user taps "Edit"
         .sheet(item: $documentToEdit) { doc in
-            AddDocumentView(document: doc) { updatedDoc in
+            DocumentFormView(document: doc) { updatedDoc in
                 // Update the document in place
                 if let index = documents.firstIndex(where: { $0.id == updatedDoc.id }) {
                     documents[index] = updatedDoc

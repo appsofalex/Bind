@@ -1,7 +1,14 @@
 import SwiftUI
+import PhotosUI
+
+// A helper struct to make UIImage identifiable for use with .sheet(item:).
+fileprivate struct CroppableImage: Identifiable {
+    let id = UUID()
+    let image: UIImage
+}
 
 // MARK: - NEW: ADD DOCUMENT VIEW & FORM
-struct AddDocumentView: View {
+struct DocumentFormView: View {
     let type: TravelDocument.DocumentType
     let onAdd: (TravelDocument) -> Void
     let existingID: UUID? // Stores ID if we are editing
@@ -21,11 +28,11 @@ struct AddDocumentView: View {
     @State private var selectedUniversity = "State Univ"
     @State private var selectedAirline = "British Airways"
     
-    // PASSPORT SPECIFIC FIELDS
+    // PASSPORT & INSURANCE & LICENSE SPECIFIC FIELDS
     @State private var nationality: String = ""
     @State private var birthDate: Date = Date()
-    @State private var issueDate: Date = Date()
-    @State private var expiryDate: Date = Date()
+    @State private var issueDate: Date = Date() // Coverage Start for Insurance, Issue for License
+    @State private var expiryDate: Date = Date() // Coverage End for Insurance, Expiry for License
     
     // BOARDING PASS SPECIFIC FIELDS
     @State private var origin: String = "" // NEW
@@ -35,10 +42,31 @@ struct AddDocumentView: View {
     @State private var flightDate: Date = Date()
     @State private var boardingTime: Date = Date()
     
+    // INSURANCE SPECIFIC FIELDS
+    @State private var groupNumber: String = ""
+    @State private var emergencyPhoneNumber: String = ""
+    
+    // DRIVER'S LICENSE SPECIFIC FIELDS
+    @State private var address: String = ""
+    @State private var licenseClass: String = ""
+    @State private var restrictions: String = ""
+    @State private var endorsements: String = ""
+    @State private var height: String = ""
+    @State private var eyeColor: String = ""
+    @State private var documentImage: Data? = nil
+    
+    // Image Picker & Cropper State
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var imageToCrop: CroppableImage?
+    
     let bloodTypes = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"]
     let vaccines = ["COVID-19", "Influenza", "Yellow Fever", "Tetanus", "Hepatitis B", "Measles"]
     let visaTypes = ["Tourist Visa", "Business Visa", "Student Visa", "Work Visa", "Transit Visa", "Investor Visa", "Spouse Visa", "Visitor Visa"]
+    let insuranceTypes = ["Travel", "Health", "Auto", "Dental", "Life", "Home & Contents"]
     
+    // Static list for UK Driver's License classes
+    let licenseClasses = ["Category B (Car)", "Category A (Motorcycle)", "Category C (Large Goods)", "Category D (Bus)", "Provisional"]
+
     // MARK: - NEW: COUNTRY DATA
     let countries = [
         "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan",
@@ -202,6 +230,19 @@ struct AddDocumentView: View {
             if let fd = doc.flightDate { _flightDate = State(initialValue: fd) }
             if let bt = doc.boardingTime { _boardingTime = State(initialValue: bt) }
             
+            // Pre-fill Insurance specifics
+            _groupNumber = State(initialValue: doc.groupNumber ?? "")
+            _emergencyPhoneNumber = State(initialValue: doc.emergencyPhoneNumber ?? "")
+            
+            // Pre-fill Driver's License specifics
+            _address = State(initialValue: doc.address ?? "")
+            _licenseClass = State(initialValue: doc.licenseClass ?? "")
+            _restrictions = State(initialValue: doc.restrictions ?? "")
+            _endorsements = State(initialValue: doc.endorsements ?? "")
+            _height = State(initialValue: doc.height ?? "")
+            _eyeColor = State(initialValue: doc.eyeColor ?? "")
+            _documentImage = State(initialValue: doc.documentImageData)
+            
         } else {
             // ADD MODE
             let targetType = type ?? .passport
@@ -217,9 +258,13 @@ struct AddDocumentView: View {
             case .visa:
                 _title = State(initialValue: "United States")
                 _subtitle = State(initialValue: "Tourist Visa")
+            case .insurance:
+                _title = State(initialValue: "")
+                _subtitle = State(initialValue: "Travel") // Default to Travel insurance
             case .driversLicense:
-                _title = State(initialValue: "California")
+                _title = State(initialValue: "United Kingdom")
                 _subtitle = State(initialValue: "DRIVER LICENSE")
+                _licenseClass = State(initialValue: "Category B (Car)")
             case .studentID:
                 _title = State(initialValue: "")
                 _subtitle = State(initialValue: "Student ID")
@@ -241,163 +286,9 @@ struct AddDocumentView: View {
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Document Details")) {
-                    // Context-aware fields
-                    if type == .medicalAlert {
-                        Picker("Blood Type", selection: $selectedBloodType) {
-                            ForEach(bloodTypes, id: \.self) { Text($0) }
-                        }
-                        TextField("Allergies", text: $holderName) // Using holderName for Allergy list
-                            .textInputAutocapitalization(.sentences)
-                            .overlay(
-                                Text("e.g. Peanuts, Penicillin").foregroundColor(.gray.opacity(0.5)).allowsHitTesting(false).opacity(holderName.isEmpty ? 1 : 0),
-                                alignment: .leading
-                            )
-                    } else if type == .vaccineRecord {
-                         Picker("Vaccine Type", selection: $selectedVaccine) {
-                             ForEach(vaccines, id: \.self) { Text($0) }
-                         }
-                         TextField("Date / Dose", text: $detailValue)
-                    } else if type == .boardingPass {
-                         Picker("Airline", selection: $selectedAirline) {
-                             ForEach(airlineSegments, id: \.country) { segment in
-                                 Section(header: Text(segment.country)) {
-                                     ForEach(segment.airlines, id: \.self) { airline in
-                                         Text(airline).tag(airline)
-                                     }
-                                 }
-                             }
-                         }
-                         
-                         // MARK: - NEW: AUTOCOMPLETE AIRPORT FIELDS
-                        TextField("Origin (Type code or city)", text: $origin)
-                            .textInputAutocapitalization(.words)
-                        
-                        // Suggestions for Origin
-                        if !filteredAirports(for: origin).isEmpty {
-                            ForEach(filteredAirports(for: origin), id: \.code) { airport in
-                                Button(action: {
-                                    origin = "\(airport.name) (\(airport.code))"
-                                }) {
-                                    HStack {
-                                        Text(airport.name).foregroundColor(.primary)
-                                        Spacer()
-                                        Text(airport.code)
-                                            .font(.system(.subheadline, design: .monospaced))
-                                            .fontWeight(.bold)
-                                            .foregroundColor(.gray)
-                                    }
-                                }
-                            }
-                        }
-                        
-                         TextField("Destination (Type code or city)", text: $title)
-                             .textInputAutocapitalization(.words)
-                         
-                         // Suggestions for Destination
-                        if !filteredAirports(for: title).isEmpty {
-                             ForEach(filteredAirports(for: title), id: \.code) { airport in
-                                 Button(action: {
-                                     title = "\(airport.name) (\(airport.code))"
-                                 }) {
-                                     HStack {
-                                         Text(airport.name)
-                                             .foregroundColor(.primary)
-                                         Spacer()
-                                         Text(airport.code)
-                                             .font(.system(.subheadline, design: .monospaced))
-                                             .fontWeight(.bold)
-                                             .foregroundColor(.gray)
-                                     }
-                                 }
-                             }
-                         }
-                        
-                        // NEW BOARDING PASS DETAILS
-                        HStack {
-                            TextField("Gate", text: $gate)
-                            Divider()
-                            TextField("Seat", text: $seat)
-                        }
-                        
-                        Picker("Class", selection: $flightClass) {
-                            Text("Economy").tag("Economy")
-                            Text("Premium Economy").tag("Premium Economy")
-                            Text("Business").tag("Business")
-                            Text("First").tag("First")
-                        }
-                        
-                        DatePicker("Flight Date", selection: $flightDate, displayedComponents: .date)
-                        DatePicker("Flight Time", selection: $boardingTime, displayedComponents: .hourAndMinute)
-                        
-                    } else if type == .passport {
-                        // MARK: - NEW: PASSPORT COUNTRY PICKER
-                        Picker("Country", selection: $title) {
-                            ForEach(countries, id: \.self) { country in
-                                Text(country).tag(country)
-                            }
-                        }
-                        // Auto-update Nationality when Country changes
-                        .onChange(of: title) { newValue in
-                            nationality = newValue
-                        }
-                        // No subtitle field for passport
-                    } else if type == .visa {
-                        Picker("Country", selection: $title) {
-                            ForEach(countries, id: \.self) { country in
-                                Text(country).tag(country)
-                            }
-                        }
-                        Picker("Visa Type", selection: $subtitle) {
-                            ForEach(visaTypes, id: \.self) { type in
-                                Text(type).tag(type)
-                            }
-                        }
-                    } else {
-                        TextField(type == .studentID ? "University name" : "Title (e.g. Country, State)", text: $title)
-                            .textInputAutocapitalization(.words)
-                        TextField("Subtitle (e.g. License Type)", text: $subtitle)
-                            .textInputAutocapitalization(type == .studentID ? .sentences : .characters)
-                    }
-                }
-                
-                Section(header: Text("Personal Info")) {
-                    if type == .medicalAlert {
-                        // Already handled allergies above, use this for Emergency Contact
-                        TextField("Emergency Contact", text: $detailValue)
-                            .textInputAutocapitalization(.words)
-                    } else if type == .passport {
-                        // MARK: - SPECIFIC PASSPORT FIELDS
-                        TextField("Full Name", text: $holderName)
-                            .textInputAutocapitalization(.words)
-                        TextField("Passport Number", text: $detailValue)
-                            .textInputAutocapitalization(.characters)
-                            .onChange(of: detailValue) { newValue in
-                                detailValue = newValue.uppercased()
-                            }
-                        TextField("Nationality", text: $nationality) // Auto-filled but editable
-                            .textInputAutocapitalization(.words)
-                        
-                        DatePicker("Date of Birth", selection: $birthDate, displayedComponents: .date)
-                        DatePicker("Date of Expiry", selection: $expiryDate, displayedComponents: .date)
-                    } else if type == .boardingPass {
-                         TextField("Passenger Name", text: $holderName)
-                             .textInputAutocapitalization(.words)
-                         TextField("Flight Number", text: $detailValue)
-                             .textInputAutocapitalization(.characters)
-                             .onChange(of: detailValue) { newValue in
-                                 detailValue = newValue.uppercased()
-                             }
-                    } else {
-                        TextField("Your Name", text: $holderName)
-                            .textInputAutocapitalization(.words)
-                        TextField(getDetailLabel(), text: $detailValue)
-                            .textInputAutocapitalization(.characters)
-                            .onChange(of: detailValue) { newValue in
-                                detailValue = newValue.uppercased()
-                            }
-                    }
-                }
+                documentDetailsSection
+                personalInfoSection
+                driversLicensePhotoSection
             }
             .navigationTitle(existingID != nil ? "Edit \(type.displayName)" : "Add \(type.displayName)")
             .navigationBarItems(
@@ -407,8 +298,246 @@ struct AddDocumentView: View {
                     dismiss()
                 }
             )
+            .sheet(item: $imageToCrop) { item in
+                ImageCropperView(image: item.image) { croppedImage in
+                    documentImage = croppedImage.jpegData(compressionQuality: 0.8)
+                }
+            }
+            .onChange(of: selectedPhotoItem) {
+                Task {
+                    if let data = try? await selectedPhotoItem?.loadTransferable(type: Data.self) {
+                        if let image = UIImage(data: data) {
+                            imageToCrop = CroppableImage(image: image)
+                        }
+                    }
+                }
+            }
         }
     }
+    
+    // MARK: - View Components
+    
+    private var documentDetailsSection: some View {
+        Section(header: Text("Document Details")) {
+            switch type {
+            case .medicalAlert:
+                Picker("Blood Type", selection: $selectedBloodType) {
+                    ForEach(bloodTypes, id: \.self) { Text($0) }
+                }
+                TextField("Allergies", text: $holderName) // Using holderName for Allergy list
+                    .textInputAutocapitalization(.sentences)
+                    .overlay(
+                        Text("e.g. Peanuts, Penicillin").foregroundColor(.gray.opacity(0.5)).allowsHitTesting(false).opacity(holderName.isEmpty ? 1 : 0),
+                        alignment: .leading
+                    )
+            case .vaccineRecord:
+                 Picker("Vaccine Type", selection: $selectedVaccine) {
+                     ForEach(vaccines, id: \.self) { Text($0) }
+                 }
+                 TextField("Date / Dose", text: $detailValue)
+            case .boardingPass:
+                 Picker("Airline", selection: $selectedAirline) {
+                     ForEach(airlineSegments, id: \.country) { segment in
+                         Section(header: Text(segment.country)) {
+                             ForEach(segment.airlines, id: \.self) { airline in
+                                 Text(airline).tag(airline)
+                             }
+                         }
+                     }
+                 }
+                 
+                AirportSelectionField(
+                    title: "Origin (Type code or city)",
+                    selection: $origin,
+                    airports: filteredAirports(for: origin)
+                ) { name, code in
+                    origin = "\(name) (\(code))"
+                }
+
+                AirportSelectionField(
+                    title: "Destination (Type code or city)",
+                    selection: $title,
+                    airports: filteredAirports(for: title)
+                ) { name, code in
+                    title = "\(name) (\(code))"
+                }
+
+                HStack {
+                    TextField("Gate", text: $gate)
+                    Divider()
+                    TextField("Seat", text: $seat)
+                }
+                
+                Picker("Class", selection: $flightClass) {
+                    Text("Economy").tag("Economy")
+                    Text("Premium Economy").tag("Premium Economy")
+                    Text("Business").tag("Business")
+                    Text("First").tag("First")
+                }
+                
+                DatePicker("Flight Date", selection: $flightDate, displayedComponents: .date)
+                DatePicker("Flight Time", selection: $boardingTime, displayedComponents: .hourAndMinute)
+                
+            case .passport:
+                Picker("Country", selection: $title) {
+                    ForEach(countries, id: \.self) { country in
+                        Text(country).tag(country)
+                    }
+                }
+                .onChange(of: title) { newValue in
+                    nationality = newValue
+                }
+            case .visa:
+                Picker("Country", selection: $title) {
+                    ForEach(countries, id: \.self) { country in
+                        Text(country).tag(country)
+                    }
+                }
+                Picker("Visa Type", selection: $subtitle) {
+                    ForEach(visaTypes, id: \.self) { type in
+                        Text(type).tag(type)
+                    }
+                }
+            case .insurance:
+                TextField("Provider Name", text: $title)
+                    .textInputAutocapitalization(.words)
+                Picker("Plan Type", selection: $subtitle) {
+                    ForEach(insuranceTypes, id: \.self) { type in
+                        Text(type).tag(type)
+                    }
+                }
+            case .driversLicense:
+                Picker("Issuing Country", selection: $title) {
+                    ForEach(countries, id: \.self) { country in
+                        Text(country).tag(country)
+                    }
+                }
+                Picker("License Class", selection: $licenseClass) {
+                    ForEach(licenseClasses, id: \.self) { aClass in
+                        Text(aClass).tag(aClass)
+                    }
+                }
+            
+            case .studentID, .idCard, .prescription:
+                TextField(type == .studentID ? "University name" : "Title (e.g. Country, State)", text: $title)
+                    .textInputAutocapitalization(.words)
+                TextField("Subtitle (e.g. License Type)", text: $subtitle)
+                    .textInputAutocapitalization(type == .studentID ? .sentences : .characters)
+            }
+        }
+    }
+    
+    private var personalInfoSection: some View {
+        Section(header: Text("Personal Info")) {
+            switch type {
+            case .medicalAlert:
+                TextField("Emergency Contact", text: $detailValue)
+                    .textInputAutocapitalization(.words)
+            case .passport:
+                TextField("Full Name", text: $holderName)
+                    .textInputAutocapitalization(.words)
+                TextField("Passport Number", text: $detailValue)
+                    .textInputAutocapitalization(.characters)
+                    .onChange(of: detailValue) { newValue in
+                        detailValue = newValue.uppercased()
+                    }
+                TextField("Nationality", text: $nationality)
+                    .textInputAutocapitalization(.words)
+                
+                DatePicker("Date of Birth", selection: $birthDate, displayedComponents: .date)
+                DatePicker("Date of Expiry", selection: $expiryDate, displayedComponents: .date)
+            case .boardingPass:
+                 TextField("Passenger Name", text: $holderName)
+                     .textInputAutocapitalization(.words)
+                 TextField("Flight Number", text: $detailValue)
+                     .textInputAutocapitalization(.characters)
+                     .onChange(of: detailValue) { newValue in
+                         detailValue = newValue.uppercased()
+                     }
+            case .insurance:
+                TextField("Policy Holder Name", text: $holderName)
+                    .textInputAutocapitalization(.words)
+                TextField("Policy Number", text: $detailValue)
+                    .textInputAutocapitalization(.characters)
+                TextField("Group Number (Optional)", text: $groupNumber)
+                    .textInputAutocapitalization(.characters)
+                TextField("Emergency Contact Number", text: $emergencyPhoneNumber)
+                    .keyboardType(.phonePad)
+                
+                DatePicker("Coverage Start Date", selection: $issueDate, displayedComponents: .date)
+                DatePicker("Coverage End Date", selection: $expiryDate, displayedComponents: .date)
+            
+            case .driversLicense:
+                TextField("Full Name", text: $holderName)
+                    .textInputAutocapitalization(.words)
+                TextField("License Number", text: $detailValue)
+                    .textInputAutocapitalization(.characters)
+                TextField("Address", text: $address, axis: .vertical)
+                    .lineLimit(3)
+                
+                DatePicker("Date of Birth", selection: $birthDate, displayedComponents: .date)
+                DatePicker("Issue Date", selection: $issueDate, displayedComponents: .date)
+                DatePicker("Expiry Date", selection: $expiryDate, displayedComponents: .date)
+
+            default:
+                TextField("Your Name", text: $holderName)
+                    .textInputAutocapitalization(.words)
+                TextField(getDetailLabel(), text: $detailValue)
+                    .textInputAutocapitalization(.characters)
+                    .onChange(of: detailValue) { newValue in
+                        detailValue = newValue.uppercased()
+                    }
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private var driversLicensePhotoSection: some View {
+        if type == .driversLicense {
+            HStack {
+                VStack { Divider() }
+                Text("OR")
+                    .font(.caption.bold())
+                    .foregroundColor(.gray)
+                VStack { Divider() }
+            }
+            .listRowInsets(EdgeInsets(top: 10, leading: 0, bottom: 10, trailing: 0))
+            .listRowBackground(Color.clear)
+            
+            Section(header: Text("Upload a Photo"), footer: Text("Scan the back of your license. The photo will be used instead of the details entered above.")) {
+                if let imageData = documentImage, let uiImage = UIImage(data: imageData) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFit()
+                        .cornerRadius(10)
+                        .frame(maxHeight: 200)
+                        .listRowInsets(EdgeInsets()) // Make image fill the row
+                        .overlay(alignment: .topTrailing) {
+                            Button {
+                                withAnimation { documentImage = nil }
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.title2)
+                                    .symbolRenderingMode(.palette)
+                                    .foregroundStyle(.white, .red)
+                                    .shadow(radius: 2)
+                            }
+                            .padding(8)
+                        }
+                }
+                
+                PhotosPicker(
+                    selection: $selectedPhotoItem,
+                    matching: .images,
+                    photoLibrary: .shared()
+                ) {
+                    Label(documentImage == nil ? "Choose Photo" : "Change Photo", systemImage: "photo.on.rectangle")
+                }
+            }
+        }
+    }
+    
+    // MARK: - Helper Methods
     
     private func getDetailLabel() -> String {
         switch type {
@@ -435,30 +564,31 @@ struct AddDocumentView: View {
         case .medicalAlert:
             finalTitle = "Medical Alert"
             finalSubtitle = "BLOOD / ALLERGY"
-            finalHolder = "TYPE: \(selectedBloodType)" // Store Blood Type in Holder slot
-            // finalDetail holds Emergency Contact or Allergies
+            finalHolder = "TYPE: \(selectedBloodType)"
             
         case .vaccineRecord:
             finalTitle = "Vaccination"
             finalSubtitle = selectedVaccine.uppercased()
-            // finalHolder is Name
-            // finalDetail is Date
             
         case .boardingPass:
             finalAirline = selectedAirline
+            
+        case .insurance:
+            finalSubtitle = subtitle.uppercased() + " INSURANCE"
+            
+        case .driversLicense:
+            finalSubtitle = "DRIVER LICENSE"
             
         default:
             break
         }
         
-        // Defaults if empty
         if finalTitle.isEmpty { finalTitle = "New Document" }
-        // NEW: Ensure subtitle defaults to the document type name if not set manually
         if finalSubtitle.isEmpty { finalSubtitle = type.displayName.uppercased() }
         if finalHolder.isEmpty { finalHolder = "CARD HOLDER" }
         
         let newDoc = TravelDocument(
-            id: existingID ?? UUID(), // Preserve ID if editing
+            id: existingID ?? UUID(),
             type: type,
             title: finalTitle,
             subtitle: finalSubtitle,
@@ -466,20 +596,28 @@ struct AddDocumentView: View {
             detailValue: finalDetail,
             origin: type == .boardingPass ? origin : nil,
             nationality: type == .passport ? nationality : nil,
-            birthDate: type == .passport ? birthDate : nil,
-            issueDate: type == .passport ? issueDate : nil,
-            expiryDate: type == .passport ? expiryDate : nil,
-            // Boarding Pass fields
+            birthDate: (type == .passport || type == .driversLicense) ? birthDate : nil,
+            issueDate: (type == .passport || type == .insurance || type == .driversLicense) ? issueDate : nil,
+            expiryDate: (type == .passport || type == .insurance || type == .driversLicense) ? expiryDate : nil,
             gate: type == .boardingPass ? gate : nil,
             seat: type == .boardingPass ? seat : nil,
             flightClass: type == .boardingPass ? flightClass : nil,
             flightDate: type == .boardingPass ? flightDate : nil,
             boardingTime: type == .boardingPass ? boardingTime : nil,
-            
+            groupNumber: type == .insurance ? groupNumber : nil,
+            emergencyPhoneNumber: type == .insurance ? emergencyPhoneNumber : nil,
+            address: type == .driversLicense ? address : nil,
+            licenseClass: type == .driversLicense ? licenseClass : nil,
+            restrictions: type == .driversLicense ? restrictions : nil,
+            endorsements: type == .driversLicense ? endorsements : nil,
+            height: type == .driversLicense ? height : nil,
+            eyeColor: type == .driversLicense ? eyeColor : nil,
+            documentImageData: type == .driversLicense ? documentImage : nil,
             primaryColor: getColor(for: type),
             secondaryColor: .white,
             iconName: getIcon(for: type),
-            airline: finalAirline
+            airline: finalAirline,
+            isActive: true
         )
         
         onAdd(newDoc)
@@ -510,8 +648,39 @@ struct AddDocumentView: View {
         case .passport: return "globe"
         case .boardingPass: return "airplane"
         case .visa: return "checkmark.seal"
-        case .insurance: return "cross.fill"
+        case .insurance: return "cross.case.fill"
         case .idCard: return "person.text.rectangle.fill"
         }
     }
 }
+/// A reusable view for airport text fields with autocomplete suggestions.
+fileprivate struct AirportSelectionField: View {
+    let title: String
+    @Binding var selection: String
+    let airports: [(code: String, name: String)]
+    let onSelect: (String, String) -> Void
+
+    var body: some View {
+        TextField(title, text: $selection)
+            .textInputAutocapitalization(.words)
+
+        if !airports.isEmpty {
+            ForEach(airports, id: \.code) { airport in
+                Button(action: {
+                    onSelect(airport.name, airport.code)
+                }) {
+                    HStack {
+                        Text(airport.name).foregroundColor(.primary)
+                        Spacer()
+                        Text(airport.code)
+                            .font(.system(.subheadline, design: .monospaced))
+                            .fontWeight(.bold)
+                            .foregroundColor(.gray)
+                    }
+                }
+            }
+        }
+    }
+}
+
+

@@ -13,8 +13,8 @@ struct TravelDocument: Identifiable, Codable, Equatable {
     var origin: String? // NEW: For Boarding Pass
     var nationality: String?
     var birthDate: Date?
-    var issueDate: Date?
-    var expiryDate: Date?
+    var issueDate: Date? // Used for Insurance Start Date & License Issue
+    var expiryDate: Date? // Used for Insurance End Date & License Expiry
     
     // NEW: Boarding Pass Specific Fields
     var gate: String?
@@ -22,6 +22,19 @@ struct TravelDocument: Identifiable, Codable, Equatable {
     var flightClass: String?
     var flightDate: Date?
     var boardingTime: Date?
+    
+    // NEW: Insurance Specific Fields
+    var groupNumber: String?
+    var emergencyPhoneNumber: String?
+    
+    // NEW: Driver's License Specific Fields
+    var address: String?
+    var licenseClass: String?
+    var restrictions: String?
+    var endorsements: String?
+    var height: String?
+    var eyeColor: String?
+    var documentImageData: Data?
     
     // Internal storage for Codable colors
     private let primaryColorData: CodableColor
@@ -52,6 +65,15 @@ struct TravelDocument: Identifiable, Codable, Equatable {
          flightClass: String? = nil,
          flightDate: Date? = nil,
          boardingTime: Date? = nil,
+         groupNumber: String? = nil,
+         emergencyPhoneNumber: String? = nil,
+         address: String? = nil,
+         licenseClass: String? = nil,
+         restrictions: String? = nil,
+         endorsements: String? = nil,
+         height: String? = nil,
+         eyeColor: String? = nil,
+         documentImageData: Data? = nil,
          primaryColor: Color,
          secondaryColor: Color,
          iconName: String,
@@ -74,6 +96,15 @@ struct TravelDocument: Identifiable, Codable, Equatable {
         self.flightClass = flightClass
         self.flightDate = flightDate
         self.boardingTime = boardingTime
+        self.groupNumber = groupNumber
+        self.emergencyPhoneNumber = emergencyPhoneNumber
+        self.address = address
+        self.licenseClass = licenseClass
+        self.restrictions = restrictions
+        self.endorsements = endorsements
+        self.height = height
+        self.eyeColor = eyeColor
+        self.documentImageData = documentImageData
         self.primaryColorData = CodableColor(color: primaryColor)
         self.secondaryColorData = CodableColor(color: secondaryColor)
         self.iconName = iconName
