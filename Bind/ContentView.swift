@@ -50,7 +50,8 @@ struct EmptyWalletView: View {
         .onAppear {
             animateArrow = false // Reset state
             withAnimation(
-                .easeInOut(duration: 1.0)
+                // Custom cubic-bezier for the repeating arrow animation
+                .timingCurve(0.25, 0.1, 0.25, 1, duration: 1.0)
                 .repeatForever(autoreverses: true)
             ) {
                 animateArrow = true
@@ -180,6 +181,7 @@ struct TravelDocsWalletView: View {
                             dragOffset = value.translation.height
                         }
                         .onEnded { value in
+                            // FIX: Corrected syntax for guard statement
                             guard selectedID == nil else { return }
                             
                             let totalDrag = CGFloat(baseScrollOffset) + value.translation.height
@@ -236,6 +238,11 @@ struct TravelDocsWalletView: View {
                                 Button(action: { startAdd(.prescription) }) { Label("Prescription", systemImage: "pills") }
                                 Button(action: { startAdd(.vaccineRecord) }) { Label("Vaccination Record", systemImage: "syringe") }
                                 Button(action: { startAdd(.medicalAlert) }) { Label("Blood & Allergies", systemImage: "staroflife") }
+                            }
+                            
+                            Section("Other") {
+                                Button(action: { startAdd(.birthCertificate) }) { Label("Birth Certificate", systemImage: "stroller") }
+                                Button(action: { startAdd(.marriageCertificate) }) { Label("Marriage Certificate", systemImage: "figure.and.child.holdinghands") }
                             }
 
                         } label: {
@@ -334,8 +341,9 @@ struct TravelDocsWalletView: View {
         // ADD SHEET: Triggers when the user selects an item from the Menu
         .sheet(item: $selectedTypeToAdd) { type in
             DocumentFormView(type: type) { newDoc in
-                withAnimation {
-                    // 1. If we are at max capacity (6), deactivate the last active card to make room
+                // Cubic-bezier to document insertion and scroll reset
+                withAnimation(.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.4)) {
+                    // 1. If at max capacity (6), deactivate the last active card to make room
                     if activeDocuments.count >= maxCardsOnScreen {
                         // Find the index of the last active card
                         if let lastActiveIndex = documents.lastIndex(where: { $0.isActive }) {
@@ -410,8 +418,8 @@ struct TravelDocsWalletView: View {
     
     func deleteDocument(_ doc: TravelDocument) {
         // Trigger Animation: Remove card from array
-        // The .transition(.move(edge: .trailing)) on the view handles the visual "fly off"
-        withAnimation(.easeInOut(duration: 0.35)) {
+        // Custom cubic-bezier for document deletion
+        withAnimation(.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.35)) {
             if let index = documents.firstIndex(where: { $0.id == doc.id }) {
                 documents.remove(at: index)
             }
@@ -495,7 +503,6 @@ struct TravelDocsWalletView: View {
         return Double(position)
     }
 }
-
 struct Bind_Previews: PreviewProvider {
     static var previews: some View {
         TravelDocsWalletView()

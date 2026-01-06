@@ -271,17 +271,16 @@ struct BoardingPassAnimatedCard: View {
         }
         .onChange(of: isSelected) { newValue in
             if newValue {
-                // EXPAND
+                // EXPAND (uses Spring)
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
                     showDetail = true
                 }
-                // TRIGGER PLANE AFTER EXPANSION STARTS
-                // Faster flight (1.5s instead of 2.5s)
-                withAnimation(.easeInOut(duration: 1.5).delay(0.2)) {
+                // TRIGGER PLANE AFTER EXPANSION STARTS - Applied custom cubic-bezier
+                withAnimation(.timingCurve(0.25, 0.1, 0.25, 1, duration: 1.5).delay(0.2)) {
                     planeMoved = true
                 }
             } else {
-                // COLLAPSE
+                // COLLAPSE (uses Spring)
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                     showDetail = false
                     planeMoved = false
@@ -290,3 +289,4 @@ struct BoardingPassAnimatedCard: View {
         }
     }
 }
+

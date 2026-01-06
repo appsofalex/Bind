@@ -452,22 +452,25 @@ struct IDFlipCard: View {
         }
         .onChange(of: isSelected) { newValue in
             if newValue {
-                // FLIP OPEN
+                // FLIP OPEN (yRotation uses Spring)
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                     yRotation = 180
                 }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                // Applied custom cubic-bezier for the state change that swaps front/back view
+                withAnimation(.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.1).delay(0.15)) { // Short duration for a quick swap
                     isBackVisible = true
                 }
             } else {
-                // FLIP CLOSE
+                // FLIP CLOSE (yRotation uses Spring)
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                     yRotation = 0
                 }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                // Applied custom cubic-bezier for the state change that swaps front/back view
+                withAnimation(.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.1).delay(0.15)) { // Short duration for a quick swap
                     isBackVisible = false
                 }
             }
         }
     }
 }
+

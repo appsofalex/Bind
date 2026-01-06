@@ -167,7 +167,7 @@ struct PassportDetailView: View {
     }
     
     func animateOpening() {
-        // Simple "Thud" opening animation
+        // Simple "Thud" opening animation (uses Spring)
         withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
             unfoldState = 0
             contentOpacity = 1
@@ -179,12 +179,15 @@ struct PassportDetailView: View {
     }
     
     func closeView() {
-        withAnimation(.easeIn(duration: 0.2)) {
+        // Applied custom cubic-bezier for the closing animation
+        withAnimation(.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.3)) {
             contentOpacity = 0
             unfoldState = -45
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+        // Adjusted delay to match new duration
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             isPresented = false
         }
     }
 }
+
