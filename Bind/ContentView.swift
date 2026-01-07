@@ -434,7 +434,7 @@ struct TravelDocsWalletView: View {
         .sheet(isPresented: $showAllCardsSheet) {
             NavigationView {
                 List {
-                    ForEach($documents) { $doc in
+                    ForEach(documents) { doc in
                         HStack(spacing: 15) {
                             Image(systemName: doc.iconName)
                                 .font(.title2)
@@ -451,7 +451,8 @@ struct TravelDocsWalletView: View {
                             Spacer()
                             
                             // Native Switch
-                            Toggle("", isOn: $doc.isActive)
+                            // Safe Binding prevents crash on deletion
+                            Toggle("", isOn: safeBinding(for: doc))
                                 .labelsHidden()
                                 .tint(.green)
                                 // Disable turning ON if we are already at 6
@@ -488,6 +489,23 @@ struct TravelDocsWalletView: View {
     }
     
     // MARK: - LOGIC
+    
+    // Helper to create a safe binding for the toggle that won't crash if the item is deleted
+    func safeBinding(for doc: TravelDocument) -> Binding<Bool> {
+        Binding<Bool>(
+            get: {
+                if let index = documents.firstIndex(where: { $0.id == doc.id }) {
+                    return documents[index].isActive
+                }
+                return false
+            },
+            set: { newValue in
+                if let index = documents.firstIndex(where: { $0.id == doc.id }) {
+                    documents[index].isActive = newValue
+                }
+            }
+        )
+    }
     
     func deleteDocument(_ doc: TravelDocument) {
         // Trigger Animation: Remove card from array
@@ -547,4 +565,3 @@ struct Bind_Previews: PreviewProvider {
             .preferredColorScheme(.dark)
     }
 }
-
