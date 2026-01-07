@@ -229,6 +229,11 @@ struct TravelDocsWalletView: View {
                             onTap: { toggleSelection(for: doc.id) }
                         )
                         .frame(width: geo.size.width - 40)
+                        // Hide other cards when one is selected
+                        .opacity(selectedID != nil && !isSelected ? 0 : 1)
+                        .blur(radius: selectedID != nil && !isSelected ? 20 : 0)
+                        // Use a faster animation for the background fade/blur
+                        .animation(.easeOut(duration: 0.25), value: selectedID)
                     }
                 }
                 .frame(width: geo.size.width, height: geo.size.height)

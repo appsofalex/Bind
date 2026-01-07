@@ -754,4 +754,3 @@ fileprivate struct AirportSelectionField: View {
         }
     }
 }
-

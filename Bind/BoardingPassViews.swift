@@ -289,4 +289,3 @@ struct BoardingPassAnimatedCard: View {
         }
     }
 }
-

@@ -437,4 +437,3 @@ struct PassportFlipCard: View {
         }
     }
 }
-
