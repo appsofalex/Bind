@@ -60,6 +60,112 @@ struct EmptyWalletView: View {
     }
 }
 
+// MARK: - NEW: WALLET CARD CONTAINER (Extracted to resolve compiler type-checking issue)
+// This view encapsulates the logic for displaying a single document card
+// including its type-specific rendering and all positioning/animation modifiers.
+struct WalletCardContainerView: View {
+    let document: TravelDocument
+    let isSelected: Bool
+    let position: CGFloat // The calculated circular position for this card
+    let totalScrollHeight: CGFloat // Total height for scroll calculations
+    let activeDocumentsCount: Int // Number of active documents for offset centering
+    let cardSpacing: CGFloat // Spacing between cards for calculations
+    let onTap: () -> Void
+
+    var body: some View {
+        Group {
+            if document.type == .passport {
+                PassportFlipCard(
+                    document: document,
+                    isSelected: isSelected,
+                    onTap: onTap
+                )
+            } else if document.type == .idCard || document.type == .driversLicense || document.type == .studentID {
+                IDFlipCard(
+                    document: document,
+                    isSelected: isSelected,
+                    onTap: onTap
+                )
+            } else if document.type == .boardingPass {
+                BoardingPassAnimatedCard(
+                    document: document,
+                    isSelected: isSelected,
+                    onTap: onTap
+                )
+            } else {
+                DocumentCardView(document: document)
+                    .onTapGesture(perform: onTap)
+            }
+        }
+        // 2. POSITIONING & DEPTH
+        .scaleEffect(getScale())
+        .rotation3DEffect(
+            .degrees(getRotation()),
+            axis: (x: 1, y: 0, z: 0)
+        )
+        .offset(y: getOffset())
+        
+        // 3. STACK ORDER (Z-Index)
+        .zIndex(getZIndex())
+        
+        // Animation value
+        .animation(.spring(response: 0.5, dampingFraction: 0.75), value: isSelected)
+        
+        // DELETE ANIMATION (Fly off to right)
+        .transition(
+            .asymmetric(
+                insertion: .identity,
+                removal: .move(edge: .trailing).combined(with: .opacity)
+            )
+        )
+    }
+
+    // MARK: - ROLODEX MATH (Moved from TravelDocsWalletView)
+    
+    // Calculates the vertical offset for the card
+    func getOffset() -> CGFloat {
+        if isSelected {
+            // Return to 0 for true center if selected
+            return 0
+        }
+        
+        // Center the stack based on the number of active cards
+        let count = CGFloat(activeDocumentsCount)
+        let stackCenterAdjustment = count > 1 ? ((count - 1) * cardSpacing) / 2 : 0
+        
+        return position - stackCenterAdjustment
+    }
+    
+    // Calculates the scale for the card based on its position
+    func getScale() -> CGFloat {
+        if isSelected {
+            return 1.0
+        }
+        // SAFETY: Avoid division by zero if totalScrollHeight is 0
+        guard totalScrollHeight > 0 else { return 0.85 } // Return a default reasonable scale
+        let progress = position / totalScrollHeight
+        return 0.85 + (0.15 * progress)
+    }
+    
+    // Calculates the 3D rotation for the card based on its position
+    func getRotation() -> Double {
+        if isSelected { return 0 }
+        // SAFETY: Avoid division by zero if totalScrollHeight is 0
+        guard totalScrollHeight > 0 else { return -10 } // Return a default reasonable rotation
+        let progress = position / totalScrollHeight
+        return -10 * (1 - progress)
+    }
+    
+    // Calculates the Z-index for the card to control stacking order
+    func getZIndex() -> Double {
+        if isSelected {
+            return Double(totalScrollHeight) + 100 // Ensure selected card is always on top
+        }
+        return Double(position)
+    }
+}
+
+
 // MARK: - 3. MAIN WALLET VIEW
 struct TravelDocsWalletView: View {
     // Selection State
@@ -111,63 +217,18 @@ struct TravelDocsWalletView: View {
                         
                         // 1. CALCULATE DYNAMIC POSITION
                         let currentPos = getCircularPosition(for: index)
-                        let isPassport = (doc.type == .passport)
-                        // CHANGED: Group generic ID types together for the flip animation
-                        let isIDCard = (doc.type == .idCard || doc.type == .driversLicense || doc.type == .studentID)
-                        let isBoardingPass = (doc.type == .boardingPass)
                         let isSelected = (selectedID == doc.id)
                         
-                        Group {
-                            if isPassport {
-                                // Use the specialized flip card for Passport
-                                PassportFlipCard(
-                                    document: doc,
-                                    isSelected: isSelected,
-                                    onTap: { toggleSelection(for: doc.id) }
-                                )
-                            } else if isIDCard {
-                                // Use specialized flip card for ID
-                                IDFlipCard(
-                                    document: doc,
-                                    isSelected: isSelected,
-                                    onTap: { toggleSelection(for: doc.id) }
-                                )
-                            } else if isBoardingPass {
-                                // Use specialized animation for Boarding Pass
-                                BoardingPassAnimatedCard(
-                                    document: doc,
-                                    isSelected: isSelected,
-                                    onTap: { toggleSelection(for: doc.id) }
-                                )
-                            } else {
-                                // Standard cards for new types
-                                DocumentCardView(document: doc)
-                                    .onTapGesture { toggleSelection(for: doc.id) }
-                            }
-                        }
+                        WalletCardContainerView(
+                            document: doc,
+                            isSelected: isSelected,
+                            position: currentPos,
+                            totalScrollHeight: totalScrollHeight,
+                            activeDocumentsCount: activeDocuments.count,
+                            cardSpacing: cardSpacing,
+                            onTap: { toggleSelection(for: doc.id) }
+                        )
                         .frame(width: geo.size.width - 40)
-                        
-                        // 2. POSITIONING & DEPTH
-                        .scaleEffect(getScale(for: currentPos, docID: doc.id))
-                        .rotation3DEffect(
-                            .degrees(getRotation(for: currentPos, docID: doc.id)),
-                            axis: (x: 1, y: 0, z: 0)
-                        )
-                        .offset(y: getOffset(for: currentPos, docID: doc.id))
-                        
-                        // 3. STACK ORDER (Z-Index)
-                        .zIndex(getZIndex(for: currentPos, docID: doc.id))
-                        
-                        // Animation value
-                        .animation(.spring(response: 0.5, dampingFraction: 0.75), value: selectedID)
-                        
-                        // DELETE ANIMATION (Fly off to right)
-                        .transition(
-                            .asymmetric(
-                                insertion: .identity,
-                                removal: .move(edge: .trailing).combined(with: .opacity)
-                            )
-                        )
                     }
                 }
                 .frame(width: geo.size.width, height: geo.size.height)
@@ -399,10 +460,22 @@ struct TravelDocsWalletView: View {
                         .padding(.vertical, 4)
                     }
                     .onDelete { indexSet in
-                        documents.remove(atOffsets: indexSet)
+                        print("DEBUG: onDelete triggered. Initial documents count: \(documents.count), indexSet: \(indexSet)")
+                        
+                        // Using remove(atOffsets:) directly, which is the idiomatic way for List deletion.
+                        withAnimation(.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.35)) {
+                            documents.remove(atOffsets: indexSet)
+                            // Reset scroll and selection if needed
+                            baseScrollOffset = 0
+                            dragOffset = 0
+                            selectedID = nil
+                        }
+                        print("DEBUG: Deletion complete. New documents count: \(documents.count)")
                     }
                     .onMove { indices, newOffset in
-                        documents.move(fromOffsets: indices, toOffset: newOffset)
+                        withAnimation { // Animate the reordering for a smoother UX
+                            documents.move(fromOffsets: indices, toOffset: newOffset)
+                        }
                     }
                 }
                 .navigationTitle("All Cards (\(activeDocuments.count)/\(maxCardsOnScreen))")
@@ -466,41 +539,6 @@ struct TravelDocsWalletView: View {
         } else {
             return loopedPosition
         }
-    }
-    
-    func getOffset(for position: CGFloat, docID: UUID) -> CGFloat {
-        if let selected = selectedID {
-            // Return to 0 for true center
-            return selected == docID ? 0 : 1000 
-        }
-        
-        // FIX: Center the stack based on the number of actual cards, not the scroll loop.
-        // We calculate the midpoint of the card distribution: ((Count - 1) * Spacing) / 2
-        let count = CGFloat(activeDocuments.count)
-        let stackCenterAdjustment = count > 1 ? ((count - 1) * cardSpacing) / 2 : 0
-        
-        return position - stackCenterAdjustment
-    }
-    
-    func getScale(for position: CGFloat, docID: UUID) -> CGFloat {
-        if let selected = selectedID {
-            return selected == docID ? 1.0 : 0.8
-        }
-        let progress = position / totalScrollHeight
-        return 0.85 + (0.15 * progress)
-    }
-    
-    func getRotation(for position: CGFloat, docID: UUID) -> Double {
-        if selectedID != nil { return 0 }
-        let progress = position / totalScrollHeight
-        return -10 * (1 - progress)
-    }
-    
-    func getZIndex(for position: CGFloat, docID: UUID) -> Double {
-        if let selected = selectedID, selected == docID {
-            return Double(totalScrollHeight) + 100 // Ensure selected card is always on top
-        }
-        return Double(position)
     }
 }
 struct Bind_Previews: PreviewProvider {
