@@ -179,12 +179,13 @@ struct PassportDetailView: View {
     }
     
     func closeView() {
-        withAnimation(.easeIn(duration: 0.2)) {
-            contentOpacity = 0
-            unfoldState = -45
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            isPresented = false
+            // 👇 Updated to use cubic-bezier (0.25, 0.1, 0.25, 1)
+            withAnimation(.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.2)) {
+                contentOpacity = 0
+                unfoldState = -45
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                isPresented = false
         }
     }
 }

@@ -48,12 +48,13 @@ struct EmptyWalletView: View {
             .zIndex(1)
         }
         .onAppear {
-            animateArrow = false // Reset state
-            withAnimation(
-                .easeInOut(duration: 1.0)
-                .repeatForever(autoreverses: true)
-            ) {
-                animateArrow = true
+                    animateArrow = false // Reset state
+                    withAnimation(
+                        
+                        .timingCurve(0.25, 0.1, 0.25, 1, duration: 1.0)
+                        .repeatForever(autoreverses: true)
+                    ) {
+                        animateArrow = true
             }
         }
     }
@@ -409,14 +410,14 @@ struct TravelDocsWalletView: View {
     // MARK: - LOGIC
     
     func deleteDocument(_ doc: TravelDocument) {
-        // Trigger Animation: Remove card from array
-        // The .transition(.move(edge: .trailing)) on the view handles the visual "fly off"
-        withAnimation(.easeInOut(duration: 0.35)) {
-            if let index = documents.firstIndex(where: { $0.id == doc.id }) {
-                documents.remove(at: index)
-            }
-            // Clear selection state after removal starts
-            selectedID = nil
+            
+            
+            withAnimation(.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.35)) {
+                if let index = documents.firstIndex(where: { $0.id == doc.id }) {
+                    documents.remove(at: index)
+                }
+                
+                selectedID = nil
         }
     }
     

@@ -258,8 +258,6 @@ struct BoardingPassAnimatedCard: View {
             axis: (x: 1, y: 0, z: 0),
             perspective: 0.5
         )
-        // Add dynamic shadow
-        // REMOVE HUE: No shadow color when selected
         .shadow(
             color: isSelected ? Color.clear : Color.black.opacity(0.3),
             radius: isSelected ? 0 : 15,
@@ -271,17 +269,17 @@ struct BoardingPassAnimatedCard: View {
         }
         .onChange(of: isSelected) { newValue in
             if newValue {
-                // EXPAND
+                
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
                     showDetail = true
                 }
-                // TRIGGER PLANE AFTER EXPANSION STARTS
-                // Faster flight (1.5s instead of 2.5s)
-                withAnimation(.easeInOut(duration: 1.5).delay(0.2)) {
+                
+                // 👇 Updated to use cubic-bezier (0.25, 0.1, 0.25, 1)
+                withAnimation(.timingCurve(0.25, 0.1, 0.25, 1, duration: 1.5).delay(0.2)) {
                     planeMoved = true
                 }
             } else {
-                // COLLAPSE
+                
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                     showDetail = false
                     planeMoved = false

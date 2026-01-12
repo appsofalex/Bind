@@ -332,13 +332,15 @@ struct DocumentFormView: View {
                 documentDetailsSection
                 personalInfoSection
                 
-                // Moved Photo Upload out of personalInfoSection.
-                // This ensures the fields above it (like Date of Expiry) get rounded corners at the bottom.
+                // MARK: - UPDATED SPACING LOGIC
+                // We use the "OR" divider as the HEADER of the Photo Section.
+                // We apply negative top padding to the divider to pull it up into the
+                // gap that separates the sections, reducing the visual space.
                 if shouldShowPhotoUpload {
-                    documentPhotoUploadDivider
-                    
                     Section {
                         documentPhotoUploadArea
+                    } header: {
+                        documentPhotoUploadDivider
                     }
                 }
             }
@@ -559,7 +561,7 @@ struct DocumentFormView: View {
     }
 
     // MARK: - PHOTO UPLOAD COMPONENTS
-    @ViewBuilder
+    // Updated for tighter spacing: This is now used as a SECTION HEADER
     private var documentPhotoUploadDivider: some View {
         HStack {
             VStack { Divider() }
@@ -568,9 +570,12 @@ struct DocumentFormView: View {
                 .foregroundColor(.gray)
             VStack { Divider() }
         }
-        .listRowInsets(EdgeInsets(top: 8, leading: 15, bottom: 8, trailing: 15))
-        .listRowBackground(Color.clear)
-        .listRowSeparator(.hidden)
+        .frame(maxWidth: .infinity)
+        
+        .textCase(nil)
+        
+        .padding(.top, -6)
+        .padding(.bottom, 5)
     }
 
     @ViewBuilder
@@ -606,7 +611,7 @@ struct DocumentFormView: View {
                 Label(documentImage == nil ? "Choose Photo" : "Change Photo", systemImage: "photo.on.rectangle")
                 Spacer()
             }
-            .padding(.vertical, 10)
+            .padding(.vertical, 14)
         }
         .listRowInsets(EdgeInsets(top: 5, leading: 20, bottom: 5, trailing: 20))
         .listRowBackground(
