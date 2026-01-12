@@ -15,7 +15,6 @@ class TravelDocumentStore {
             let decoded = try JSONDecoder().decode([TravelDocument].self, from: data)
             return decoded
         } catch {
-            // Return empty array on first launch (no file exists)
             return []
         }
     }

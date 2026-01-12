@@ -237,107 +237,98 @@ struct PassportInteriorView: View {
             ZStack {
                 Color(red: 0.98, green: 0.96, blue: 0.93)
                 
-                // Show photo if available
-                if let imageData = document.documentImageData, let uiImage = UIImage(data: imageData) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity) // REMOVED fixed width to kill borders
-                        .clipped()
-                } else {
-                    VStack(spacing: 0) {
-                        // Header Bar
-                        HStack {
-                            Text(document.title.uppercased())
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundColor(.black)
-                                .multilineTextAlignment(.center)
-                            Spacer()
-                            Image(systemName: "globe.europe.africa.fill")
-                                .font(.title3)
-                                .foregroundColor(.blue.opacity(0.8))
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 15)
-                        
-                        Divider().background(Color.black).padding(.top, 8)
-                        
-                        Spacer() // VERTICAL CENTERING: Push content down
-                        
-                        // Data Page Layout
-                        HStack(alignment: .center, spacing: 15) { // ALIGNMENT: Center vertical
-                            // Photo Area
-                            VStack {
-                                ZStack {
-                                    // 1. Photo Background with Gradient
-                                    Rectangle()
-                                        .fill(
-                                            LinearGradient(
-                                                gradient: Gradient(colors: [Color(white: 0.85), Color(white: 0.75)]),
-                                                startPoint: .top,
-                                                endPoint: .bottom
-                                            )
+                VStack(spacing: 0) {
+                    // Header Bar
+                    HStack {
+                        Text(document.title.uppercased())
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(.black)
+                            .multilineTextAlignment(.center)
+                        Spacer()
+                        Image(systemName: "globe.europe.africa.fill")
+                            .font(.title3)
+                            .foregroundColor(.blue.opacity(0.8))
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 15)
+                    
+                    Divider().background(Color.black).padding(.top, 8)
+                    
+                    Spacer() // VERTICAL CENTERING: Push content down
+                    
+                    // Data Page Layout
+                    HStack(alignment: .center, spacing: 15) { // ALIGNMENT: Center vertical
+                        // Photo Area
+                        VStack {
+                            ZStack {
+                                // 1. Photo Background with Gradient
+                                Rectangle()
+                                    .fill(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [Color(white: 0.85), Color(white: 0.75)]),
+                                            startPoint: .top,
+                                            endPoint: .bottom
                                         )
-                                        .frame(width: 110, height: 145) // Increased photo size
-                                    
-                                    // 2. Realistic Silhouette (Not Stretched)
-                                    Image(systemName: "person.fill")
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit) // Fix stretching
-                                        .frame(width: 80) // Larger person icon
-                                        .foregroundColor(Color(white: 0.4))
-                                        .offset(y: 15) // Adjusted offset
-                                    
-                                    // 3. Border
-                                    Rectangle()
-                                        .stroke(Color.black.opacity(0.1), lineWidth: 1)
-                                        .frame(width: 110, height: 145) // Match photo size
-                                }
-                                .clipped() // Ensure person doesn't spill out
+                                    )
+                                    .frame(width: 110, height: 145) // Increased photo size
+                                
+                                // 2. Realistic Silhouette (Not Stretched)
+                                Image(systemName: "person.fill")
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit) // Fix stretching
+                                    .frame(width: 80) // Larger person icon
+                                    .foregroundColor(Color(white: 0.4))
+                                    .offset(y: 15) // Adjusted offset
+                                
+                                // 3. Border
+                                Rectangle()
+                                    .stroke(Color.black.opacity(0.1), lineWidth: 1)
+                                    .frame(width: 110, height: 145) // Match photo size
+                            }
+                            .clipped() // Ensure person doesn't spill out
+                        }
+                        
+                        // Fields
+                        VStack(alignment: .leading, spacing: 6) {
+                            FieldView(label: "Type", value: "P")
+                            // Use detailValue for Passport No
+                            FieldView(label: "Passport No.", value: document.detailValue)
+                            
+                            // Split Name Logic
+                            FieldView(label: "Surname", value: names.surname)
+                            FieldView(label: "Given Names", value: names.given)
+                            
+                            // Nationality or Fallback to Title
+                            FieldView(label: "Nationality", value: (document.nationality ?? document.title).uppercased())
+                            
+                            // Date of Birth
+                            if let dob = document.birthDate {
+                                FieldView(label: "Date of Birth", value: dateFormatter.string(from: dob).uppercased())
+                            } else {
+                                FieldView(label: "Date of Birth", value: "UNKNOWN")
                             }
                             
-                            // Fields
-                            VStack(alignment: .leading, spacing: 6) {
-                                FieldView(label: "Type", value: "P")
-                                // Use detailValue for Passport No
-                                FieldView(label: "Passport No.", value: document.detailValue)
-                                
-                                // Split Name Logic
-                                FieldView(label: "Surname", value: names.surname)
-                                FieldView(label: "Given Names", value: names.given)
-                                
-                                // Nationality or Fallback to Title
-                                FieldView(label: "Nationality", value: (document.nationality ?? document.title).uppercased())
-                                
-                                // Date of Birth
-                                if let dob = document.birthDate {
-                                    FieldView(label: "Date of Birth", value: dateFormatter.string(from: dob).uppercased())
-                                } else {
-                                    FieldView(label: "Date of Birth", value: "UNKNOWN")
-                                }
-                                
-                                // Expiry
-                                if let exp = document.expiryDate {
-                                    FieldView(label: "Date of Expiry", value: dateFormatter.string(from: exp).uppercased())
-                                }
+                            // Expiry
+                            if let exp = document.expiryDate {
+                                FieldView(label: "Date of Expiry", value: dateFormatter.string(from: exp).uppercased())
                             }
                         }
-                        .padding(.leading, 10) // ALIGNMENT: More to the left
-                        .padding(.trailing, 15)
-                        
-                        Spacer() // VERTICAL CENTERING: Push content up
-                        
-                        // Machine Readable Zone (MRZ) - Simulated
-                        VStack(spacing: 2) {
-                            Text("P<\(String(document.title.prefix(3)).uppercased())\(names.surname)<<\(names.given.replacingOccurrences(of: " ", with: "<"))<<<<<<<<<<<<")
-                            Text("\(document.detailValue.replacingOccurrences(of: " ", with: ""))\(String(document.title.prefix(3)).uppercased())<<<<<<<<<<<<<<<<<<04")
-                        }
-                        .font(.system(size: 10, weight: .medium, design: .monospaced))
-                        .foregroundColor(.black.opacity(0.8))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 15)
-                        .background(Color.white)
                     }
+                    .padding(.leading, 10) // ALIGNMENT: More to the left
+                    .padding(.trailing, 15)
+                    
+                    Spacer() // VERTICAL CENTERING: Push content up
+                    
+                    // Machine Readable Zone (MRZ) - Simulated
+                    VStack(spacing: 2) {
+                        Text("P<\(String(document.title.prefix(3)).uppercased())\(names.surname)<<\(names.given.replacingOccurrences(of: " ", with: "<"))<<<<<<<<<<<<")
+                        Text("\(document.detailValue.replacingOccurrences(of: " ", with: ""))\(String(document.title.prefix(3)).uppercased())<<<<<<<<<<<<<<<<<<04")
+                    }
+                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                    .foregroundColor(.black.opacity(0.8))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 15)
+                    .background(Color.white)
                 }
             }
             // Inner Shadow for Spine Effect
@@ -406,12 +397,13 @@ struct PassportFlipCard: View {
                     yRotation = 180
                 }
                 
-                // 1b. Swap the view halfway through the flip - Applied custom cubic-bezier
-                withAnimation(.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.1).delay(0.15)) { // Short duration for a quick swap
+                // 1b. Swap the view halfway through the flip
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                     isBackVisible = true
                 }
                 
                 // 2. As the flip finishes, Unfold the book (Vertical Hinge)
+                // We delay slightly so the book "pops" open just as it faces the user
                 withAnimation(.spring(response: 0.7, dampingFraction: 0.7).delay(0.25)) {
                     isBookOpen = true
                 }
@@ -429,8 +421,8 @@ struct PassportFlipCard: View {
                     yRotation = 0
                 }
                 
-                // 2b. Swap view back to cover - Applied custom cubic-bezier
-                withAnimation(.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.1).delay(0.45)) { // Delay matches the total delay from folding + flip
+                // 2b. Swap view back to cover
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
                     isBackVisible = false
                 }
             }

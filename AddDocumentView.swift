@@ -8,52 +8,52 @@ fileprivate struct CroppableImage: Identifiable {
 }
 
 // MARK: - NEW: ADD DOCUMENT VIEW & FORM
-struct DocumentFormView: View { // Renamed from AddDocumentView
+struct LegacyAddDocumentView: View {
     let type: TravelDocument.DocumentType
-    let onSave: (TravelDocument) -> Void // Renamed from onAdd
+    let onAdd: (TravelDocument) -> Void
     let existingID: UUID? // Stores ID if we are editing
     
     @Environment(\.dismiss) var dismiss
     
     // Form Fields
-    @State private var title: String
-    @State private var subtitle: String
-    @State private var holderName: String
-    @State private var detailValue: String
+    @State private var title: String = ""
+    @State private var subtitle: String = ""
+    @State private var holderName: String = ""
+    @State private var detailValue: String = ""
     
     // Specific Dropdowns
-    @State private var selectedBloodType: String
-    @State private var selectedAllergy: String // Consider integrating this with holderName for MedicalAlert
-    @State private var selectedVaccine: String
-    @State private var selectedUniversity: String // Appears unused?
-    @State private var selectedAirline: String
+    @State private var selectedBloodType = "A+"
+    @State private var selectedAllergy = "None"
+    @State private var selectedVaccine = "COVID-19"
+    @State private var selectedUniversity = "State Univ"
+    @State private var selectedAirline = "British Airways"
     
     // PASSPORT & INSURANCE & LICENSE SPECIFIC FIELDS
-    @State private var nationality: String
-    @State private var birthDate: Date
-    @State private var issueDate: Date
-    @State private var expiryDate: Date
+    @State private var nationality: String = ""
+    @State private var birthDate: Date = Date()
+    @State private var issueDate: Date = Date() // Coverage Start for Insurance, Issue for License
+    @State private var expiryDate: Date = Date() // Coverage End for Insurance, Expiry for License
     
     // BOARDING PASS SPECIFIC FIELDS
-    @State private var origin: String
-    @State private var gate: String
-    @State private var seat: String
-    @State private var flightClass: String
-    @State private var flightDate: Date
-    @State private var boardingTime: Date
+    @State private var origin: String = "" // NEW
+    @State private var gate: String = ""
+    @State private var seat: String = ""
+    @State private var flightClass: String = "Economy"
+    @State private var flightDate: Date = Date()
+    @State private var boardingTime: Date = Date()
     
     // INSURANCE SPECIFIC FIELDS
-    @State private var groupNumber: String
-    @State private var emergencyPhoneNumber: String
+    @State private var groupNumber: String = ""
+    @State private var emergencyPhoneNumber: String = ""
     
     // DRIVER'S LICENSE SPECIFIC FIELDS
-    @State private var address: String
-    @State private var licenseClass: String
-    @State private var restrictions: String
-    @State private var endorsements: String
-    @State private var height: String
-    @State private var eyeColor: String
-    @State private var documentImage: Data?
+    @State private var address: String = ""
+    @State private var licenseClass: String = ""
+    @State private var restrictions: String = ""
+    @State private var endorsements: String = ""
+    @State private var height: String = ""
+    @State private var eyeColor: String = ""
+    @State private var documentImage: Data? = nil
     
     // Image Picker & Cropper State
     @State private var selectedPhotoItem: PhotosPickerItem?
@@ -87,8 +87,7 @@ struct DocumentFormView: View { // Renamed from AddDocumentView
         "Pakistan", "Palau", "Palestine State", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal",
         "Qatar",
         "Romania", "Russia", "Rwanda",
-        "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Korea", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname",
-        "Sweden", "Switzerland", "Syria",
+        "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Korea", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria",
         "Tajikistan", "Tanzania", "Thailand", "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu",
         "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "Uruguay", "Uzbekistan",
         "Vanuatu", "Venezuela", "Vietnam",
@@ -199,56 +198,29 @@ struct DocumentFormView: View { // Renamed from AddDocumentView
     // Initialize default values based on type OR existing document
     init(type: TravelDocument.DocumentType? = nil,
          document: TravelDocument? = nil,
-         onSave: @escaping (TravelDocument) -> Void) { // Renamed from onAdd
+         onAdd: @escaping (TravelDocument) -> Void) {
         
-        self.onSave = onSave // Renamed from onAdd
-        
-        // Initialize all @State properties
-        _title = State(initialValue: "")
-        _subtitle = State(initialValue: "")
-        _holderName = State(initialValue: "")
-        _detailValue = State(initialValue: "")
-        _selectedBloodType = State(initialValue: "A+")
-        _selectedAllergy = State(initialValue: "None")
-        _selectedVaccine = State(initialValue: "COVID-19")
-        _selectedUniversity = State(initialValue: "State Univ")
-        _selectedAirline = State(initialValue: "British Airways")
-        _nationality = State(initialValue: "")
-        _birthDate = State(initialValue: Date())
-        _issueDate = State(initialValue: Date())
-        _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60 * 10)) // 10 years in future
-        _origin = State(initialValue: "")
-        _gate = State(initialValue: "")
-        _seat = State(initialValue: "")
-        _flightClass = State(initialValue: "Economy")
-        _flightDate = State(initialValue: Date())
-        _boardingTime = State(initialValue: Date())
-        _groupNumber = State(initialValue: "")
-        _emergencyPhoneNumber = State(initialValue: "")
-        _address = State(initialValue: "")
-        _licenseClass = State(initialValue: "")
-        _restrictions = State(initialValue: "")
-        _endorsements = State(initialValue: "")
-        _height = State(initialValue: "")
-        _eyeColor = State(initialValue: "")
-        _documentImage = State(initialValue: nil)
+        self.onAdd = onAdd
         
         if let doc = document {
             // EDIT MODE
             self.type = doc.type
             self.existingID = doc.id
             
-            // Assign existing document values
             _title = State(initialValue: doc.title)
             _subtitle = State(initialValue: doc.subtitle)
             _holderName = State(initialValue: doc.holderName)
             _detailValue = State(initialValue: doc.detailValue)
             _nationality = State(initialValue: doc.nationality ?? "")
-            _selectedAirline = State(initialValue: doc.airline.isEmpty ? "British Airways" : doc.airline) // Use default if empty
             
             if let dob = doc.birthDate { _birthDate = State(initialValue: dob) }
             if let iss = doc.issueDate { _issueDate = State(initialValue: iss) }
             if let exp = doc.expiryDate { _expiryDate = State(initialValue: exp) }
+            
+            // Try to pre-fill airline if it exists in our segments (mostly visual)
+            if !doc.airline.isEmpty {
+                _selectedAirline = State(initialValue: doc.airline)
+            }
             
             // Pre-fill Boarding Pass specifics
             _origin = State(initialValue: doc.origin ?? "")
@@ -271,46 +243,31 @@ struct DocumentFormView: View { // Renamed from AddDocumentView
             _eyeColor = State(initialValue: doc.eyeColor ?? "")
             _documentImage = State(initialValue: doc.documentImageData)
             
-            // Pre-fill specific dropdowns if applicable (e.g., medicalAlert, vaccineRecord)
-            if doc.type == .medicalAlert {
-                // If holderName is used for blood type, parse it back
-                if let bloodTypeRange = doc.holderName.range(of: "TYPE: ") {
-                    _selectedBloodType = State(initialValue: String(doc.holderName[bloodTypeRange.upperBound...]))
-                }
-                // Allergies would need a separate field in TravelDocument to be properly edited
-            } else if doc.type == .vaccineRecord {
-                // If subtitle is used for vaccine type, parse it back
-                _selectedVaccine = State(initialValue: doc.subtitle.capitalized)
-            }
-            
         } else {
             // ADD MODE
             let targetType = type ?? .passport
             self.type = targetType
             self.existingID = nil
             
-            // Set specific defaults for ADD mode
+            // Defaults
             switch targetType {
             case .passport:
+                // Default country
                 _title = State(initialValue: "United Kingdom")
                 _nationality = State(initialValue: "United Kingdom")
-                _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60 * 10)) // 10 years in future
             case .visa:
                 _title = State(initialValue: "United States")
                 _subtitle = State(initialValue: "Tourist Visa")
-                _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60 * 5)) // 5 years in future
             case .insurance:
-                _subtitle = State(initialValue: "Travel")
-                _issueDate = State(initialValue: Date())
-                _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60)) // 1 year in future
+                _title = State(initialValue: "")
+                _subtitle = State(initialValue: "Travel") // Default to Travel insurance
             case .driversLicense:
                 _title = State(initialValue: "United Kingdom")
                 _subtitle = State(initialValue: "DRIVER LICENSE")
                 _licenseClass = State(initialValue: "Category B (Car)")
-                _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60 * 5)) // 5 years in future
             case .studentID:
+                _title = State(initialValue: "")
                 _subtitle = State(initialValue: "Student ID")
-                _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60 * 4)) // 4 years in future
             case .prescription:
                 _title = State(initialValue: "Pharmacy")
                 _subtitle = State(initialValue: "RX PRESCRIPTION")
@@ -320,13 +277,6 @@ struct DocumentFormView: View { // Renamed from AddDocumentView
             case .medicalAlert:
                 _title = State(initialValue: "Medical Alert")
                 _subtitle = State(initialValue: "EMERGENCY INFO")
-                _holderName = State(initialValue: "TYPE: A+") // Default for medical alert
-            case .birthCertificate:
-                _title = State(initialValue: "Birth Certificate")
-                _subtitle = State(initialValue: "OFFICIAL RECORD")
-            case .marriageCertificate:
-                _title = State(initialValue: "Marriage Certificate")
-                _subtitle = State(initialValue: "OFFICIAL RECORD")
             default:
                 break
             }
@@ -338,6 +288,7 @@ struct DocumentFormView: View { // Renamed from AddDocumentView
             Form {
                 documentDetailsSection
                 personalInfoSection
+                driversLicensePhotoSection
             }
             .navigationTitle(existingID != nil ? "Edit \(type.displayName)" : "Add \(type.displayName)")
             .navigationBarItems(
@@ -373,7 +324,6 @@ struct DocumentFormView: View { // Renamed from AddDocumentView
                 Picker("Blood Type", selection: $selectedBloodType) {
                     ForEach(bloodTypes, id: \.self) { Text($0) }
                 }
-                // Consider adding a dedicated state for allergies if it's a separate field from holderName
                 TextField("Allergies", text: $holderName) // Using holderName for Allergy list
                     .textInputAutocapitalization(.sentences)
                     .overlay(
@@ -468,11 +418,17 @@ struct DocumentFormView: View { // Renamed from AddDocumentView
                     }
                 }
             
-            case .studentID, .idCard, .prescription, .birthCertificate, .marriageCertificate:
+            case .studentID, .idCard, .prescription:
                 TextField(type == .studentID ? "University name" : "Title (e.g. Country, State)", text: $title)
                     .textInputAutocapitalization(.words)
                 TextField("Subtitle (e.g. License Type)", text: $subtitle)
                     .textInputAutocapitalization(type == .studentID ? .sentences : .characters)
+            @unknown default:
+                // Fallback UI for any new/unknown document types
+                TextField("Title", text: $title)
+                    .textInputAutocapitalization(.words)
+                TextField("Subtitle", text: $subtitle)
+                    .textInputAutocapitalization(.sentences)
             }
         }
     }
@@ -496,11 +452,6 @@ struct DocumentFormView: View { // Renamed from AddDocumentView
                 
                 DatePicker("Date of Birth", selection: $birthDate, displayedComponents: .date)
                 DatePicker("Date of Expiry", selection: $expiryDate, displayedComponents: .date)
-
-                // Added photo upload logic for Passport
-                documentPhotoUploadDivider
-                documentPhotoUploadArea
-
             case .boardingPass:
                  TextField("Passenger Name", text: $holderName)
                      .textInputAutocapitalization(.words)
@@ -534,27 +485,6 @@ struct DocumentFormView: View { // Renamed from AddDocumentView
                 DatePicker("Issue Date", selection: $issueDate, displayedComponents: .date)
                 DatePicker("Expiry Date", selection: $expiryDate, displayedComponents: .date)
 
-                // Divider and Photo Upload inside the same section to reduce gaps
-                documentPhotoUploadDivider
-                documentPhotoUploadArea
-
-            case .studentID, .idCard:
-                TextField("Your Name", text: $holderName)
-                    .textInputAutocapitalization(.words)
-                TextField(getDetailLabel(), text: $detailValue)
-                    .textInputAutocapitalization(.characters)
-                    .onChange(of: detailValue) { newValue in
-                        detailValue = newValue.uppercased()
-                    }
-                
-                if type == .idCard {
-                    DatePicker("Date of Birth", selection: $birthDate, displayedComponents: .date)
-                }
-                DatePicker("Date of Expiry", selection: $expiryDate, displayedComponents: .date)
-                
-                documentPhotoUploadDivider
-                documentPhotoUploadArea
-
             default:
                 TextField("Your Name", text: $holderName)
                     .textInputAutocapitalization(.words)
@@ -566,64 +496,51 @@ struct DocumentFormView: View { // Renamed from AddDocumentView
             }
         }
     }
-
-    // MARK: - PHOTO UPLOAD COMPONENTS
+    
     @ViewBuilder
-    private var documentPhotoUploadDivider: some View {
-        HStack {
-            VStack { Divider() }
-            Text("OR")
-                .font(.caption.bold())
-                .foregroundColor(.gray)
-            VStack { Divider() }
-        }
-        .listRowInsets(EdgeInsets(top: 8, leading: 15, bottom: 8, trailing: 15))
-        .listRowBackground(Color.clear)
-        .listRowSeparator(.hidden)
-    }
-
-    @ViewBuilder
-    private var documentPhotoUploadArea: some View {
-        if let imageData = documentImage, let uiImage = UIImage(data: imageData) {
-            Image(uiImage: uiImage)
-                .resizable()
-                .scaledToFit()
-                .cornerRadius(10)
-                .frame(maxHeight: 200)
-                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 10, trailing: 0))
-                .overlay(alignment: .topTrailing) {
-                    Button {
-                        // Applied custom cubic-bezier for image removal animation
-                        withAnimation(.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.3)) { documentImage = nil }
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title2)
-                            .symbolRenderingMode(.palette)
-                            .foregroundStyle(.white, .red)
-                            .shadow(radius: 2)
-                    }
-                    .padding(8)
-                }
-        }
-        
-        PhotosPicker(
-            selection: $selectedPhotoItem,
-            matching: .images,
-            photoLibrary: .shared()
-        ) {
+    private var driversLicensePhotoSection: some View {
+        if type == .driversLicense {
             HStack {
-                Spacer()
-                Label(documentImage == nil ? "Choose Photo" : "Change Photo", systemImage: "photo.on.rectangle")
-                Spacer()
+                VStack { Divider() }
+                Text("OR")
+                    .font(.caption.bold())
+                    .foregroundColor(.gray)
+                VStack { Divider() }
             }
-            .padding(.vertical, 10)
+            .listRowInsets(EdgeInsets(top: 10, leading: 0, bottom: 10, trailing: 0))
+            .listRowBackground(Color.clear)
+            
+            Section(header: Text("Upload a Photo"), footer: Text("Scan the back of your license. The photo will be used instead of the details entered above.")) {
+                if let imageData = documentImage, let uiImage = UIImage(data: imageData) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFit()
+                        .cornerRadius(10)
+                        .frame(maxHeight: 200)
+                        .listRowInsets(EdgeInsets()) // Make image fill the row
+                        .overlay(alignment: .topTrailing) {
+                            Button {
+                                withAnimation { documentImage = nil }
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.title2)
+                                    .symbolRenderingMode(.palette)
+                                    .foregroundStyle(.white, .red)
+                                    .shadow(radius: 2)
+                            }
+                            .padding(8)
+                        }
+                }
+                
+                PhotosPicker(
+                    selection: $selectedPhotoItem,
+                    matching: .images,
+                    photoLibrary: .shared()
+                ) {
+                    Label(documentImage == nil ? "Choose Photo" : "Change Photo", systemImage: "photo.on.rectangle")
+                }
+            }
         }
-        .listRowInsets(EdgeInsets(top: 5, leading: 20, bottom: 5, trailing: 20))
-        .listRowBackground(
-            Capsule()
-                .foregroundColor(Color(uiColor: .secondarySystemGroupedBackground))
-                .padding(.vertical, 4)
-        )
     }
     
     // MARK: - Helper Methods
@@ -651,16 +568,13 @@ struct DocumentFormView: View { // Renamed from AddDocumentView
         // Custom Construction Logic
         switch type {
         case .medicalAlert:
-            // Ensure holderName reflects blood type and allergies for medical alert
-            let bloodTypePart = "TYPE: \(selectedBloodType)"
-            let allergyPart = holderName.isEmpty ? "" : ", ALLERGIES: \(holderName)"
-            finalHolder = bloodTypePart + allergyPart
-            finalTitle = "Medical Alert" // Override title to "Medical Alert"
-            finalSubtitle = "BLOOD / ALLERGY" // Override subtitle
+            finalTitle = "Medical Alert"
+            finalSubtitle = "BLOOD / ALLERGY"
+            finalHolder = "TYPE: \(selectedBloodType)"
             
         case .vaccineRecord:
-            finalTitle = "Vaccination" // Override title
-            finalSubtitle = selectedVaccine.uppercased() // Use selected vaccine for subtitle
+            finalTitle = "Vaccination"
+            finalSubtitle = selectedVaccine.uppercased()
             
         case .boardingPass:
             finalAirline = selectedAirline
@@ -670,18 +584,14 @@ struct DocumentFormView: View { // Renamed from AddDocumentView
             
         case .driversLicense:
             finalSubtitle = "DRIVER LICENSE"
-
-        case .birthCertificate, .marriageCertificate:
-            finalSubtitle = "OFFICIAL RECORD"
             
         default:
             break
         }
         
-        // Fallback for empty required fields
         if finalTitle.isEmpty { finalTitle = "New Document" }
         if finalSubtitle.isEmpty { finalSubtitle = type.displayName.uppercased() }
-        if finalHolder.isEmpty { finalHolder = "CARD HOLDER" } // This might need review for default cases if holderName should be empty
+        if finalHolder.isEmpty { finalHolder = "CARD HOLDER" }
         
         let newDoc = TravelDocument(
             id: existingID ?? UUID(),
@@ -691,10 +601,10 @@ struct DocumentFormView: View { // Renamed from AddDocumentView
             holderName: finalHolder,
             detailValue: finalDetail,
             origin: type == .boardingPass ? origin : nil,
-            nationality: (type == .passport || type == .driversLicense) ? nationality : nil,
-            birthDate: (type == .passport || type == .driversLicense || type == .idCard) ? birthDate : nil,
+            nationality: type == .passport ? nationality : nil,
+            birthDate: (type == .passport || type == .driversLicense) ? birthDate : nil,
             issueDate: (type == .passport || type == .insurance || type == .driversLicense) ? issueDate : nil,
-            expiryDate: (type == .passport || type == .insurance || type == .driversLicense || type == .visa || type == .studentID || type == .idCard) ? expiryDate : nil,
+            expiryDate: (type == .passport || type == .insurance || type == .driversLicense) ? expiryDate : nil,
             gate: type == .boardingPass ? gate : nil,
             seat: type == .boardingPass ? seat : nil,
             flightClass: type == .boardingPass ? flightClass : nil,
@@ -708,7 +618,7 @@ struct DocumentFormView: View { // Renamed from AddDocumentView
             endorsements: type == .driversLicense ? endorsements : nil,
             height: type == .driversLicense ? height : nil,
             eyeColor: type == .driversLicense ? eyeColor : nil,
-            documentImageData: (type == .driversLicense || type == .passport || type == .idCard || type == .studentID) ? documentImage : nil,
+            documentImageData: type == .driversLicense ? documentImage : nil,
             primaryColor: getColor(for: type),
             secondaryColor: .white,
             iconName: getIcon(for: type),
@@ -716,7 +626,7 @@ struct DocumentFormView: View { // Renamed from AddDocumentView
             isActive: true
         )
         
-        onSave(newDoc) // Renamed from onAdd
+        onAdd(newDoc)
     }
     
     func getColor(for type: TravelDocument.DocumentType) -> Color {
@@ -726,13 +636,12 @@ struct DocumentFormView: View { // Renamed from AddDocumentView
         case .prescription: return Color(red: 0.0, green: 0.6, blue: 0.45) // Pharmacy Teal
         case .vaccineRecord: return Color(red: 0.2, green: 0.4, blue: 0.7) // Health Blue
         case .medicalAlert: return Color(red: 0.85, green: 0.2, blue: 0.2) // Alert Red
-        case .birthCertificate: return Color(red: 0.4, green: 0.3, blue: 0.2) // Parchment Brown
-        case .marriageCertificate: return Color(red: 0.7, green: 0.5, blue: 0.2) // Gold
         case .passport: return Color(red: 0.05, green: 0.05, blue: 0.25)
         case .boardingPass: return Color(red: 1.0, green: 0.31, blue: 0.0)
         case .visa: return Color(red: 0.85, green: 0.2, blue: 0.3)
         case .insurance: return Color(red: 0.0, green: 0.5, blue: 0.5)
         case .idCard: return Color(red: 0.45, green: 0.2, blue: 0.6)
+        @unknown default: return .gray
         }
     }
     
@@ -743,13 +652,12 @@ struct DocumentFormView: View { // Renamed from AddDocumentView
         case .prescription: return "pills.fill"
         case .vaccineRecord: return "syringe.fill"
         case .medicalAlert: return "staroflife.fill"
-        case .birthCertificate: return "stroller.fill"
-        case .marriageCertificate: return "figure.and.child.holdinghands"
         case .passport: return "globe"
         case .boardingPass: return "airplane"
         case .visa: return "checkmark.seal"
         case .insurance: return "cross.case.fill"
         case .idCard: return "person.text.rectangle.fill"
+        @unknown default: return "doc.text"
         }
     }
 }
@@ -763,6 +671,7 @@ fileprivate struct AirportSelectionField: View {
     var body: some View {
         TextField(title, text: $selection)
             .textInputAutocapitalization(.words)
+
         if !airports.isEmpty {
             ForEach(airports, id: \.code) { airport in
                 Button(action: {
@@ -781,3 +690,4 @@ fileprivate struct AirportSelectionField: View {
         }
     }
 }
+

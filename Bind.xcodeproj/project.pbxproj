@@ -6,7 +6,40 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		AFB880E12F155A38001245C0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AFB880D42F155A38001245C0 /* Assets.xcassets */; };
+		AFB880E22F155A38001245C0 /* AddDocumentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFB880D32F155A38001245C0 /* AddDocumentView.swift */; };
+		AFB880E32F155A38001245C0 /* PassportDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFB880DD2F155A38001245C0 /* PassportDetailView.swift */; };
+		AFB880E42F155A38001245C0 /* PassportViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFB880DE2F155A38001245C0 /* PassportViews.swift */; };
+		AFB880E52F155A38001245C0 /* CodableColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFB880D72F155A38001245C0 /* CodableColor.swift */; };
+		AFB880E62F155A38001245C0 /* TravelDocumentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFB880E02F155A38001245C0 /* TravelDocumentStore.swift */; };
+		AFB880E72F155A38001245C0 /* BoardingPassViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFB880D62F155A38001245C0 /* BoardingPassViews.swift */; };
+		AFB880E82F155A38001245C0 /* BindApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFB880D52F155A38001245C0 /* BindApp.swift */; };
+		AFB880E92F155A38001245C0 /* DocumentCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFB880D92F155A38001245C0 /* DocumentCardView.swift */; };
+		AFB880EA2F155A38001245C0 /* TravelDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFB880DF2F155A38001245C0 /* TravelDocument.swift */; };
+		AFB880EB2F155A38001245C0 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFB880D82F155A38001245C0 /* ContentView.swift */; };
+		AFB880EC2F155A38001245C0 /* IDCardViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFB880DB2F155A38001245C0 /* IDCardViews.swift */; };
+		AFB880ED2F155A38001245C0 /* FieldView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFB880DA2F155A38001245C0 /* FieldView.swift */; };
+		AFB880EE2F155A38001245C0 /* ImageCropperView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFB880DC2F155A38001245C0 /* ImageCropperView.swift */; };
+		AFB880F02F155A72001245C0 /* DocumentFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFB880EF2F155A72001245C0 /* DocumentFormView.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
+		AFB880D32F155A38001245C0 /* AddDocumentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddDocumentView.swift; sourceTree = "<group>"; };
+		AFB880D42F155A38001245C0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AFB880D52F155A38001245C0 /* BindApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BindApp.swift; sourceTree = "<group>"; };
+		AFB880D62F155A38001245C0 /* BoardingPassViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardingPassViews.swift; sourceTree = "<group>"; };
+		AFB880D72F155A38001245C0 /* CodableColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodableColor.swift; sourceTree = "<group>"; };
+		AFB880D82F155A38001245C0 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		AFB880D92F155A38001245C0 /* DocumentCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentCardView.swift; sourceTree = "<group>"; };
+		AFB880DA2F155A38001245C0 /* FieldView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FieldView.swift; sourceTree = "<group>"; };
+		AFB880DB2F155A38001245C0 /* IDCardViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IDCardViews.swift; sourceTree = "<group>"; };
+		AFB880DC2F155A38001245C0 /* ImageCropperView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCropperView.swift; sourceTree = "<group>"; };
+		AFB880DD2F155A38001245C0 /* PassportDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassportDetailView.swift; sourceTree = "<group>"; };
+		AFB880DE2F155A38001245C0 /* PassportViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassportViews.swift; sourceTree = "<group>"; };
+		AFB880DF2F155A38001245C0 /* TravelDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelDocument.swift; sourceTree = "<group>"; };
+		AFB880E02F155A38001245C0 /* TravelDocumentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelDocumentStore.swift; sourceTree = "<group>"; };
+		AFB880EF2F155A72001245C0 /* DocumentFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentFormView.swift; sourceTree = "<group>"; };
 		AFF7C41B2EF1B0DC005E1E49 /* Bind.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Bind.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -34,6 +67,21 @@
 			children = (
 				AFF7C41D2EF1B0DC005E1E49 /* Bind */,
 				AFF7C41C2EF1B0DC005E1E49 /* Products */,
+				AFB880D32F155A38001245C0 /* AddDocumentView.swift */,
+				AFB880D42F155A38001245C0 /* Assets.xcassets */,
+				AFB880D52F155A38001245C0 /* BindApp.swift */,
+				AFB880D62F155A38001245C0 /* BoardingPassViews.swift */,
+				AFB880D72F155A38001245C0 /* CodableColor.swift */,
+				AFB880D82F155A38001245C0 /* ContentView.swift */,
+				AFB880EF2F155A72001245C0 /* DocumentFormView.swift */,
+				AFB880D92F155A38001245C0 /* DocumentCardView.swift */,
+				AFB880DA2F155A38001245C0 /* FieldView.swift */,
+				AFB880DB2F155A38001245C0 /* IDCardViews.swift */,
+				AFB880DC2F155A38001245C0 /* ImageCropperView.swift */,
+				AFB880DD2F155A38001245C0 /* PassportDetailView.swift */,
+				AFB880DE2F155A38001245C0 /* PassportViews.swift */,
+				AFB880DF2F155A38001245C0 /* TravelDocument.swift */,
+				AFB880E02F155A38001245C0 /* TravelDocumentStore.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -82,6 +130,7 @@
 				TargetAttributes = {
 					AFF7C41A2EF1B0DC005E1E49 = {
 						CreatedOnToolsVersion = 26.2;
+						LastSwiftMigration = 2620;
 					};
 				};
 			};
@@ -109,6 +158,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AFB880E12F155A38001245C0 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -119,6 +169,20 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AFB880F02F155A72001245C0 /* DocumentFormView.swift in Sources */,
+				AFB880E22F155A38001245C0 /* AddDocumentView.swift in Sources */,
+				AFB880E32F155A38001245C0 /* PassportDetailView.swift in Sources */,
+				AFB880E42F155A38001245C0 /* PassportViews.swift in Sources */,
+				AFB880E52F155A38001245C0 /* CodableColor.swift in Sources */,
+				AFB880E62F155A38001245C0 /* TravelDocumentStore.swift in Sources */,
+				AFB880E72F155A38001245C0 /* BoardingPassViews.swift in Sources */,
+				AFB880E82F155A38001245C0 /* BindApp.swift in Sources */,
+				AFB880E92F155A38001245C0 /* DocumentCardView.swift in Sources */,
+				AFB880EA2F155A38001245C0 /* TravelDocument.swift in Sources */,
+				AFB880EB2F155A38001245C0 /* ContentView.swift in Sources */,
+				AFB880EC2F155A38001245C0 /* IDCardViews.swift in Sources */,
+				AFB880ED2F155A38001245C0 /* FieldView.swift in Sources */,
+				AFB880EE2F155A38001245C0 /* ImageCropperView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -251,6 +315,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = ZZ473K66L3;
@@ -273,6 +338,7 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -284,6 +350,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = ZZ473K66L3;

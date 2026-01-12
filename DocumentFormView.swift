@@ -8,57 +8,58 @@ fileprivate struct CroppableImage: Identifiable {
 }
 
 // MARK: - NEW: ADD DOCUMENT VIEW & FORM
-struct AddDocumentView: View {
+struct DocumentFormView: View {
     let type: TravelDocument.DocumentType
-    let onAdd: (TravelDocument) -> Void
+    let onSave: (TravelDocument) -> Void
     let existingID: UUID? // Stores ID if we are editing
     
     @Environment(\.dismiss) var dismiss
     
     // Form Fields
-    @State private var title: String = ""
-    @State private var subtitle: String = ""
-    @State private var holderName: String = ""
-    @State private var detailValue: String = ""
+    @State private var title: String
+    @State private var subtitle: String
+    @State private var holderName: String
+    @State private var detailValue: String
     
     // Specific Dropdowns
-    @State private var selectedBloodType = "A+"
-    @State private var selectedAllergy = "None"
-    @State private var selectedVaccine = "COVID-19"
-    @State private var selectedUniversity = "State Univ"
-    @State private var selectedAirline = "British Airways"
+    @State private var selectedBloodType: String
+    @State private var selectedAllergy: String
+    @State private var selectedVaccine: String
+    @State private var selectedUniversity: String
+    @State private var selectedAirline: String
     
     // PASSPORT & INSURANCE & LICENSE SPECIFIC FIELDS
-    @State private var nationality: String = ""
-    @State private var birthDate: Date = Date()
-    @State private var issueDate: Date = Date() // Coverage Start for Insurance, Issue for License
-    @State private var expiryDate: Date = Date() // Coverage End for Insurance, Expiry for License
+    @State private var nationality: String
+    @State private var birthDate: Date
+    @State private var issueDate: Date
+    @State private var expiryDate: Date
     
     // BOARDING PASS SPECIFIC FIELDS
-    @State private var origin: String = "" // NEW
-    @State private var gate: String = ""
-    @State private var seat: String = ""
-    @State private var flightClass: String = "Economy"
-    @State private var flightDate: Date = Date()
-    @State private var boardingTime: Date = Date()
+    @State private var origin: String
+    @State private var gate: String
+    @State private var seat: String
+    @State private var flightClass: String
+    @State private var flightDate: Date
+    @State private var boardingTime: Date
     
     // INSURANCE SPECIFIC FIELDS
-    @State private var groupNumber: String = ""
-    @State private var emergencyPhoneNumber: String = ""
+    @State private var groupNumber: String
+    @State private var emergencyPhoneNumber: String
     
     // DRIVER'S LICENSE SPECIFIC FIELDS
-    @State private var address: String = ""
-    @State private var licenseClass: String = ""
-    @State private var restrictions: String = ""
-    @State private var endorsements: String = ""
-    @State private var height: String = ""
-    @State private var eyeColor: String = ""
-    @State private var documentImage: Data? = nil
+    @State private var address: String
+    @State private var licenseClass: String
+    @State private var restrictions: String
+    @State private var endorsements: String
+    @State private var height: String
+    @State private var eyeColor: String
+    @State private var documentImage: Data?
     
     // Image Picker & Cropper State
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var imageToCrop: CroppableImage?
     
+    // MARK: - DATA COLLECTIONS
     let bloodTypes = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"]
     let vaccines = ["COVID-19", "Influenza", "Yellow Fever", "Tetanus", "Hepatitis B", "Measles"]
     let visaTypes = ["Tourist Visa", "Business Visa", "Student Visa", "Work Visa", "Transit Visa", "Investor Visa", "Spouse Visa", "Visitor Visa"]
@@ -67,7 +68,6 @@ struct AddDocumentView: View {
     // Static list for UK Driver's License classes
     let licenseClasses = ["Category B (Car)", "Category A (Motorcycle)", "Category C (Large Goods)", "Category D (Bus)", "Provisional"]
 
-    // MARK: - NEW: COUNTRY DATA
     let countries = [
         "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan",
         "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi",
@@ -87,7 +87,8 @@ struct AddDocumentView: View {
         "Pakistan", "Palau", "Palestine State", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal",
         "Qatar",
         "Romania", "Russia", "Rwanda",
-        "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Korea", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria",
+        "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Korea", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname",
+        "Sweden", "Switzerland", "Syria",
         "Tajikistan", "Tanzania", "Thailand", "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu",
         "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "Uruguay", "Uzbekistan",
         "Vanuatu", "Venezuela", "Vietnam",
@@ -110,7 +111,7 @@ struct AddDocumentView: View {
         ("UAE", ["Emirates"])
     ]
     
-    // MARK: - NEW: AIRPORT DATA
+    // AIRPORT DATA
     let airports = [
         ("ATL", "Hartsfield-Jackson Atlanta"),
         ("JFK", "New York John F. Kennedy"),
@@ -177,30 +178,62 @@ struct AddDocumentView: View {
         ("PMI", "Palma de Mallorca")
     ]
     
-    // MARK: - NEW: AIRPORT FILTER LOGIC
+    // AIRPORT FILTER LOGIC
     func filteredAirports(for query: String) -> [(code: String, name: String)] {
         if query.isEmpty { return [] }
         
-        // 1. Find matches
         let matches = airports.filter { code, name in
             code.localizedCaseInsensitiveContains(query) || name.localizedCaseInsensitiveContains(query)
         }
         
-        // 2. Hide suggestions if the user has already selected a valid full entry
         if matches.contains(where: { "\( $0.1 ) (\( $0.0 ))" == query }) {
             return []
         }
         
-        // 3. Sort alphabetically by name
         return matches.sorted { $0.1 < $1.1 }.map { (code: $0.0, name: $0.1) }
+    }
+    
+    // Helper to determine if we show the photo upload section
+    private var shouldShowPhotoUpload: Bool {
+        return [.passport, .driversLicense, .studentID, .idCard].contains(type)
     }
     
     // Initialize default values based on type OR existing document
     init(type: TravelDocument.DocumentType? = nil,
          document: TravelDocument? = nil,
-         onAdd: @escaping (TravelDocument) -> Void) {
+         onSave: @escaping (TravelDocument) -> Void) {
         
-        self.onAdd = onAdd
+        self.onSave = onSave
+        
+        // Initialize all @State properties
+        _title = State(initialValue: "")
+        _subtitle = State(initialValue: "")
+        _holderName = State(initialValue: "")
+        _detailValue = State(initialValue: "")
+        _selectedBloodType = State(initialValue: "A+")
+        _selectedAllergy = State(initialValue: "None")
+        _selectedVaccine = State(initialValue: "COVID-19")
+        _selectedUniversity = State(initialValue: "State Univ")
+        _selectedAirline = State(initialValue: "British Airways")
+        _nationality = State(initialValue: "")
+        _birthDate = State(initialValue: Date())
+        _issueDate = State(initialValue: Date())
+        _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60 * 10))
+        _origin = State(initialValue: "")
+        _gate = State(initialValue: "")
+        _seat = State(initialValue: "")
+        _flightClass = State(initialValue: "Economy")
+        _flightDate = State(initialValue: Date())
+        _boardingTime = State(initialValue: Date())
+        _groupNumber = State(initialValue: "")
+        _emergencyPhoneNumber = State(initialValue: "")
+        _address = State(initialValue: "")
+        _licenseClass = State(initialValue: "")
+        _restrictions = State(initialValue: "")
+        _endorsements = State(initialValue: "")
+        _height = State(initialValue: "")
+        _eyeColor = State(initialValue: "")
+        _documentImage = State(initialValue: nil)
         
         if let doc = document {
             // EDIT MODE
@@ -212,17 +245,12 @@ struct AddDocumentView: View {
             _holderName = State(initialValue: doc.holderName)
             _detailValue = State(initialValue: doc.detailValue)
             _nationality = State(initialValue: doc.nationality ?? "")
+            _selectedAirline = State(initialValue: doc.airline.isEmpty ? "British Airways" : doc.airline)
             
             if let dob = doc.birthDate { _birthDate = State(initialValue: dob) }
             if let iss = doc.issueDate { _issueDate = State(initialValue: iss) }
             if let exp = doc.expiryDate { _expiryDate = State(initialValue: exp) }
             
-            // Try to pre-fill airline if it exists in our segments (mostly visual)
-            if !doc.airline.isEmpty {
-                _selectedAirline = State(initialValue: doc.airline)
-            }
-            
-            // Pre-fill Boarding Pass specifics
             _origin = State(initialValue: doc.origin ?? "")
             _gate = State(initialValue: doc.gate ?? "")
             _seat = State(initialValue: doc.seat ?? "")
@@ -230,11 +258,9 @@ struct AddDocumentView: View {
             if let fd = doc.flightDate { _flightDate = State(initialValue: fd) }
             if let bt = doc.boardingTime { _boardingTime = State(initialValue: bt) }
             
-            // Pre-fill Insurance specifics
             _groupNumber = State(initialValue: doc.groupNumber ?? "")
             _emergencyPhoneNumber = State(initialValue: doc.emergencyPhoneNumber ?? "")
             
-            // Pre-fill Driver's License specifics
             _address = State(initialValue: doc.address ?? "")
             _licenseClass = State(initialValue: doc.licenseClass ?? "")
             _restrictions = State(initialValue: doc.restrictions ?? "")
@@ -243,31 +269,41 @@ struct AddDocumentView: View {
             _eyeColor = State(initialValue: doc.eyeColor ?? "")
             _documentImage = State(initialValue: doc.documentImageData)
             
+            if doc.type == .medicalAlert {
+                if let bloodTypeRange = doc.holderName.range(of: "TYPE: ") {
+                    _selectedBloodType = State(initialValue: String(doc.holderName[bloodTypeRange.upperBound...]))
+                }
+            } else if doc.type == .vaccineRecord {
+                _selectedVaccine = State(initialValue: doc.subtitle.capitalized)
+            }
+            
         } else {
             // ADD MODE
             let targetType = type ?? .passport
             self.type = targetType
             self.existingID = nil
             
-            // Defaults
             switch targetType {
             case .passport:
-                // Default country
                 _title = State(initialValue: "United Kingdom")
                 _nationality = State(initialValue: "United Kingdom")
+                _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60 * 10))
             case .visa:
                 _title = State(initialValue: "United States")
                 _subtitle = State(initialValue: "Tourist Visa")
+                _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60 * 5))
             case .insurance:
-                _title = State(initialValue: "")
-                _subtitle = State(initialValue: "Travel") // Default to Travel insurance
+                _subtitle = State(initialValue: "Travel")
+                _issueDate = State(initialValue: Date())
+                _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60))
             case .driversLicense:
                 _title = State(initialValue: "United Kingdom")
                 _subtitle = State(initialValue: "DRIVER LICENSE")
                 _licenseClass = State(initialValue: "Category B (Car)")
+                _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60 * 5))
             case .studentID:
-                _title = State(initialValue: "")
                 _subtitle = State(initialValue: "Student ID")
+                _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60 * 4))
             case .prescription:
                 _title = State(initialValue: "Pharmacy")
                 _subtitle = State(initialValue: "RX PRESCRIPTION")
@@ -277,6 +313,7 @@ struct AddDocumentView: View {
             case .medicalAlert:
                 _title = State(initialValue: "Medical Alert")
                 _subtitle = State(initialValue: "EMERGENCY INFO")
+                _holderName = State(initialValue: "TYPE: A+")
             case .birthCertificate:
                 _title = State(initialValue: "Birth Certificate")
                 _subtitle = State(initialValue: "OFFICIAL RECORD")
@@ -294,6 +331,16 @@ struct AddDocumentView: View {
             Form {
                 documentDetailsSection
                 personalInfoSection
+                
+                // Moved Photo Upload out of personalInfoSection.
+                // This ensures the fields above it (like Date of Expiry) get rounded corners at the bottom.
+                if shouldShowPhotoUpload {
+                    documentPhotoUploadDivider
+                    
+                    Section {
+                        documentPhotoUploadArea
+                    }
+                }
             }
             .navigationTitle(existingID != nil ? "Edit \(type.displayName)" : "Add \(type.displayName)")
             .navigationBarItems(
@@ -329,7 +376,7 @@ struct AddDocumentView: View {
                 Picker("Blood Type", selection: $selectedBloodType) {
                     ForEach(bloodTypes, id: \.self) { Text($0) }
                 }
-                TextField("Allergies", text: $holderName) // Using holderName for Allergy list
+                TextField("Allergies", text: $holderName)
                     .textInputAutocapitalization(.sentences)
                     .overlay(
                         Text("e.g. Peanuts, Penicillin").foregroundColor(.gray.opacity(0.5)).allowsHitTesting(false).opacity(holderName.isEmpty ? 1 : 0),
@@ -452,10 +499,6 @@ struct AddDocumentView: View {
                 DatePicker("Date of Birth", selection: $birthDate, displayedComponents: .date)
                 DatePicker("Date of Expiry", selection: $expiryDate, displayedComponents: .date)
 
-                // Added photo upload logic for Passport
-                documentPhotoUploadDivider
-                documentPhotoUploadArea
-
             case .boardingPass:
                  TextField("Passenger Name", text: $holderName)
                      .textInputAutocapitalization(.words)
@@ -489,10 +532,6 @@ struct AddDocumentView: View {
                 DatePicker("Issue Date", selection: $issueDate, displayedComponents: .date)
                 DatePicker("Expiry Date", selection: $expiryDate, displayedComponents: .date)
 
-                // Divider and Photo Upload inside the same section to reduce gaps
-                documentPhotoUploadDivider
-                documentPhotoUploadArea
-
             case .studentID, .idCard:
                 TextField("Your Name", text: $holderName)
                     .textInputAutocapitalization(.words)
@@ -507,9 +546,6 @@ struct AddDocumentView: View {
                 }
                 DatePicker("Date of Expiry", selection: $expiryDate, displayedComponents: .date)
                 
-                documentPhotoUploadDivider
-                documentPhotoUploadArea
-
             default:
                 TextField("Your Name", text: $holderName)
                     .textInputAutocapitalization(.words)
@@ -548,7 +584,7 @@ struct AddDocumentView: View {
                 .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 10, trailing: 0))
                 .overlay(alignment: .topTrailing) {
                     Button {
-                        withAnimation { documentImage = nil }
+                        withAnimation(.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.3)) { documentImage = nil }
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title2)
@@ -594,20 +630,19 @@ struct AddDocumentView: View {
     }
     
     func saveDocument() {
-        // Construct the document based on type-specific logic
-        
         var finalTitle = title
         var finalSubtitle = subtitle
         var finalHolder = holderName
         var finalDetail = detailValue
         var finalAirline = ""
         
-        // Custom Construction Logic
         switch type {
         case .medicalAlert:
+            let bloodTypePart = "TYPE: \(selectedBloodType)"
+            let allergyPart = holderName.isEmpty ? "" : ", ALLERGIES: \(holderName)"
+            finalHolder = bloodTypePart + allergyPart
             finalTitle = "Medical Alert"
             finalSubtitle = "BLOOD / ALLERGY"
-            finalHolder = "TYPE: \(selectedBloodType)"
             
         case .vaccineRecord:
             finalTitle = "Vaccination"
@@ -641,10 +676,10 @@ struct AddDocumentView: View {
             holderName: finalHolder,
             detailValue: finalDetail,
             origin: type == .boardingPass ? origin : nil,
-            nationality: type == .passport ? nationality : nil,
+            nationality: (type == .passport || type == .driversLicense) ? nationality : nil,
             birthDate: (type == .passport || type == .driversLicense || type == .idCard) ? birthDate : nil,
             issueDate: (type == .passport || type == .insurance || type == .driversLicense) ? issueDate : nil,
-            expiryDate: (type == .passport || type == .insurance || type == .driversLicense || type == .idCard || type == .studentID) ? expiryDate : nil,
+            expiryDate: (type == .passport || type == .insurance || type == .driversLicense || type == .visa || type == .studentID || type == .idCard) ? expiryDate : nil,
             gate: type == .boardingPass ? gate : nil,
             seat: type == .boardingPass ? seat : nil,
             flightClass: type == .boardingPass ? flightClass : nil,
@@ -666,18 +701,18 @@ struct AddDocumentView: View {
             isActive: true
         )
         
-        onAdd(newDoc)
+        onSave(newDoc)
     }
     
     func getColor(for type: TravelDocument.DocumentType) -> Color {
         switch type {
-        case .driversLicense: return Color(red: 0.2, green: 0.3, blue: 0.45) // Slate Blue
-        case .studentID: return Color(red: 0.5, green: 0.1, blue: 0.1) // Maroon
-        case .prescription: return Color(red: 0.0, green: 0.6, blue: 0.45) // Pharmacy Teal
-        case .vaccineRecord: return Color(red: 0.2, green: 0.4, blue: 0.7) // Health Blue
-        case .medicalAlert: return Color(red: 0.85, green: 0.2, blue: 0.2) // Alert Red
-        case .birthCertificate: return Color(red: 0.4, green: 0.3, blue: 0.2) // Parchment Brown
-        case .marriageCertificate: return Color(red: 0.7, green: 0.5, blue: 0.2) // Gold
+        case .driversLicense: return Color(red: 0.2, green: 0.3, blue: 0.45)
+        case .studentID: return Color(red: 0.5, green: 0.1, blue: 0.1)
+        case .prescription: return Color(red: 0.0, green: 0.6, blue: 0.45)
+        case .vaccineRecord: return Color(red: 0.2, green: 0.4, blue: 0.7)
+        case .medicalAlert: return Color(red: 0.85, green: 0.2, blue: 0.2)
+        case .birthCertificate: return Color(red: 0.4, green: 0.3, blue: 0.2)
+        case .marriageCertificate: return Color(red: 0.7, green: 0.5, blue: 0.2)
         case .passport: return Color(red: 0.05, green: 0.05, blue: 0.25)
         case .boardingPass: return Color(red: 1.0, green: 0.31, blue: 0.0)
         case .visa: return Color(red: 0.85, green: 0.2, blue: 0.3)
@@ -703,6 +738,7 @@ struct AddDocumentView: View {
         }
     }
 }
+
 /// A reusable view for airport text fields with autocomplete suggestions.
 fileprivate struct AirportSelectionField: View {
     let title: String

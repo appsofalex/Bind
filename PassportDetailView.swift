@@ -95,17 +95,9 @@ struct PassportDetailView: View {
                                         .fill(Color.gray.opacity(0.3))
                                         .frame(width: 100, height: 130)
                                     
-                                    if let imageData = document.documentImageData, let uiImage = UIImage(data: imageData) {
-                                        Image(uiImage: uiImage)
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fill)
-                                            .frame(width: 100, height: 130)
-                                            .clipped()
-                                    } else {
-                                        Image(systemName: "person.fill")
-                                            .font(.system(size: 60))
-                                            .foregroundColor(.gray)
-                                    }
+                                    Image(systemName: "person.fill")
+                                        .font(.system(size: 60))
+                                        .foregroundColor(.gray)
                                 }
                                 .cornerRadius(5)
                             }
@@ -175,7 +167,7 @@ struct PassportDetailView: View {
     }
     
     func animateOpening() {
-        // Simple "Thud" opening animation (uses Spring)
+        // Simple "Thud" opening animation
         withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
             unfoldState = 0
             contentOpacity = 1
@@ -187,13 +179,11 @@ struct PassportDetailView: View {
     }
     
     func closeView() {
-        // Applied custom cubic-bezier for the closing animation
-        withAnimation(.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.3)) {
+        withAnimation(.easeIn(duration: 0.2)) {
             contentOpacity = 0
             unfoldState = -45
         }
-        // Adjusted delay to match new duration
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             isPresented = false
         }
     }
