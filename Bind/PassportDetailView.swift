@@ -95,9 +95,17 @@ struct PassportDetailView: View {
                                         .fill(Color.gray.opacity(0.3))
                                         .frame(width: 100, height: 130)
                                     
-                                    Image(systemName: "person.fill")
-                                        .font(.system(size: 60))
-                                        .foregroundColor(.gray)
+                                    if let imageData = document.documentImageData, let uiImage = UIImage(data: imageData) {
+                                        Image(uiImage: uiImage)
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fill)
+                                            .frame(width: 100, height: 130)
+                                            .clipped()
+                                    } else {
+                                        Image(systemName: "person.fill")
+                                            .font(.system(size: 60))
+                                            .foregroundColor(.gray)
+                                    }
                                 }
                                 .cornerRadius(5)
                             }

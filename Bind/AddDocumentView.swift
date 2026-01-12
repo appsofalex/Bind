@@ -493,6 +493,23 @@ struct AddDocumentView: View {
                 documentPhotoUploadDivider
                 documentPhotoUploadArea
 
+            case .studentID, .idCard:
+                TextField("Your Name", text: $holderName)
+                    .textInputAutocapitalization(.words)
+                TextField(getDetailLabel(), text: $detailValue)
+                    .textInputAutocapitalization(.characters)
+                    .onChange(of: detailValue) { newValue in
+                        detailValue = newValue.uppercased()
+                    }
+                
+                if type == .idCard {
+                    DatePicker("Date of Birth", selection: $birthDate, displayedComponents: .date)
+                }
+                DatePicker("Date of Expiry", selection: $expiryDate, displayedComponents: .date)
+                
+                documentPhotoUploadDivider
+                documentPhotoUploadArea
+
             default:
                 TextField("Your Name", text: $holderName)
                     .textInputAutocapitalization(.words)
@@ -548,9 +565,19 @@ struct AddDocumentView: View {
             matching: .images,
             photoLibrary: .shared()
         ) {
-            Label(documentImage == nil ? "Choose Photo" : "Change Photo", systemImage: "photo.on.rectangle")
+            HStack {
+                Spacer()
+                Label(documentImage == nil ? "Choose Photo" : "Change Photo", systemImage: "photo.on.rectangle")
+                Spacer()
+            }
+            .padding(.vertical, 10)
         }
-        .listRowInsets(EdgeInsets(top: 10, leading: 20, bottom: 10, trailing: 20))
+        .listRowInsets(EdgeInsets(top: 5, leading: 20, bottom: 5, trailing: 20))
+        .listRowBackground(
+            Capsule()
+                .foregroundColor(Color(uiColor: .secondarySystemGroupedBackground))
+                .padding(.vertical, 4)
+        )
     }
     
     // MARK: - Helper Methods
@@ -615,9 +642,9 @@ struct AddDocumentView: View {
             detailValue: finalDetail,
             origin: type == .boardingPass ? origin : nil,
             nationality: type == .passport ? nationality : nil,
-            birthDate: (type == .passport || type == .driversLicense) ? birthDate : nil,
+            birthDate: (type == .passport || type == .driversLicense || type == .idCard) ? birthDate : nil,
             issueDate: (type == .passport || type == .insurance || type == .driversLicense) ? issueDate : nil,
-            expiryDate: (type == .passport || type == .insurance || type == .driversLicense) ? expiryDate : nil,
+            expiryDate: (type == .passport || type == .insurance || type == .driversLicense || type == .idCard || type == .studentID) ? expiryDate : nil,
             gate: type == .boardingPass ? gate : nil,
             seat: type == .boardingPass ? seat : nil,
             flightClass: type == .boardingPass ? flightClass : nil,
@@ -631,7 +658,7 @@ struct AddDocumentView: View {
             endorsements: type == .driversLicense ? endorsements : nil,
             height: type == .driversLicense ? height : nil,
             eyeColor: type == .driversLicense ? eyeColor : nil,
-            documentImageData: (type == .driversLicense || type == .passport) ? documentImage : nil,
+            documentImageData: (type == .driversLicense || type == .passport || type == .idCard || type == .studentID) ? documentImage : nil,
             primaryColor: getColor(for: type),
             secondaryColor: .white,
             iconName: getIcon(for: type),
