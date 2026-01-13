@@ -198,102 +198,111 @@ struct StudentIdDetailView: View {
     }
 
     var body: some View {
-        ZStack {
-            // Card background
-            Color.white
+        if let imageData = document.documentImageData, let uiImage = UIImage(data: imageData) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(height: 240)
+                .cornerRadius(20)
+                .clipped()
+        } else {
+            ZStack {
+                // Card background
+                Color.white
 
-            VStack(spacing: 0) {
-                // Header with university color
-                HStack {
-                    Image(systemName: "graduationcap.fill")
-                        .font(.title)
-                        .foregroundColor(.white)
-                        .padding(.leading)
-
-                    VStack(alignment: .leading) {
-                        Text(document.title.uppercased()) // University Name
-                            .font(.system(size: 16, weight: .bold))
+                VStack(spacing: 0) {
+                    // Header with university color
+                    HStack {
+                        Image(systemName: "graduationcap.fill")
+                            .font(.title)
                             .foregroundColor(.white)
-                        Text("STUDENT IDENTIFICATION")
-                            .font(.system(size: 8, weight: .light, design: .monospaced))
-                            .foregroundColor(.white.opacity(0.8))
+                            .padding(.leading)
+
+                        VStack(alignment: .leading) {
+                            Text(document.title.uppercased()) // University Name
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.white)
+                            Text("STUDENT IDENTIFICATION")
+                                .font(.system(size: 8, weight: .light, design: .monospaced))
+                                .foregroundColor(.white.opacity(0.8))
+                        }
+                        Spacer()
                     }
+                    .frame(height: 50)
+                    .background(
+                        TopRoundedRectangle(radius: 20)
+                            .fill(document.primaryColor)
+                    )
+
+                    // Main content
+                    HStack(alignment: .top, spacing: 15) {
+                        // Photo
+                        VStack {
+                            ZStack {
+                                Rectangle()
+                                    .fill(Color.gray.opacity(0.15))
+                                    .frame(width: 90, height: 100)
+                                    .cornerRadius(5)
+                                    .overlay(RoundedRectangle(cornerRadius: 5).stroke(Color.black.opacity(0.1), lineWidth: 0.5))
+                                
+                                Image(systemName: "person.fill")
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(width: 50)
+                                    .foregroundColor(Color.gray.opacity(0.8))
+                            }
+                        }
+
+                        // Details
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(document.holderName.uppercased())
+                                .font(.system(size: 18, weight: .heavy))
+                                .foregroundColor(.black)
+                                .minimumScaleFactor(0.8)
+                                .lineLimit(2)
+
+                            FieldView(label: "STUDENT NUMBER", value: document.detailValue)
+
+                            if let exp = document.expiryDate {
+                                FieldView(label: "EXPIRES", value: dateFormatter.string(from: exp))
+                            }
+                        }
+                        .padding(.top, 5)
+                    }
+                    .padding(.vertical, 10)
+                    .padding(.horizontal)
+
                     Spacer()
-                }
-                .frame(height: 50)
-                .background(
-                    TopRoundedRectangle(radius: 20)
-                        .fill(document.primaryColor)
-                )
 
-                // Main content
-                HStack(alignment: .top, spacing: 15) {
-                    // Photo
-                    VStack {
-                        ZStack {
-                            Rectangle()
-                                .fill(Color.gray.opacity(0.15))
-                                .frame(width: 90, height: 100)
-                                .cornerRadius(5)
-                                .overlay(RoundedRectangle(cornerRadius: 5).stroke(Color.black.opacity(0.1), lineWidth: 0.5))
-                            
-                            Image(systemName: "person.fill")
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 50)
-                                .foregroundColor(Color.gray.opacity(0.8))
-                        }
-                    }
-
-                    // Details
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(document.holderName.uppercased())
-                            .font(.system(size: 18, weight: .heavy))
-                            .foregroundColor(.black)
-                            .minimumScaleFactor(0.8)
-                            .lineLimit(2)
-
-                        FieldView(label: "STUDENT NUMBER", value: document.detailValue)
-
-                        if let exp = document.expiryDate {
-                            FieldView(label: "EXPIRES", value: dateFormatter.string(from: exp))
-                        }
-                    }
-                    .padding(.top, 5)
-                }
-                .padding(.vertical, 10)
-                .padding(.horizontal)
-
-                Spacer()
-
-                // Barcode simulation
-                VStack(spacing: 3) {
-                     HStack(spacing: 0) {
-                         ForEach(0..<50) { _ in
-                             Rectangle()
-                                 .fill(Color.black)
-                                 .frame(width: CGFloat.random(in: 1.0...2.5), height: 25)
+                    // Barcode simulation
+                    VStack(spacing: 3) {
+                         HStack(spacing: 0) {
+                             ForEach(0..<50) { _ in
+                                 Rectangle()
+                                     .fill(Color.black)
+                                     .frame(width: CGFloat.random(in: 1.0...2.5), height: 25)
+                             }
                          }
-                     }
-                    .frame(height: 25)
-                    .clipped()
+                        .frame(height: 25)
+                        .clipped()
 
-                    Text(document.detailValue)
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundColor(.black)
-                        .tracking(2)
+                        Text(document.detailValue)
+                            .font(.system(size: 10, design: .monospaced))
+                            .foregroundColor(.black)
+                            .tracking(2)
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom, 15)
                 }
-                .padding(.horizontal)
-                .padding(.bottom, 15)
             }
+            .frame(height: 240)
+            .cornerRadius(20)
+            .clipped()
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(Color.black.opacity(0.1), lineWidth: 1)
+            )
         }
-        .frame(height: 240)
-        .cornerRadius(20)
-        .clipped()
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(Color.black.opacity(0.1), lineWidth: 1)
-        )
     }
 }
 
@@ -320,93 +329,102 @@ struct IDCardDetailView: View {
     }
 
     var body: some View {
-        ZStack {
-            // Plastic Card Background
-            Color(white: 0.95)
-            
-            // Decorative guilloche patterns (simplified as opacity circles)
-            Circle()
-                .stroke(document.primaryColor.opacity(0.1), lineWidth: 20)
-                .offset(x: -50, y: -50)
-            Circle()
-                .stroke(document.primaryColor.opacity(0.1), lineWidth: 20)
-                .offset(x: 100, y: 100)
-            
-            VStack(spacing: 0) {
-                // Header Strip
-                HStack {
-                    Image(systemName: "building.columns.fill")
-                        .foregroundColor(document.primaryColor)
-                        .font(.caption2)
-                    Text(document.title.uppercased())
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundColor(document.primaryColor)
-                        .tracking(1)
-                    Spacer()
-                    Image(systemName: "star.circle")
-                        .foregroundColor(document.primaryColor)
-                        .font(.caption2)
-                }
-                .padding(.horizontal, 15)
-                .padding(.vertical, 8)
-                .background(document.primaryColor.opacity(0.1))
+        if let imageData = document.documentImageData, let uiImage = UIImage(data: imageData) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(height: 240)
+                .cornerRadius(20)
+                .clipped()
+        } else {
+            ZStack {
+                // Plastic Card Background
+                Color(white: 0.95)
                 
-                // Main Content
-                HStack(alignment: .top, spacing: 12) {
-                    // Photo
-                    VStack {
-                        ZStack {
-                            Rectangle()
-                                .fill(Color.gray.opacity(0.2))
-                                .frame(width: 75, height: 95)
-                                .cornerRadius(4)
-                            Image(systemName: "person.fill")
-                                .resizable()
-                                .frame(width: 35, height: 35)
-                                .foregroundColor(.gray)
-                        }
+                // Decorative guilloche patterns (simplified as opacity circles)
+                Circle()
+                    .stroke(document.primaryColor.opacity(0.1), lineWidth: 20)
+                    .offset(x: -50, y: -50)
+                Circle()
+                    .stroke(document.primaryColor.opacity(0.1), lineWidth: 20)
+                    .offset(x: 100, y: 100)
+                
+                VStack(spacing: 0) {
+                    // Header Strip
+                    HStack {
+                        Image(systemName: "building.columns.fill")
+                            .foregroundColor(document.primaryColor)
+                            .font(.caption2)
+                        Text(document.title.uppercased())
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(document.primaryColor)
+                            .tracking(1)
+                        Spacer()
+                        Image(systemName: "star.circle")
+                            .foregroundColor(document.primaryColor)
+                            .font(.caption2)
                     }
-                    .padding(.leading, 15)
-                    .padding(.top, 8)
+                    .padding(.horizontal, 15)
+                    .padding(.vertical, 8)
+                    .background(document.primaryColor.opacity(0.1))
                     
-                    // Fields
-                    VStack(alignment: .leading, spacing: 5) {
-                        FieldView(label: "Surname", value: names.surname)
-                        FieldView(label: "Given Names", value: names.given)
-                        if let dob = document.birthDate {
-                             FieldView(label: "Date of Birth", value: dateFormatter.string(from: dob).uppercased())
+                    // Main Content
+                    HStack(alignment: .top, spacing: 12) {
+                        // Photo
+                        VStack {
+                            ZStack {
+                                Rectangle()
+                                    .fill(Color.gray.opacity(0.2))
+                                    .frame(width: 75, height: 95)
+                                    .cornerRadius(4)
+                                Image(systemName: "person.fill")
+                                    .resizable()
+                                    .frame(width: 35, height: 35)
+                                    .foregroundColor(.gray)
+                            }
                         }
-                        FieldView(label: "Document No.", value: document.detailValue)
-                        if let exp = document.expiryDate {
-                             FieldView(label: "Expires", value: dateFormatter.string(from: exp).uppercased())
+                        .padding(.leading, 15)
+                        .padding(.top, 8)
+                        
+                        // Fields
+                        VStack(alignment: .leading, spacing: 5) {
+                            FieldView(label: "Surname", value: names.surname)
+                            FieldView(label: "Given Names", value: names.given)
+                            if let dob = document.birthDate {
+                                 FieldView(label: "Date of Birth", value: dateFormatter.string(from: dob).uppercased())
+                            }
+                            FieldView(label: "Document No.", value: document.detailValue)
+                            if let exp = document.expiryDate {
+                                 FieldView(label: "Expires", value: dateFormatter.string(from: exp).uppercased())
+                            }
                         }
+                        .padding(.top, 8)
+                        
+                        Spacer()
                     }
-                    .padding(.top, 8)
                     
                     Spacer()
+                    
+                    // Bottom Machine Readable Zone
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("I<UTOWALTERS<<ALEXANDER<<<<<<<<<<<<")
+                        Text("9928828UTO8506126M3006126<<<<<<<04")
+                        Text("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+                    }
+                    .font(.system(size: 7, weight: .medium, design: .monospaced))
+                    .foregroundColor(.black.opacity(0.7))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .background(Color.white)
                 }
-                
-                Spacer()
-                
-                // Bottom Machine Readable Zone
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("I<UTOWALTERS<<ALEXANDER<<<<<<<<<<<<")
-                    Text("9928828UTO8506126M3006126<<<<<<<04")
-                    Text("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
-                }
-                .font(.system(size: 7, weight: .medium, design: .monospaced))
-                .foregroundColor(.black.opacity(0.7))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
-                .background(Color.white)
             }
+            .frame(height: 240)
+            .cornerRadius(20)
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(Color.black.opacity(0.1), lineWidth: 1)
+            )
         }
-        .frame(height: 240)
-        .cornerRadius(20)
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(Color.black.opacity(0.1), lineWidth: 1)
-        )
     }
 }
 

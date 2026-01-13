@@ -332,10 +332,6 @@ struct DocumentFormView: View {
                 documentDetailsSection
                 personalInfoSection
                 
-                // MARK: - UPDATED SPACING LOGIC
-                // We use the "OR" divider as the HEADER of the Photo Section.
-                // We apply negative top padding to the divider to pull it up into the
-                // gap that separates the sections, reducing the visual space.
                 if shouldShowPhotoUpload {
                     Section {
                         documentPhotoUploadArea
@@ -560,8 +556,7 @@ struct DocumentFormView: View {
         }
     }
 
-    // MARK: - PHOTO UPLOAD COMPONENTS
-    // Updated for tighter spacing: This is now used as a SECTION HEADER
+    // PHOTO UPLOAD COMPONENTS
     private var documentPhotoUploadDivider: some View {
         HStack {
             VStack { Divider() }
@@ -581,24 +576,37 @@ struct DocumentFormView: View {
     @ViewBuilder
     private var documentPhotoUploadArea: some View {
         if let imageData = documentImage, let uiImage = UIImage(data: imageData) {
-            Image(uiImage: uiImage)
-                .resizable()
-                .scaledToFit()
-                .cornerRadius(10)
-                .frame(maxHeight: 200)
-                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 10, trailing: 0))
-                .overlay(alignment: .topTrailing) {
-                    Button {
-                        withAnimation(.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.3)) { documentImage = nil }
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title2)
-                            .symbolRenderingMode(.palette)
-                            .foregroundStyle(.white, .red)
-                            .shadow(radius: 2)
-                    }
-                    .padding(8)
+            ZStack(alignment: .topTrailing) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxHeight: 200)
+                    .frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .onTapGesture { }
+                
+                Button {
+                    withAnimation(.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.3)) { documentImage = nil }
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.black)
+                        .padding(8)
+                        .background(Circle().fill(.white))
+                        .shadow(color: .black.opacity(0.15), radius: 3, x: 0, y: 1)
                 }
+                .padding(10)
+                // 👇 2. Vital for Forms: Ensures this button works independently 
+                // and doesn't make the whole row clickable.
+                .buttonStyle(.borderless)
+            }
+            .padding(12)
+            .listRowBackground(
+                RoundedRectangle(cornerRadius: 26)
+                    .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                    .padding(.bottom, 2)
+            )
+            .listRowSeparator(.hidden)
         }
         
         PhotosPicker(
@@ -621,7 +629,7 @@ struct DocumentFormView: View {
         )
     }
     
-    // MARK: - Helper Methods
+    // Helper Methods
     
     private func getDetailLabel() -> String {
         switch type {
@@ -744,7 +752,6 @@ struct DocumentFormView: View {
     }
 }
 
-/// A reusable view for airport text fields with autocomplete suggestions.
 fileprivate struct AirportSelectionField: View {
     let title: String
     @Binding var selection: String

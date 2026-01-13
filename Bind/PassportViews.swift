@@ -235,100 +235,108 @@ struct PassportInteriorView: View {
             
             // --- BOTTOM PAGE (Data) ---
             ZStack {
-                Color(red: 0.98, green: 0.96, blue: 0.93)
-                
-                VStack(spacing: 0) {
-                    // Header Bar
-                    HStack {
-                        Text(document.title.uppercased())
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundColor(.black)
-                            .multilineTextAlignment(.center)
-                        Spacer()
-                        Image(systemName: "globe.europe.africa.fill")
-                            .font(.title3)
-                            .foregroundColor(.blue.opacity(0.8))
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 15)
+                if let imageData = document.documentImageData, let uiImage = UIImage(data: imageData) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(height: 240)
+                        .clipped()
+                } else {
+                    Color(red: 0.98, green: 0.96, blue: 0.93)
                     
-                    Divider().background(Color.black).padding(.top, 8)
-                    
-                    Spacer() // VERTICAL CENTERING: Push content down
-                    
-                    // Data Page Layout
-                    HStack(alignment: .center, spacing: 15) { // ALIGNMENT: Center vertical
-                        // Photo Area
-                        VStack {
-                            ZStack {
-                                // 1. Photo Background with Gradient
-                                Rectangle()
-                                    .fill(
-                                        LinearGradient(
-                                            gradient: Gradient(colors: [Color(white: 0.85), Color(white: 0.75)]),
-                                            startPoint: .top,
-                                            endPoint: .bottom
-                                        )
-                                    )
-                                    .frame(width: 110, height: 145) // Increased photo size
-                                
-                                // 2. Realistic Silhouette (Not Stretched)
-                                Image(systemName: "person.fill")
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit) // Fix stretching
-                                    .frame(width: 80) // Larger person icon
-                                    .foregroundColor(Color(white: 0.4))
-                                    .offset(y: 15) // Adjusted offset
-                                
-                                // 3. Border
-                                Rectangle()
-                                    .stroke(Color.black.opacity(0.1), lineWidth: 1)
-                                    .frame(width: 110, height: 145) // Match photo size
-                            }
-                            .clipped() // Ensure person doesn't spill out
+                    VStack(spacing: 0) {
+                        // Header Bar
+                        HStack {
+                            Text(document.title.uppercased())
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundColor(.black)
+                                .multilineTextAlignment(.center)
+                            Spacer()
+                            Image(systemName: "globe.europe.africa.fill")
+                                .font(.title3)
+                                .foregroundColor(.blue.opacity(0.8))
                         }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 15)
                         
-                        // Fields
-                        VStack(alignment: .leading, spacing: 6) {
-                            FieldView(label: "Type", value: "P")
-                            // Use detailValue for Passport No
-                            FieldView(label: "Passport No.", value: document.detailValue)
-                            
-                            // Split Name Logic
-                            FieldView(label: "Surname", value: names.surname)
-                            FieldView(label: "Given Names", value: names.given)
-                            
-                            // Nationality or Fallback to Title
-                            FieldView(label: "Nationality", value: (document.nationality ?? document.title).uppercased())
-                            
-                            // Date of Birth
-                            if let dob = document.birthDate {
-                                FieldView(label: "Date of Birth", value: dateFormatter.string(from: dob).uppercased())
-                            } else {
-                                FieldView(label: "Date of Birth", value: "UNKNOWN")
+                        Divider().background(Color.black).padding(.top, 8)
+                        
+                        Spacer() // VERTICAL CENTERING: Push content down
+                        
+                        // Data Page Layout
+                        HStack(alignment: .center, spacing: 15) { // ALIGNMENT: Center vertical
+                            // Photo Area
+                            VStack {
+                                ZStack {
+                                    // 1. Photo Background with Gradient
+                                    Rectangle()
+                                        .fill(
+                                            LinearGradient(
+                                                gradient: Gradient(colors: [Color(white: 0.85), Color(white: 0.75)]),
+                                                startPoint: .top,
+                                                endPoint: .bottom
+                                            )
+                                        )
+                                        .frame(width: 110, height: 145) // Increased photo size
+                                    
+                                    // 2. Realistic Silhouette (Not Stretched)
+                                    Image(systemName: "person.fill")
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit) // Fix stretching
+                                        .frame(width: 80) // Larger person icon
+                                        .foregroundColor(Color(white: 0.4))
+                                        .offset(y: 15) // Adjusted offset
+                                    
+                                    // 3. Border
+                                    Rectangle()
+                                        .stroke(Color.black.opacity(0.1), lineWidth: 1)
+                                        .frame(width: 110, height: 145) // Match photo size
+                                }
+                                .clipped() // Ensure person doesn't spill out
                             }
                             
-                            // Expiry
-                            if let exp = document.expiryDate {
-                                FieldView(label: "Date of Expiry", value: dateFormatter.string(from: exp).uppercased())
+                            // Fields
+                            VStack(alignment: .leading, spacing: 6) {
+                                FieldView(label: "Type", value: "P")
+                                // Use detailValue for Passport No
+                                FieldView(label: "Passport No.", value: document.detailValue)
+                                
+                                // Split Name Logic
+                                FieldView(label: "Surname", value: names.surname)
+                                FieldView(label: "Given Names", value: names.given)
+                                
+                                // Nationality or Fallback to Title
+                                FieldView(label: "Nationality", value: (document.nationality ?? document.title).uppercased())
+                                
+                                // Date of Birth
+                                if let dob = document.birthDate {
+                                    FieldView(label: "Date of Birth", value: dateFormatter.string(from: dob).uppercased())
+                                } else {
+                                    FieldView(label: "Date of Birth", value: "UNKNOWN")
+                                }
+                                
+                                // Expiry
+                                if let exp = document.expiryDate {
+                                    FieldView(label: "Date of Expiry", value: dateFormatter.string(from: exp).uppercased())
+                                }
                             }
                         }
+                        .padding(.leading, 10) // ALIGNMENT: More to the left
+                        .padding(.trailing, 15)
+                        
+                        Spacer() // VERTICAL CENTERING: Push content up
+                        
+                        // Machine Readable Zone (MRZ) - Simulated
+                        VStack(spacing: 2) {
+                            Text("P<\(String(document.title.prefix(3)).uppercased())\(names.surname)<<\(names.given.replacingOccurrences(of: " ", with: "<"))<<<<<<<<<<<<")
+                            Text("\(document.detailValue.replacingOccurrences(of: " ", with: ""))\(String(document.title.prefix(3)).uppercased())<<<<<<<<<<<<<<<<<<04")
+                        }
+                        .font(.system(size: 10, weight: .medium, design: .monospaced))
+                        .foregroundColor(.black.opacity(0.8))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 15)
+                        .background(Color.white)
                     }
-                    .padding(.leading, 10) // ALIGNMENT: More to the left
-                    .padding(.trailing, 15)
-                    
-                    Spacer() // VERTICAL CENTERING: Push content up
-                    
-                    // Machine Readable Zone (MRZ) - Simulated
-                    VStack(spacing: 2) {
-                        Text("P<\(String(document.title.prefix(3)).uppercased())\(names.surname)<<\(names.given.replacingOccurrences(of: " ", with: "<"))<<<<<<<<<<<<")
-                        Text("\(document.detailValue.replacingOccurrences(of: " ", with: ""))\(String(document.title.prefix(3)).uppercased())<<<<<<<<<<<<<<<<<<04")
-                    }
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundColor(.black.opacity(0.8))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 15)
-                    .background(Color.white)
                 }
             }
             // Inner Shadow for Spine Effect

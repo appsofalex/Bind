@@ -63,74 +63,82 @@ struct PassportDetailView: View {
                 
                 // --- BOTTOM PAGE (Data & Photo) ---
                 ZStack {
-                    // "Paper" Texture
-                    Rectangle()
-                        .fill(Color(red: 0.95, green: 0.95, blue: 0.92)) // Off-white paper for contrast
-                    
-                    // Fine security pattern overlay
-                    Image(systemName: "shield.checkerboard")
-                        .resizable()
-                        .opacity(0.05)
-                        .foregroundColor(.blue)
-                        .scaleEffect(1.5)
-                    
-                    VStack(alignment: .leading, spacing: 15) {
+                    if let imageData = document.documentImageData, let uiImage = UIImage(data: imageData) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(height: 380)
+                            .clipped()
+                    } else {
+                        // "Paper" Texture
+                        Rectangle()
+                            .fill(Color(red: 0.95, green: 0.95, blue: 0.92)) // Off-white paper for contrast
                         
-                        // Header: Type / Code / No
-                        HStack {
-                            dataField(label: "Type", value: "P")
-                            Spacer()
-                            dataField(label: "Code", value: "GBR")
-                            Spacer()
-                            dataField(label: "Passport No", value: document.detailValue)
-                        }
+                        // Fine security pattern overlay
+                        Image(systemName: "shield.checkerboard")
+                            .resizable()
+                            .opacity(0.05)
+                            .foregroundColor(.blue)
+                            .scaleEffect(1.5)
                         
-                        Divider()
-                        
-                        HStack(alignment: .top, spacing: 20) {
-                            // PHOTO AREA
-                            VStack {
-                                ZStack {
-                                    Rectangle()
-                                        .fill(Color.gray.opacity(0.3))
-                                        .frame(width: 100, height: 130)
-                                    
-                                    Image(systemName: "person.fill")
-                                        .font(.system(size: 60))
-                                        .foregroundColor(.gray)
-                                }
-                                .cornerRadius(5)
+                        VStack(alignment: .leading, spacing: 15) {
+                            
+                            // Header: Type / Code / No
+                            HStack {
+                                dataField(label: "Type", value: "P")
+                                Spacer()
+                                dataField(label: "Code", value: "GBR")
+                                Spacer()
+                                dataField(label: "Passport No", value: document.detailValue)
                             }
                             
-                            // DETAILS AREA
-                            VStack(alignment: .leading, spacing: 12) {
-                                dataField(label: "Surname", value: "HARTDEGEN")
-                                dataField(label: "Given Names", value: "ALEXANDER")
-                                dataField(label: "Nationality", value: "BRITISH CITIZEN")
-                                
-                                HStack {
-                                    dataField(label: "Date of Birth", value: "12 JAN 1990")
-                                    Spacer()
-                                    dataField(label: "Sex", value: "M")
+                            Divider()
+                            
+                            HStack(alignment: .top, spacing: 20) {
+                                // PHOTO AREA
+                                VStack {
+                                    ZStack {
+                                        Rectangle()
+                                            .fill(Color.gray.opacity(0.3))
+                                            .frame(width: 100, height: 130)
+                                        
+                                        Image(systemName: "person.fill")
+                                            .font(.system(size: 60))
+                                            .foregroundColor(.gray)
+                                    }
+                                    .cornerRadius(5)
                                 }
                                 
-                                dataField(label: "Date of Expiry", value: "12 JAN 2030")
+                                // DETAILS AREA
+                                VStack(alignment: .leading, spacing: 12) {
+                                    dataField(label: "Surname", value: "HARTDEGEN")
+                                    dataField(label: "Given Names", value: "ALEXANDER")
+                                    dataField(label: "Nationality", value: "BRITISH CITIZEN")
+                                    
+                                    HStack {
+                                        dataField(label: "Date of Birth", value: "12 JAN 1990")
+                                        Spacer()
+                                        dataField(label: "Sex", value: "M")
+                                    }
+                                    
+                                    dataField(label: "Date of Expiry", value: "12 JAN 2030")
+                                }
                             }
+                            
+                            Spacer()
+                            
+                            // MRZ CODE (The machine readable bottom part)
+                            VStack(spacing: 2) {
+                                Text("P<GBRHARTDEGEN<<ALEXANDER<<<<<<<<<<<<<<<<<<<")
+                                Text("9832019928GBR9001129M3001126<<<<<<<<<<<<<<02")
+                            }
+                            .font(.system(size: 14, weight: .regular, design: .monospaced))
+                            .foregroundColor(.black.opacity(0.8))
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 10)
                         }
-                        
-                        Spacer()
-                        
-                        // MRZ CODE (The machine readable bottom part)
-                        VStack(spacing: 2) {
-                            Text("P<GBRHARTDEGEN<<ALEXANDER<<<<<<<<<<<<<<<<<<<")
-                            Text("9832019928GBR9001129M3001126<<<<<<<<<<<<<<02")
-                        }
-                        .font(.system(size: 14, weight: .regular, design: .monospaced))
-                        .foregroundColor(.black.opacity(0.8))
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 10)
+                        .padding(25)
                     }
-                    .padding(25)
                 }
                 .frame(height: 380)
             }
