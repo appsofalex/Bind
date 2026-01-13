@@ -116,6 +116,7 @@ struct TravelDocument: Identifiable, Codable, Equatable {
         case passport, visa, boardingPass, insurance, idCard, birthCertificate, marriageCertificate
         // NEW TYPES
         case driversLicense, studentID, prescription, vaccineRecord, medicalAlert
+        case rewardsCard, event, carRental, hotelKeyCard
         
         var id: String { rawValue }
         
@@ -130,6 +131,10 @@ struct TravelDocument: Identifiable, Codable, Equatable {
             case .boardingPass: return "Boarding Pass"
             case .birthCertificate: return "Birth Certificate"
             case .marriageCertificate: return "Marriage Certificate"
+            case .rewardsCard: return "Rewards Card"
+            case .event: return "Event"
+            case .carRental: return "Car Rental"
+            case .hotelKeyCard: return "Hotel Key Card"
             default: return rawValue.capitalized
             }
         }

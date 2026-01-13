@@ -55,6 +55,10 @@ struct DocumentFormView: View {
     @State private var eyeColor: String
     @State private var documentImage: Data?
     
+    // REWARDS CARD SPECIFIC
+    @State private var selectedRewardType: String = "Coffee"
+    @State private var selectedRewardBrand: String = ""
+    
     // Image Picker & Cropper State
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var imageToCrop: CroppableImage?
@@ -67,6 +71,11 @@ struct DocumentFormView: View {
     
     // Static list for UK Driver's License classes
     let licenseClasses = ["Category B (Car)", "Category A (Motorcycle)", "Category C (Large Goods)", "Category D (Bus)", "Provisional"]
+
+    // REWARDS DATA
+    let rewardTypes = ["Coffee", "Airline", "Supermarket"]
+    let coffeeShops = ["Starbucks", "Pret A Manger", "Costa Coffee", "Philz Coffee", "Caffè Nero", "Tim Hortons", "Dunkin'", "McCafé"]
+    let supermarkets = ["Waitrose", "Tesco", "Sainsbury's", "M&S Food", "Co-op", "Asda", "Morrisons", "Lidl", "Aldi", "Waitrose & Partners"]
 
     let countries = [
         "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan",
@@ -195,7 +204,7 @@ struct DocumentFormView: View {
     
     // Helper to determine if we show the photo upload section
     private var shouldShowPhotoUpload: Bool {
-        return [.passport, .driversLicense, .studentID, .idCard].contains(type)
+        return [.passport, .driversLicense, .studentID, .idCard, .birthCertificate, .marriageCertificate, .rewardsCard, .event, .carRental, .hotelKeyCard].contains(type)
     }
     
     // Initialize default values based on type OR existing document
@@ -275,6 +284,16 @@ struct DocumentFormView: View {
                 }
             } else if doc.type == .vaccineRecord {
                 _selectedVaccine = State(initialValue: doc.subtitle.capitalized)
+            } else if doc.type == .rewardsCard {
+                _selectedRewardBrand = State(initialValue: doc.title)
+                // Try to guess the type based on the brand or subtitle
+                if doc.subtitle.contains("COFFEE") {
+                    _selectedRewardType = State(initialValue: "Coffee")
+                } else if doc.subtitle.contains("AIRLINE") || doc.subtitle.contains("FLYER") {
+                    _selectedRewardType = State(initialValue: "Airline")
+                } else if doc.subtitle.contains("SUPERMARKET") || doc.subtitle.contains("GROCERY") {
+                    _selectedRewardType = State(initialValue: "Supermarket")
+                }
             }
             
         } else {
@@ -320,6 +339,18 @@ struct DocumentFormView: View {
             case .marriageCertificate:
                 _title = State(initialValue: "Marriage Certificate")
                 _subtitle = State(initialValue: "OFFICIAL RECORD")
+            case .rewardsCard:
+                _title = State(initialValue: "Rewards Card")
+                _subtitle = State(initialValue: "LOYALTY")
+            case .event:
+                _title = State(initialValue: "Event Ticket")
+                _subtitle = State(initialValue: "ADMISSION")
+            case .carRental:
+                _title = State(initialValue: "Car Rental")
+                _subtitle = State(initialValue: "RESERVATION")
+            case .hotelKeyCard:
+                _title = State(initialValue: "Hotel Key")
+                _subtitle = State(initialValue: "GUEST ACCESS")
             default:
                 break
             }
@@ -468,11 +499,66 @@ struct DocumentFormView: View {
                     }
                 }
             
-            case .studentID, .idCard, .prescription, .birthCertificate, .marriageCertificate:
-                TextField(type == .studentID ? "University name" : "Title (e.g. Country, State)", text: $title)
+            case .studentID, .idCard, .prescription, .birthCertificate, .marriageCertificate, .event, .carRental, .hotelKeyCard:
+                TextField(type == .studentID ? "University name" : "Title (e.g. Company, City)", text: $title)
                     .textInputAutocapitalization(.words)
-                TextField("Subtitle (e.g. License Type)", text: $subtitle)
+                TextField("Subtitle (e.g. Card Type)", text: $subtitle)
                     .textInputAutocapitalization(type == .studentID ? .sentences : .characters)
+                
+            case .rewardsCard:
+                Picker("Card Type", selection: $selectedRewardType) {
+                    ForEach(rewardTypes, id: \.self) { type in
+                        Text(type).tag(type)
+                    }
+                }
+                .onChange(of: selectedRewardType) { _ in
+                    selectedRewardBrand = ""
+                    title = ""
+                }
+                
+                if selectedRewardType == "Coffee" {
+                    Picker("Coffee Shop", selection: $selectedRewardBrand) {
+                        Text("Select Brand").tag("")
+                        ForEach(coffeeShops, id: \.self) { shop in
+                            Text(shop).tag(shop)
+                        }
+                    }
+                    .onChange(of: selectedRewardBrand) { newValue in
+                        title = newValue
+                        subtitle = "COFFEE REWARDS"
+                    }
+                } else if selectedRewardType == "Airline" {
+                    Picker("Airline", selection: $selectedRewardBrand) {
+                        Text("Select Airline").tag("")
+                        ForEach(airlineSegments, id: \.country) { segment in
+                            Section(header: Text(segment.country)) {
+                                ForEach(segment.airlines, id: \.self) { airline in
+                                    Text(airline).tag(airline)
+                                }
+                            }
+                        }
+                    }
+                    .onChange(of: selectedRewardBrand) { newValue in
+                        title = newValue
+                        subtitle = "FREQUENT FLYER"
+                    }
+                } else if selectedRewardType == "Supermarket" {
+                    Picker("Supermarket", selection: $selectedRewardBrand) {
+                        Text("Select Supermarket").tag("")
+                        ForEach(supermarkets, id: \.self) { market in
+                            Text(market).tag(market)
+                        }
+                    }
+                    .onChange(of: selectedRewardBrand) { newValue in
+                        title = newValue
+                        subtitle = "SUPERMARKET REWARDS"
+                    }
+                }
+                
+                if selectedRewardBrand.isEmpty {
+                    TextField("Or enter custom name", text: $title)
+                        .textInputAutocapitalization(.words)
+                }
             }
         }
     }
@@ -637,6 +723,14 @@ struct DocumentFormView: View {
             return "Student number"
         case .visa:
             return "Confirmation Code"
+        case .rewardsCard:
+            return "Member Number"
+        case .event:
+            return "Ticket Number"
+        case .carRental:
+            return "Reservation Number"
+        case .hotelKeyCard:
+            return "Room / Res Number"
         default:
             return "Booking Number"
         }
@@ -673,6 +767,20 @@ struct DocumentFormView: View {
         case .birthCertificate, .marriageCertificate:
             finalSubtitle = "OFFICIAL RECORD"
             
+        case .rewardsCard:
+            if finalSubtitle.isEmpty || finalSubtitle == "LOYALTY" {
+                finalSubtitle = "LOYALTY CARD"
+            }
+            
+        case .event:
+            finalSubtitle = "ADMISSION TICKET"
+            
+        case .carRental:
+            finalSubtitle = "RENTAL AGREEMENT"
+            
+        case .hotelKeyCard:
+            finalSubtitle = "HOTEL ACCESS"
+            
         default:
             break
         }
@@ -706,7 +814,7 @@ struct DocumentFormView: View {
             endorsements: type == .driversLicense ? endorsements : nil,
             height: type == .driversLicense ? height : nil,
             eyeColor: type == .driversLicense ? eyeColor : nil,
-            documentImageData: (type == .driversLicense || type == .passport || type == .idCard || type == .studentID) ? documentImage : nil,
+            documentImageData: (type == .driversLicense || type == .passport || type == .idCard || type == .studentID || type == .birthCertificate || type == .marriageCertificate || type == .rewardsCard || type == .event || type == .carRental || type == .hotelKeyCard) ? documentImage : nil,
             primaryColor: getColor(for: type),
             secondaryColor: .white,
             iconName: getIcon(for: type),
@@ -726,6 +834,10 @@ struct DocumentFormView: View {
         case .medicalAlert: return Color(red: 0.85, green: 0.2, blue: 0.2)
         case .birthCertificate: return Color(red: 0.4, green: 0.3, blue: 0.2)
         case .marriageCertificate: return Color(red: 0.7, green: 0.5, blue: 0.2)
+        case .rewardsCard: return Color(red: 0.95, green: 0.75, blue: 0.1)
+        case .event: return Color(red: 0.0, green: 0.7, blue: 0.8)
+        case .carRental: return Color(red: 0.1, green: 0.4, blue: 0.2)
+        case .hotelKeyCard: return Color(red: 0.15, green: 0.15, blue: 0.2)
         case .passport: return Color(red: 0.05, green: 0.05, blue: 0.25)
         case .boardingPass: return Color(red: 1.0, green: 0.31, blue: 0.0)
         case .visa: return Color(red: 0.85, green: 0.2, blue: 0.3)
@@ -743,6 +855,10 @@ struct DocumentFormView: View {
         case .medicalAlert: return "staroflife.fill"
         case .birthCertificate: return "stroller.fill"
         case .marriageCertificate: return "figure.and.child.holdinghands"
+        case .rewardsCard: return "star.fill"
+        case .event: return "ticket.fill"
+        case .carRental: return "car.2.fill"
+        case .hotelKeyCard: return "key.fill"
         case .passport: return "globe"
         case .boardingPass: return "airplane"
         case .visa: return "checkmark.seal"

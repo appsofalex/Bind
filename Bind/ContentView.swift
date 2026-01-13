@@ -224,6 +224,8 @@ struct TravelDocsWalletView: View {
                             Section("Travel") {
                                 Button(action: { startAdd(.passport) }) { Label("Passport", systemImage: "globe") }
                                 Button(action: { startAdd(.boardingPass) }) { Label("Boarding Pass", systemImage: "airplane") }
+                                Button(action: { startAdd(.carRental) }) { Label("Car Rental", systemImage: "car.2.fill") }
+                                Button(action: { startAdd(.hotelKeyCard) }) { Label("Hotel Key Card", systemImage: "key.fill") }
                                 Button(action: { startAdd(.visa) }) { Label("Visa", systemImage: "checkmark.seal") }
                                 Button(action: { startAdd(.insurance) }) { Label("Insurance", systemImage: "cross.case") }
                             }
@@ -237,6 +239,13 @@ struct TravelDocsWalletView: View {
                                 Button(action: { startAdd(.prescription) }) { Label("Prescription", systemImage: "pills") }
                                 Button(action: { startAdd(.vaccineRecord) }) { Label("Vaccination Record", systemImage: "syringe") }
                                 Button(action: { startAdd(.medicalAlert) }) { Label("Blood & Allergies", systemImage: "staroflife") }
+                            }
+
+                            Section("Other") {
+                                Button(action: { startAdd(.birthCertificate) }) { Label("Birth Certificate", systemImage: "stroller.fill") }
+                                Button(action: { startAdd(.marriageCertificate) }) { Label("Marriage Certificate", systemImage: "figure.and.child.holdinghands") }
+                                Button(action: { startAdd(.rewardsCard) }) { Label("Rewards Card", systemImage: "star.fill") }
+                                Button(action: { startAdd(.event) }) { Label("Event", systemImage: "ticket.fill") }
                             }
 
                         } label: {
