@@ -115,6 +115,7 @@ struct TravelDocsWalletView: View {
                         // CHANGED: Group generic ID types together for the flip animation
                         let isIDCard = (doc.type == .idCard || doc.type == .driversLicense || doc.type == .studentID)
                         let isBoardingPass = (doc.type == .boardingPass)
+                        let isRewardsCard = (doc.type == .rewardsCard)
                         let isSelected = (selectedID == doc.id)
                         
                         Group {
@@ -135,6 +136,13 @@ struct TravelDocsWalletView: View {
                             } else if isBoardingPass {
                                 // Use specialized animation for Boarding Pass
                                 BoardingPassAnimatedCard(
+                                    document: doc,
+                                    isSelected: isSelected,
+                                    onTap: { toggleSelection(for: doc.id) }
+                                )
+                            } else if isRewardsCard {
+                                // Use new Rewards animation
+                                RewardsAnimatedCard(
                                     document: doc,
                                     isSelected: isSelected,
                                     onTap: { toggleSelection(for: doc.id) }
