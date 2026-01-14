@@ -260,7 +260,7 @@ struct LegacyAddDocumentView: View {
                 _subtitle = State(initialValue: "Tourist Visa")
             case .insurance:
                 _title = State(initialValue: "")
-                _subtitle = State(initialValue: "Travel") // Default to Travel insurance
+                _subtitle = State(initialValue: "Health") // Default to Health insurance
             case .driversLicense:
                 _title = State(initialValue: "United Kingdom")
                 _subtitle = State(initialValue: "DRIVER LICENSE")

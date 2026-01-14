@@ -116,6 +116,7 @@ struct TravelDocsWalletView: View {
                         let isIDCard = (doc.type == .idCard || doc.type == .driversLicense || doc.type == .studentID)
                         let isBoardingPass = (doc.type == .boardingPass)
                         let isRewardsCard = (doc.type == .rewardsCard)
+                        let isCarRental = (doc.type == .carRental)
                         let isSelected = (selectedID == doc.id)
                         
                         Group {
@@ -143,6 +144,13 @@ struct TravelDocsWalletView: View {
                             } else if isRewardsCard {
                                 // Use new Rewards animation
                                 RewardsAnimatedCard(
+                                    document: doc,
+                                    isSelected: isSelected,
+                                    onTap: { toggleSelection(for: doc.id) }
+                                )
+                            } else if isCarRental {
+                                // Use new Car Rental animation
+                                CarRentalAnimatedCard(
                                     document: doc,
                                     isSelected: isSelected,
                                     onTap: { toggleSelection(for: doc.id) }
@@ -235,7 +243,6 @@ struct TravelDocsWalletView: View {
                                 Button(action: { startAdd(.carRental) }) { Label("Car Rental", systemImage: "car.2.fill") }
                                 Button(action: { startAdd(.hotelKeyCard) }) { Label("Hotel Key Card", systemImage: "key.fill") }
                                 Button(action: { startAdd(.visa) }) { Label("Visa", systemImage: "checkmark.seal") }
-                                Button(action: { startAdd(.insurance) }) { Label("Insurance", systemImage: "cross.case") }
                             }
                             Section("Identity") {
                                 Button(action: { startAdd(.driversLicense) }) { Label("Driver's License", systemImage: "car") }
@@ -247,6 +254,7 @@ struct TravelDocsWalletView: View {
                                 Button(action: { startAdd(.prescription) }) { Label("Prescription", systemImage: "pills") }
                                 Button(action: { startAdd(.vaccineRecord) }) { Label("Vaccination Record", systemImage: "syringe") }
                                 Button(action: { startAdd(.medicalAlert) }) { Label("Blood & Allergies", systemImage: "staroflife") }
+                                Button(action: { startAdd(.insurance) }) { Label("Insurance", systemImage: "cross.case") }
                             }
 
                             Section("Other") {

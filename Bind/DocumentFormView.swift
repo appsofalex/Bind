@@ -55,6 +55,14 @@ struct DocumentFormView: View {
     @State private var eyeColor: String
     @State private var documentImage: Data?
     
+    // CAR RENTAL SPECIFIC FIELDS
+    @State private var selectedCarBrand: String = ""
+    @State private var carModel: String = ""
+    @State private var pickupLocation: String = ""
+    @State private var dropoffLocation: String = ""
+    @State private var pickupDate: Date = Date()
+    @State private var dropoffDate: Date = Date().addingTimeInterval(3600 * 24 * 3) // 3 days later
+    
     // REWARDS CARD SPECIFIC
     @State private var selectedRewardType: String = "Coffee"
     @State private var selectedRewardBrand: String = ""
@@ -76,6 +84,11 @@ struct DocumentFormView: View {
     let rewardTypes = ["Coffee", "Airline", "Supermarket"]
     let coffeeShops = ["Starbucks", "Pret A Manger", "Costa Coffee", "Philz Coffee", "Caffè Nero", "Tim Hortons", "Dunkin'", "McCafé"]
     let supermarkets = ["Waitrose", "Tesco", "Sainsbury's", "M&S Food", "Co-op", "Asda", "Morrisons", "Lidl", "Aldi", "Waitrose & Partners"]
+
+    let carRentalCompanies = [
+        "Hertz", "Avis", "Europcar", "Sixt", "Enterprise", "Budget", "National", "Alamo",
+        "Dollar", "Thrifty", "Goldcar", "Centauro", "Virtuo", "Keddy", "Record Go", "Locauto"
+    ]
 
     let countries = [
         "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan",
@@ -278,6 +291,15 @@ struct DocumentFormView: View {
             _eyeColor = State(initialValue: doc.eyeColor ?? "")
             _documentImage = State(initialValue: doc.documentImageData)
             
+            _carModel = State(initialValue: doc.carModel ?? "")
+            _pickupLocation = State(initialValue: doc.pickupLocation ?? "")
+            _dropoffLocation = State(initialValue: doc.dropoffLocation ?? "")
+            if let pd = doc.pickupDate { _pickupDate = State(initialValue: pd) }
+            if let dd = doc.dropoffDate { _dropoffDate = State(initialValue: dd) }
+            if doc.type == .carRental {
+                _selectedCarBrand = State(initialValue: doc.title)
+            }
+            
             if doc.type == .medicalAlert {
                 if let bloodTypeRange = doc.holderName.range(of: "TYPE: ") {
                     _selectedBloodType = State(initialValue: String(doc.holderName[bloodTypeRange.upperBound...]))
@@ -312,7 +334,7 @@ struct DocumentFormView: View {
                 _subtitle = State(initialValue: "Tourist Visa")
                 _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60 * 5))
             case .insurance:
-                _subtitle = State(initialValue: "Travel")
+                _subtitle = State(initialValue: "Health")
                 _issueDate = State(initialValue: Date())
                 _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60))
             case .driversLicense:
@@ -499,11 +521,31 @@ struct DocumentFormView: View {
                     }
                 }
             
-            case .studentID, .idCard, .prescription, .birthCertificate, .marriageCertificate, .event, .carRental, .hotelKeyCard:
+            case .studentID, .idCard, .prescription, .birthCertificate, .marriageCertificate, .event, .hotelKeyCard:
                 TextField(type == .studentID ? "University name" : "Title (e.g. Company, City)", text: $title)
                     .textInputAutocapitalization(.words)
                 TextField("Subtitle (e.g. Card Type)", text: $subtitle)
                     .textInputAutocapitalization(type == .studentID ? .sentences : .characters)
+                
+            case .carRental:
+                Picker("Rental Company", selection: $selectedCarBrand) {
+                    Text("Select Company").tag("")
+                    ForEach(carRentalCompanies, id: \.self) { company in
+                        Text(company).tag(company)
+                    }
+                }
+                .onChange(of: selectedCarBrand) { newValue in
+                    title = newValue
+                    subtitle = "CAR RENTAL"
+                }
+                
+                if selectedCarBrand.isEmpty {
+                    TextField("Or enter custom name", text: $title)
+                        .textInputAutocapitalization(.words)
+                }
+                
+                TextField("Car Model (e.g. VW Golf)", text: $carModel)
+                    .textInputAutocapitalization(.words)
                 
             case .rewardsCard:
                 Picker("Card Type", selection: $selectedRewardType) {
@@ -629,6 +671,20 @@ struct DocumentFormView: View {
                     DatePicker("Date of Birth", selection: $birthDate, displayedComponents: .date)
                 }
                 DatePicker("Date of Expiry", selection: $expiryDate, displayedComponents: .date)
+            
+            case .carRental:
+                TextField("Driver Name", text: $holderName)
+                    .textInputAutocapitalization(.words)
+                TextField("Reservation Number", text: $detailValue)
+                    .textInputAutocapitalization(.characters)
+                
+                TextField("Pick-up Location", text: $pickupLocation)
+                    .textInputAutocapitalization(.words)
+                DatePicker("Pick-up Date & Time", selection: $pickupDate)
+                
+                TextField("Drop-off Location", text: $dropoffLocation)
+                    .textInputAutocapitalization(.words)
+                DatePicker("Drop-off Date & Time", selection: $dropoffDate)
                 
             default:
                 TextField("Your Name", text: $holderName)
@@ -815,6 +871,11 @@ struct DocumentFormView: View {
             height: type == .driversLicense ? height : nil,
             eyeColor: type == .driversLicense ? eyeColor : nil,
             documentImageData: (type == .driversLicense || type == .passport || type == .idCard || type == .studentID || type == .birthCertificate || type == .marriageCertificate || type == .rewardsCard || type == .event || type == .carRental || type == .hotelKeyCard) ? documentImage : nil,
+            carModel: type == .carRental ? carModel : nil,
+            pickupLocation: type == .carRental ? pickupLocation : nil,
+            dropoffLocation: type == .carRental ? dropoffLocation : nil,
+            pickupDate: type == .carRental ? pickupDate : nil,
+            dropoffDate: type == .carRental ? dropoffDate : nil,
             primaryColor: getColor(for: type),
             secondaryColor: .white,
             iconName: getIcon(for: type),

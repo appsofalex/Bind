@@ -36,6 +36,13 @@ struct TravelDocument: Identifiable, Codable, Equatable {
     var eyeColor: String?
     var documentImageData: Data?
     
+    // NEW: Car Rental Specific Fields
+    var carModel: String?
+    var pickupLocation: String?
+    var dropoffLocation: String?
+    var pickupDate: Date?
+    var dropoffDate: Date?
+    
     // Internal storage for Codable colors
     private let primaryColorData: CodableColor
     private let secondaryColorData: CodableColor
@@ -74,6 +81,11 @@ struct TravelDocument: Identifiable, Codable, Equatable {
          height: String? = nil,
          eyeColor: String? = nil,
          documentImageData: Data? = nil,
+         carModel: String? = nil,
+         pickupLocation: String? = nil,
+         dropoffLocation: String? = nil,
+         pickupDate: Date? = nil,
+         dropoffDate: Date? = nil,
          primaryColor: Color,
          secondaryColor: Color,
          iconName: String,
@@ -105,6 +117,11 @@ struct TravelDocument: Identifiable, Codable, Equatable {
         self.height = height
         self.eyeColor = eyeColor
         self.documentImageData = documentImageData
+        self.carModel = carModel
+        self.pickupLocation = pickupLocation
+        self.dropoffLocation = dropoffLocation
+        self.pickupDate = pickupDate
+        self.dropoffDate = dropoffDate
         self.primaryColorData = CodableColor(color: primaryColor)
         self.secondaryColorData = CodableColor(color: secondaryColor)
         self.iconName = iconName
