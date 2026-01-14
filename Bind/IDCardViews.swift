@@ -390,12 +390,25 @@ struct IDCardDetailView: View {
                         VStack(alignment: .leading, spacing: 5) {
                             FieldView(label: "Surname", value: names.surname)
                             FieldView(label: "Given Names", value: names.given)
-                            if let dob = document.birthDate {
-                                 FieldView(label: "Date of Birth", value: dateFormatter.string(from: dob).uppercased())
+                            
+                            HStack {
+                                if let dob = document.birthDate {
+                                    FieldView(label: "Date of Birth", value: dateFormatter.string(from: dob).uppercased())
+                                }
+                                if let nationality = document.nationality, !nationality.isEmpty {
+                                    FieldView(label: "Nationality", value: nationality.uppercased())
+                                }
                             }
+                            
                             FieldView(label: "Document No.", value: document.detailValue)
-                            if let exp = document.expiryDate {
-                                 FieldView(label: "Expires", value: dateFormatter.string(from: exp).uppercased())
+                            
+                            HStack {
+                                if let iss = document.issueDate {
+                                    FieldView(label: "Issued", value: dateFormatter.string(from: iss).uppercased())
+                                }
+                                if let exp = document.expiryDate {
+                                    FieldView(label: "Expires", value: dateFormatter.string(from: exp).uppercased())
+                                }
                             }
                         }
                         .padding(.top, 8)

@@ -391,7 +391,7 @@ struct TravelDocsWalletView: View {
         .sheet(isPresented: $showAllCardsSheet) {
             NavigationView {
                 List {
-                    ForEach($documents) { $doc in
+                    ForEach(documents) { doc in
                         HStack(spacing: 15) {
                             Image(systemName: doc.iconName)
                                 .font(.title2)
@@ -408,7 +408,14 @@ struct TravelDocsWalletView: View {
                             Spacer()
                             
                             // Native Switch
-                            Toggle("", isOn: $doc.isActive)
+                            Toggle("", isOn: Binding(
+                                get: { doc.isActive },
+                                set: { newValue in
+                                    if let index = documents.firstIndex(where: { $0.id == doc.id }) {
+                                        documents[index].isActive = newValue
+                                    }
+                                }
+                            ))
                                 .labelsHidden()
                                 .tint(.green)
                                 // Disable turning ON if we are already at 6

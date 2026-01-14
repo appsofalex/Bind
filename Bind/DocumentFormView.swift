@@ -196,6 +196,7 @@ struct DocumentFormView: View {
         ("PRG", "Prague"),
         ("FAO", "Faro"),
         ("NCE", "Nice"),
+        ("MRS", "Marseille Provence"),
         ("ALC", "Alicante"),
         ("PMI", "Palma de Mallorca")
     ]
@@ -373,6 +374,11 @@ struct DocumentFormView: View {
             case .hotelKeyCard:
                 _title = State(initialValue: "Hotel Key")
                 _subtitle = State(initialValue: "GUEST ACCESS")
+            case .idCard:
+                _title = State(initialValue: "United Kingdom")
+                _subtitle = State(initialValue: "NATIONAL ID")
+                _nationality = State(initialValue: "United Kingdom")
+                _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60 * 10))
             default:
                 break
             }
@@ -481,8 +487,8 @@ struct DocumentFormView: View {
                 DatePicker("Flight Date", selection: $flightDate, displayedComponents: .date)
                 DatePicker("Flight Time", selection: $boardingTime, displayedComponents: .hourAndMinute)
                 
-            case .passport:
-                Picker("Country", selection: $title) {
+            case .passport, .idCard:
+                Picker(type == .passport ? "Country" : "Issuing Country", selection: $title) {
                     ForEach(countries, id: \.self) { country in
                         Text(country).tag(country)
                     }
@@ -521,7 +527,7 @@ struct DocumentFormView: View {
                     }
                 }
             
-            case .studentID, .idCard, .prescription, .birthCertificate, .marriageCertificate, .event, .hotelKeyCard:
+            case .studentID, .prescription, .birthCertificate, .marriageCertificate, .event, .hotelKeyCard:
                 TextField(type == .studentID ? "University name" : "Title (e.g. Company, City)", text: $title)
                     .textInputAutocapitalization(.words)
                 TextField("Subtitle (e.g. Card Type)", text: $subtitle)
@@ -658,7 +664,22 @@ struct DocumentFormView: View {
                 DatePicker("Issue Date", selection: $issueDate, displayedComponents: .date)
                 DatePicker("Expiry Date", selection: $expiryDate, displayedComponents: .date)
 
-            case .studentID, .idCard:
+            case .idCard:
+                TextField("Full Name", text: $holderName)
+                    .textInputAutocapitalization(.words)
+                TextField("ID Number", text: $detailValue)
+                    .textInputAutocapitalization(.characters)
+                    .onChange(of: detailValue) { newValue in
+                        detailValue = newValue.uppercased()
+                    }
+                TextField("Nationality", text: $nationality)
+                    .textInputAutocapitalization(.words)
+                
+                DatePicker("Date of Birth", selection: $birthDate, displayedComponents: .date)
+                DatePicker("Issue Date", selection: $issueDate, displayedComponents: .date)
+                DatePicker("Expiry Date", selection: $expiryDate, displayedComponents: .date)
+
+            case .studentID:
                 TextField("Your Name", text: $holderName)
                     .textInputAutocapitalization(.words)
                 TextField(getDetailLabel(), text: $detailValue)
@@ -666,10 +687,6 @@ struct DocumentFormView: View {
                     .onChange(of: detailValue) { newValue in
                         detailValue = newValue.uppercased()
                     }
-                
-                if type == .idCard {
-                    DatePicker("Date of Birth", selection: $birthDate, displayedComponents: .date)
-                }
                 DatePicker("Date of Expiry", selection: $expiryDate, displayedComponents: .date)
             
             case .carRental:
@@ -787,6 +804,8 @@ struct DocumentFormView: View {
             return "Reservation Number"
         case .hotelKeyCard:
             return "Room / Res Number"
+        case .idCard:
+            return "ID Number"
         default:
             return "Booking Number"
         }
@@ -819,6 +838,9 @@ struct DocumentFormView: View {
             
         case .driversLicense:
             finalSubtitle = "DRIVER LICENSE"
+
+        case .idCard:
+            finalSubtitle = "NATIONAL ID"
 
         case .birthCertificate, .marriageCertificate:
             finalSubtitle = "OFFICIAL RECORD"
@@ -853,9 +875,9 @@ struct DocumentFormView: View {
             holderName: finalHolder,
             detailValue: finalDetail,
             origin: type == .boardingPass ? origin : nil,
-            nationality: (type == .passport || type == .driversLicense) ? nationality : nil,
+            nationality: (type == .passport || type == .driversLicense || type == .idCard) ? nationality : nil,
             birthDate: (type == .passport || type == .driversLicense || type == .idCard) ? birthDate : nil,
-            issueDate: (type == .passport || type == .insurance || type == .driversLicense) ? issueDate : nil,
+            issueDate: (type == .passport || type == .insurance || type == .driversLicense || type == .idCard) ? issueDate : nil,
             expiryDate: (type == .passport || type == .insurance || type == .driversLicense || type == .visa || type == .studentID || type == .idCard) ? expiryDate : nil,
             gate: type == .boardingPass ? gate : nil,
             seat: type == .boardingPass ? seat : nil,

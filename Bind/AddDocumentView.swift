@@ -173,6 +173,7 @@ struct LegacyAddDocumentView: View {
         ("PRG", "Prague"),
         ("FAO", "Faro"),
         ("NCE", "Nice"),
+        ("MRS", "Marseille Provence"),
         ("ALC", "Alicante"),
         ("PMI", "Palma de Mallorca")
     ]
