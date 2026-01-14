@@ -5,6 +5,7 @@ struct OnboardingView: View {
     @Binding var hasCompletedOnboarding: Bool
     @State private var currentPage = 0
     @State private var showFooter = false
+    @State private var isAuthenticating = false
     let totalPages = 4 // Welcome, Centralize, FaceID, Final
     
     // Exact background color from main app
@@ -24,7 +25,7 @@ struct OnboardingView: View {
                     CentralizePageView(isSelected: currentPage == 1)
                         .tag(1)
                     
-                    FaceIDPageView(isSelected: currentPage == 2)
+                    FaceIDPageView(isSelected: currentPage == 2, isAuthenticating: isAuthenticating)
                         .tag(2)
                     
                     FinalPageView(isSelected: currentPage == 3)
@@ -47,8 +48,16 @@ struct OnboardingView: View {
                     // Action Button
                     Button(action: {
                         if currentPage == 2 {
-                            // FaceID Logic
-                            authenticate()
+                            // Trigger the icon transition immediately
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                isAuthenticating = true
+                            }
+                            
+                            // Add 1 second delay before showing the Face ID prompt
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
+                                // FaceID Logic
+                                authenticate()
+                            }
                         } else {
                             withAnimation {
                                 if currentPage < totalPages - 1 {
@@ -101,11 +110,13 @@ struct OnboardingView: View {
                         // Success - Move to next screen
                         withAnimation {
                             currentPage += 1
+                            isAuthenticating = false // Reset for potential back navigation
                         }
                     } else {
                         // Failed or Cancelled - Move to next screen anyway for now
                          withAnimation {
                             currentPage += 1
+                            isAuthenticating = false
                         }
                     }
                 }
@@ -114,6 +125,7 @@ struct OnboardingView: View {
             // Biometrics not available, skip
             withAnimation {
                 currentPage += 1
+                isAuthenticating = false
             }
         }
     }
@@ -366,25 +378,41 @@ struct CentralizePageView: View {
 // MARK: - Page 3: Face ID
 struct FaceIDPageView: View {
     let isSelected: Bool
+    let isAuthenticating: Bool
     @State private var breathe = false
     
     var body: some View {
         VStack(spacing: 0) {
             Spacer()
             
-            // FaceID Icon Animation
+            // Face ID Icon Animation
             ZStack {
-                // Native FaceID Icon (White, with smooth breathing pulse)
-                Image(systemName: "faceid")
-                    .font(.system(size: 110, weight: .regular))
-                    .foregroundColor(.white)
-                    // Base entry animation (scale from 0.6 to 1.0)
-                    .scaleEffect(isSelected ? (breathe ? 1.06 : 1.0) : 0.6)
-                    .opacity(isSelected ? 1.0 : 0.0)
-                    // Entry spring animation
-                    .animation(.spring(response: 0.8, dampingFraction: 0.45).delay(0.1), value: isSelected)
-                    // Breathing pulse animation (smoothly loops)
-                    .animation(isSelected ? .easeInOut(duration: 1.5).repeatForever(autoreverses: true) : .default, value: breathe)
+                if !isAuthenticating {
+                    // Native Face ID Icon (White, with smooth breathing pulse)
+                    Image(systemName: "faceid")
+                        .font(.system(size: 110, weight: .regular))
+                        .foregroundColor(.white)
+                        // Base entry animation (scale from 0.6 to 1.0)
+                        .scaleEffect(isSelected ? (breathe ? 1.06 : 1.0) : 0.6)
+                        .opacity(isSelected ? 1.0 : 0.0)
+                        // Entry spring animation
+                        .animation(.spring(response: 0.8, dampingFraction: 0.45).delay(0.1), value: isSelected)
+                        // Breathing pulse animation (smoothly loops)
+                        .animation(isSelected ? .easeInOut(duration: 1.5).repeatForever(autoreverses: true) : .default, value: breathe)
+                        .transition(.asymmetric(
+                            insertion: .identity,
+                            removal: .opacity.combined(with: .scale(scale: 0.8)).combined(with: .offset(y: -20))
+                        ))
+                } else {
+                    // Traditional Arrow pointing to where FaceID prompt appears
+                    Image(systemName: "arrow.up")
+                        .font(.system(size: 85, weight: .semibold))
+                        .foregroundColor(.white)
+                        .transition(.asymmetric(
+                            insertion: .opacity.combined(with: .scale(scale: 1.2)).combined(with: .offset(y: 20)),
+                            removal: .opacity
+                        ))
+                }
             }
             .frame(height: 350)
             .offset(y: -30)
@@ -393,12 +421,12 @@ struct FaceIDPageView: View {
                 .frame(height: 40)
             
             VStack(spacing: 16) {
-                Text("Secure with Face ID")
+                Text(isAuthenticating ? "Confirm Identity" : "Secure with Face ID")
                     .font(.system(size: 32, weight: .bold))
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
                 
-                Text("Lock your Bind wallet to keep your personal documents safe from prying eyes. Your privacy comes first.")
+                Text(isAuthenticating ? "Follow the prompt to enable biometric protection." : "Lock your Bind wallet to keep your personal documents safe from prying eyes. Your privacy comes first.")
                     .font(.system(size: 17, weight: .regular))
                     .foregroundColor(.white.opacity(0.7))
                     .multilineTextAlignment(.center)
