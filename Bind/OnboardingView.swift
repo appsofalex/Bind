@@ -118,126 +118,23 @@ struct OnboardingView: View {
 
 // MARK: - Page 1: Welcome / Introduction
 struct WelcomePageView: View {
-    @State private var showText = false
-    @State private var innerRotation = 0.0
-    @State private var outerRotation = 0.0
-    
-    // ORBIT CONFIGURATION
-    let innerOrbitRadius: CGFloat = 130
-    let innerIcons: [String] = [
-        "calendar", 
-        "person.circle.fill", 
-        "creditcard.fill",
-        "airplane",
-        "ticket.fill",
-        "pills.fill"
-    ]
-    
-    let outerOrbitRadius: CGFloat = 260
-    // Doubled icons as requested (Total 8)
-    let outerIcons: [String] = [
-        "map.fill", 
-        "mappin.circle.fill", 
-        "globe.americas.fill", 
-        "star.fill",
-        "tram.fill",
-        "bed.double.fill",
-        "car.fill",
-        "ferry.fill"
-    ]
-    
     var body: some View {
         GeometryReader { geo in
             VStack(spacing: 0) {
                 Spacer()
                 
-                // Solar System / Arch Animation
+                // Central Slick Card
                 ZStack {
-                    // 1. Central Slick Card (The Sun/Center)
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(Color.white)
-                            .frame(width: 70, height: 95)
-                            .shadow(color: .white.opacity(0.4), radius: 30, x: 0, y: 0)
-                        
-                        Image(systemName: "doc.text.fill")
-                            .font(.system(size: 40))
-                            .foregroundColor(.black)
-                    }
-                    .offset(y: 40)
-                    .zIndex(10)
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color.white)
+                        .frame(width: 70, height: 95)
+                        .shadow(color: .white.opacity(0.4), radius: 30, x: 0, y: 0)
                     
-                    // 2. INNER ORBIT (Clockwise)
-                    ZStack {
-                        Circle()
-                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                            .frame(width: innerOrbitRadius * 2, height: innerOrbitRadius * 2)
-                        
-                        ForEach(0..<innerIcons.count, id: \.self) { index in
-                            let iconName = innerIcons[index]
-                            let angle = Double(index) / Double(innerIcons.count) * 360.0
-                            
-                            ZStack {
-                                Circle()
-                                    .fill(Color.white.opacity(0.15))
-                                    .frame(width: 44, height: 44)
-                                    .background(.ultraThinMaterial)
-                                    .clipShape(Circle())
-                                
-                                Image(systemName: iconName)
-                                    .font(.system(size: 20))
-                                    .foregroundColor(.white)
-                            }
-                            .offset(y: -innerOrbitRadius)
-                            .rotationEffect(.degrees(angle))
-                            // Counter-rotate icons to stay upright
-                            .rotationEffect(.degrees(-innerRotation))
-                        }
-                    }
-                    .rotationEffect(.degrees(innerRotation))
-                    .offset(y: 40)
-                    
-                    // 3. OUTER ORBIT (Hemisphere, Anti-Clockwise)
-                    ZStack {
-                        Circle()
-                            .stroke(
-                                LinearGradient(colors: [.white.opacity(0.15), .clear], startPoint: .top, endPoint: .bottom),
-                                lineWidth: 1
-                            )
-                            .frame(width: outerOrbitRadius * 2, height: outerOrbitRadius * 2)
-                        
-                        ForEach(0..<outerIcons.count, id: \.self) { index in
-                            let iconName = outerIcons[index]
-                            let angle = Double(index) / Double(outerIcons.count) * 360.0 + 45
-                            
-                            ZStack {
-                                Circle()
-                                    .fill(Color.white.opacity(0.15))
-                                    .frame(width: 50, height: 50)
-                                    .background(.ultraThinMaterial)
-                                    .clipShape(Circle())
-                                
-                                Image(systemName: iconName)
-                                    .font(.system(size: 24))
-                                    .foregroundColor(.white)
-                            }
-                            .offset(y: -outerOrbitRadius)
-                            .rotationEffect(.degrees(angle))
-                            // Counter-rotate icons to stay upright
-                            .rotationEffect(.degrees(-outerRotation))
-                        }
-                    }
-                    .rotationEffect(.degrees(outerRotation))
-                    .offset(y: 100)
-                    .mask(
-                        Rectangle()
-                            .frame(width: 1000, height: outerOrbitRadius)
-                            .offset(y: -outerOrbitRadius/2)
-                    )
+                    Image(systemName: "doc.text.fill")
+                        .font(.system(size: 40))
+                        .foregroundColor(.black)
                 }
                 .frame(height: 350)
-                .offset(y: showText ? -30 : 0)
-                .animation(.easeInOut(duration: 0.8), value: showText)
                 
                 Spacer()
                     .frame(height: 40)
@@ -256,29 +153,11 @@ struct WelcomePageView: View {
                         .padding(.horizontal, 32)
                         .lineSpacing(4)
                 }
-                .opacity(showText ? 1.0 : 0.0)
-                .offset(y: showText ? 0 : 20)
-                .animation(.easeOut(duration: 0.8), value: showText)
                 
                 Spacer()
                     .frame(height: 50)
             }
             .frame(width: geo.size.width, height: geo.size.height)
-        }
-        .onAppear {
-            // FIX: Use a more robust animation trigger for repeatForever
-            // Inner Orbit: Clockwise
-            withAnimation(.linear(duration: 25).repeatForever(autoreverses: false)) {
-                innerRotation = 360
-            }
-            // Outer Orbit: Anti-Clockwise
-            withAnimation(.linear(duration: 45).repeatForever(autoreverses: false)) {
-                outerRotation = -360
-            }
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                showText = true
-            }
         }
     }
 }
@@ -332,8 +211,8 @@ struct CentralizePageView: View {
                     .opacity(appear ? 1 : 0)
                     .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.4), value: appear)
             }
-            .frame(height: 350) 
-            .offset(y: -30) 
+            .frame(height: 350)
+            .offset(y: -30)
             
             Spacer()
                 .frame(height: 40)
