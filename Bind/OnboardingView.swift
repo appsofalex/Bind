@@ -421,12 +421,12 @@ struct FaceIDPageView: View {
                 .frame(height: 40)
             
             VStack(spacing: 16) {
-                Text(isAuthenticating ? "Confirm Identity" : "Secure with Face ID")
+                Text("Secure with Face ID")
                     .font(.system(size: 32, weight: .bold))
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
                 
-                Text(isAuthenticating ? "Follow the prompt to enable biometric protection." : "Lock your Bind wallet to keep your personal documents safe from prying eyes. Your privacy comes first.")
+                Text("Lock your Bind wallet to keep your personal documents safe from prying eyes. Your privacy comes first.")
                     .font(.system(size: 17, weight: .regular))
                     .foregroundColor(.white.opacity(0.7))
                     .multilineTextAlignment(.center)
