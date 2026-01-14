@@ -346,8 +346,8 @@ struct PassportInteriorView: View {
                     .frame(height: 25),
                 alignment: .top
             )
-            .frame(height: 240) // Fixed Page Height
-            .clipShape(RoundedRectangle(cornerRadius: 20)) // Round individual page
+            .frame(height: 240)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
             .overlay(
                 RoundedRectangle(cornerRadius: 20)
                     .stroke(Color.black.opacity(0.1), lineWidth: 1)
@@ -358,7 +358,7 @@ struct PassportInteriorView: View {
     }
 }
 
-// MARK: - NEW: PASSPORT FLIP & FOLD ANIMATION
+// PASSPORT FLIP & FOLD ANIMATION
 struct PassportFlipCard: View {
     let document: TravelDocument
     let isSelected: Bool
