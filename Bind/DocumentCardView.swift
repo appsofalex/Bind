@@ -90,7 +90,7 @@ struct DocumentCardView: View {
             .padding(25)
         }
         .frame(height: 240) // Fixed height for the card look
-        .cornerRadius(20)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
         .shadow(color: Color.black.opacity(0.3), radius: 15, x: 0, y: 10)
         .overlay(
             RoundedRectangle(cornerRadius: 20)

@@ -41,7 +41,7 @@ struct PassportCoverView: View {
             .padding()
         }
         .frame(height: 240) // Match card height exactly
-        .cornerRadius(20)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
         .overlay(
             RoundedRectangle(cornerRadius: 20)
                 .stroke(Color.white.opacity(0.1), lineWidth: 1)
@@ -208,11 +208,16 @@ struct PassportInteriorView: View {
             // Inner Shadow for Spine Effect
             .overlay(
                 LinearGradient(colors: [.black.opacity(0.2), .clear], startPoint: .bottom, endPoint: .top)
-                    .frame(height: 25),
+                    .frame(height: 25)
+                    .opacity(isOpen ? 1 : 0), // Hide shadow when folded
                 alignment: .bottom
             )
             .frame(height: 240) // Fixed Page Height
-            .clipped() // FIX: Clip to frame AFTER frame is set
+            .clipShape(RoundedRectangle(cornerRadius: 20)) // Round individual page
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(Color.black.opacity(0.1), lineWidth: 1)
+            )
             // --- FOLD ANIMATION LOGIC ---
             // Anchor to the bottom (the spine)
             // When !isOpen, rotate 179 (fold FORWARD towards the viewer, covering bottom page)
@@ -227,11 +232,7 @@ struct PassportInteriorView: View {
             
             // --- SPINE ---
             // Only visible when open
-            if isOpen {
-                Rectangle()
-                    .fill(Color(red: 0.95, green: 0.93, blue: 0.90))
-                    .frame(height: 2)
-            }
+            // REMOVED for smoother animation and no gap
             
             // --- BOTTOM PAGE (Data) ---
             ZStack {
@@ -346,13 +347,14 @@ struct PassportInteriorView: View {
                 alignment: .top
             )
             .frame(height: 240) // Fixed Page Height
-            .clipped()
+            .clipShape(RoundedRectangle(cornerRadius: 20)) // Round individual page
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(Color.black.opacity(0.1), lineWidth: 1)
+            )
         }
-        .cornerRadius(20)
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(Color.black.opacity(0.1), lineWidth: 1)
-        )
+        // Collapses the layout height to match the folded state, keeping the bottom anchored
+        .frame(height: isOpen ? 480 : 240, alignment: .bottom)
     }
 }
 
@@ -370,7 +372,7 @@ struct PassportFlipCard: View {
     @State private var isBookOpen = false
     
     var body: some View {
-        ZStack {
+        ZStack(alignment: .bottom) {
             // BACK (Passport Interior)
             if isBackVisible {
                 PassportInteriorView(document: document, isOpen: isBookOpen)
@@ -429,8 +431,7 @@ struct PassportFlipCard: View {
                     yRotation = 0
                 }
                 
-                // 2b. Swap view back to cover
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.40) {
                     isBackVisible = false
                 }
             }
