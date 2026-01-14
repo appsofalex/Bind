@@ -4,6 +4,7 @@ import LocalAuthentication
 struct OnboardingView: View {
     @Binding var hasCompletedOnboarding: Bool
     @State private var currentPage = 0
+    @State private var showFooter = false
     let totalPages = 4 // Welcome, Centralize, FaceID, Final
     
     // Exact background color from main app
@@ -17,7 +18,7 @@ struct OnboardingView: View {
             VStack(spacing: 0) {
                 // Content Area
                 TabView(selection: $currentPage) {
-                    WelcomePageView()
+                    WelcomePageView(showText: $showFooter)
                         .tag(0)
                     
                     CentralizePageView()
@@ -70,6 +71,8 @@ struct OnboardingView: View {
                     }
                     .padding(.horizontal, 24)
                 }
+                .opacity(currentPage == 0 ? (showFooter ? 1 : 0) : 1)
+                .offset(y: currentPage == 0 ? (showFooter ? 0 : 20) : 0)
                 .padding(.bottom, 50)
             }
         }
@@ -118,23 +121,23 @@ struct OnboardingView: View {
 
 // MARK: - Page 1: Welcome / Introduction
 struct WelcomePageView: View {
+    @Binding var showText: Bool
+    @State private var moveOrbitsUp = false
+    @State private var orbitOpacity = 0.0
+    
     var body: some View {
         GeometryReader { geo in
             VStack(spacing: 0) {
                 Spacer()
                 
-                // Central Slick Card
+                // Orbit Container
                 ZStack {
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(Color.white)
-                        .frame(width: 70, height: 95)
-                        .shadow(color: .white.opacity(0.4), radius: 30, x: 0, y: 0)
-                    
-                    Image(systemName: "doc.text.fill")
-                        .font(.system(size: 40))
-                        .foregroundColor(.black)
+                    OrbitView()
+                        .scaleEffect(1.05) // Slightly enlarged
+                        .opacity(orbitOpacity)
                 }
                 .frame(height: 350)
+                .offset(y: moveOrbitsUp ? -30 : 20)
                 
                 Spacer()
                     .frame(height: 40)
@@ -153,12 +156,96 @@ struct WelcomePageView: View {
                         .padding(.horizontal, 32)
                         .lineSpacing(4)
                 }
+                .opacity(showText ? 1 : 0)
+                .offset(y: showText ? 0 : 20)
                 
                 Spacer()
                     .frame(height: 50)
             }
             .frame(width: geo.size.width, height: geo.size.height)
+            .onAppear {
+                // Quick fade in for the orbit itself
+                withAnimation(.easeOut(duration: 0.6)) {
+                    orbitOpacity = 1.0
+                }
+                
+                // Initial delay for the orbits to be the focus
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    withAnimation(.spring(response: 1.2, dampingFraction: 0.8)) {
+                        moveOrbitsUp = true
+                        showText = true
+                    }
+                }
+            }
         }
+    }
+}
+
+struct OrbitView: View {
+    @State private var rotation: Double = 0
+    
+    // Icons for the inner orbit (6 icons)
+    let innerIcons = ["airplane", "creditcard.fill", "ticket.fill", "person.text.rectangle.fill", "car.fill", "doc.text.fill"]
+    
+    var body: some View {
+        ZStack {
+            // Background Orbit Paths
+            Circle()
+                .stroke(
+                    AngularGradient(
+                        gradient: Gradient(colors: [.white.opacity(0.01), .white.opacity(0.1), .white.opacity(0.01)]),
+                        center: .center
+                    ),
+                    lineWidth: 1
+                )
+                .frame(width: 220, height: 220)
+
+            // Central Card Icon
+            ZStack {
+                Circle()
+                    .fill(Color.white)
+                    .frame(width: 85, height: 85)
+                    .shadow(color: .white.opacity(0.15), radius: 25)
+                
+                Image(systemName: "creditcard.fill")
+                    .foregroundColor(.black)
+                    .font(.system(size: 38, weight: .medium))
+            }
+            
+            // Inner Orbit (6 icons rotating clockwise)
+            ForEach(0..<innerIcons.count, id: \.self) { index in
+                let initialAngle = Double(index) * (360.0 / Double(innerIcons.count))
+                OrbitIcon(iconName: innerIcons[index], counterRotation: -(initialAngle + rotation))
+                    .offset(x: 110)
+                    .rotationEffect(.degrees(initialAngle + rotation))
+            }
+        }
+        .onAppear {
+            withAnimation(.linear(duration: 35).repeatForever(autoreverses: false)) {
+                rotation = 360
+            }
+        }
+    }
+}
+
+struct OrbitIcon: View {
+    let iconName: String
+    var size: CGFloat = 48
+    var iconSize: CGFloat = 22
+    var counterRotation: Double
+    
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(Color.white)
+                .frame(width: size, height: size)
+                .shadow(color: .black.opacity(0.15), radius: 8)
+            
+            Image(systemName: iconName)
+                .foregroundColor(.black)
+                .font(.system(size: iconSize, weight: .medium))
+        }
+        .rotationEffect(.degrees(counterRotation))
     }
 }
 
