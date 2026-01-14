@@ -400,28 +400,22 @@ struct PassportFlipCard: View {
         }
         .onChange(of: isSelected) { newValue in
             if newValue {
-                // SEQUENCE: OPENING
-                
-                // 1. Flip the card (Horizontal Coin Spin)
+                // Opening sequence
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                     yRotation = 180
                 }
                 
-                // 1b. Swap the view halfway through the flip
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                     isBackVisible = true
                 }
                 
-                // 2. As the flip finishes, Unfold the book (Vertical Hinge)
-                // We delay slightly so the book "pops" open just as it faces the user
                 withAnimation(.spring(response: 0.7, dampingFraction: 0.7).delay(0.25)) {
                     isBookOpen = true
                 }
                 
             } else {
-                // SEQUENCE: CLOSING
+                // Closing sequence
                 
-                // 1. Fold the book back up
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
                     isBookOpen = false
                 }

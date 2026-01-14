@@ -17,6 +17,10 @@ struct BoardingPassDetailView: View {
     let document: TravelDocument
     let animate: Bool // Triggers the plane flight
     
+    // Animation state for internal elements
+    @State private var contentOpacity: Double = 0
+    @State private var contentOffset: CGFloat = 20
+    
     // Formatter for Date: "14 OCT"
     var flightDateFormatter: DateFormatter {
         let f = DateFormatter()
@@ -72,7 +76,6 @@ struct BoardingPassDetailView: View {
                         .font(.system(size: 14, weight: .bold, design: .monospaced))
                         .foregroundColor(.white)
                     Spacer()
-                        .foregroundColor(.white.opacity(0.8))
                 }
                 .padding()
                 // Use brand color for header
@@ -107,6 +110,8 @@ struct BoardingPassDetailView: View {
                     }
                     .padding(.horizontal, 25)
                     .padding(.top, 25)
+                    .opacity(contentOpacity)
+                    .offset(y: contentOffset * 0.5)
                     
                     // Animated Runway
                     ZStack {
@@ -124,8 +129,11 @@ struct BoardingPassDetailView: View {
                                 .frame(width: 24)
                                 // Use requisite brand color for the plane icon
                                 .foregroundColor(brandColor)
-                                .rotationEffect(.degrees(0))
-                                .offset(x: animate ? geo.size.width - 24 : 0)
+                                .rotationEffect(.degrees(animate ? -5 : 0))
+                                .offset(
+                                    x: animate ? geo.size.width - 24 : 0,
+                                    y: animate ? -8 : 0
+                                )
                         }
                         .frame(height: 24)
                     }
@@ -135,6 +143,7 @@ struct BoardingPassDetailView: View {
                 
                 Divider()
                     .padding(.horizontal)
+                    .opacity(contentOpacity)
                 
                 // 3. Flight Info Grid
                 HStack(alignment: .top, spacing: 0) {
@@ -157,6 +166,8 @@ struct BoardingPassDetailView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .padding(25)
+                .opacity(contentOpacity)
+                .offset(y: contentOffset)
                 
                 Spacer()
                 
@@ -189,6 +200,8 @@ struct BoardingPassDetailView: View {
                         .foregroundColor(.gray.opacity(0.5)),
                     alignment: .top
                 )
+                .opacity(contentOpacity)
+                .offset(y: contentOffset * 0.5)
             }
         }
         .cornerRadius(20)
@@ -196,6 +209,17 @@ struct BoardingPassDetailView: View {
             RoundedRectangle(cornerRadius: 20)
                 .stroke(Color.black.opacity(0.1), lineWidth: 1)
         )
+        .onChange(of: animate) { newValue in
+            if newValue {
+                withAnimation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.3)) {
+                    contentOpacity = 1.0
+                    contentOffset = 0
+                }
+            } else {
+                contentOpacity = 0
+                contentOffset = 20
+            }
+        }
     }
     
     // --- AIRLINE COLOR LOGIC ---
@@ -238,49 +262,58 @@ struct BoardingPassAnimatedCard: View {
     @State private var showDetail = false
     @State private var planeMoved = false
     
+    // Matched Geometry for smooth container transition
+    @Namespace private var animation
+    
     var body: some View {
         ZStack {
             if showDetail {
                 BoardingPassDetailView(document: document, animate: planeMoved)
-                    .transition(.identity) // Simple swap
+                    .matchedGeometryEffect(id: "card_container", in: animation)
+                    .transition(.asymmetric(insertion: .opacity, removal: .opacity))
             } else {
                 DocumentCardView(document: document)
-                    .transition(.identity)
+                    .matchedGeometryEffect(id: "card_container", in: animation)
+                    .transition(.asymmetric(insertion: .opacity, removal: .opacity))
             }
         }
         .frame(height: isSelected ? 440 : 240) // Expand vertically
-        .mask(RoundedRectangle(cornerRadius: 20))
         
-        // --- TAKE OFF TILT EFFECT ---
-        // When selected, tilt X up slightly to look like it's lifting off the runway
+        // --- REFINED TAKE OFF TILT EFFECT ---
         .rotation3DEffect(
-            .degrees(isSelected ? -5 : 0),
+            .degrees(isSelected ? -8 : 0),
             axis: (x: 1, y: 0, z: 0),
             perspective: 0.5
         )
+        // Adjust vertical offset when selected to give a "lift" feel
+        .offset(y: isSelected ? -10 : 0)
         .shadow(
-            color: isSelected ? Color.clear : Color.black.opacity(0.3),
-            radius: isSelected ? 0 : 15,
+            color: Color.black.opacity(isSelected ? 0.4 : 0.3),
+            radius: isSelected ? 30 : 15,
             x: 0,
-            y: isSelected ? 0 : 10
+            y: isSelected ? 20 : 10
         )
         .onTapGesture {
             onTap()
         }
         .onChange(of: isSelected) { newValue in
             if newValue {
+                // SEQUENCE: OPENING
                 
-                withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                // 1. Expand the card and swap view
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
                     showDetail = true
                 }
                 
-                // 👇 Updated to use cubic-bezier (0.25, 0.1, 0.25, 1)
-                withAnimation(.timingCurve(0.25, 0.1, 0.25, 1, duration: 1.5).delay(0.2)) {
+                // 2. Trigger internal animations (plane flight, text fade-in)
+                withAnimation(.timingCurve(0.25, 0.1, 0.25, 1, duration: 1.8).delay(0.2)) {
                     planeMoved = true
                 }
             } else {
+                // SEQUENCE: CLOSING
                 
-                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                // 1. Reset internal animations instantly or with quick fade
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.9)) {
                     showDetail = false
                     planeMoved = false
                 }
