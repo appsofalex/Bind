@@ -81,7 +81,7 @@ struct OnboardingView: View {
     var buttonText: String {
         switch currentPage {
         case 0: return "Get Started"
-        case 2: return "Enable FaceID"
+        case 2: return "Enable Face ID"
         case 3: return "Enter Bind"
         default: return "Continue"
         }
@@ -149,7 +149,7 @@ struct WelcomePageView: View {
                         .foregroundColor(.white)
                         .multilineTextAlignment(.center)
                     
-                    Text("The new home for life’s most important documents. Secure, organized, and always with you.")
+                    Text("The new home for life’s most important documents. Secure, organised, and always with you.")
                         .font(.system(size: 17, weight: .regular))
                         .foregroundColor(.white.opacity(0.7))
                         .multilineTextAlignment(.center)
@@ -183,6 +183,7 @@ struct WelcomePageView: View {
 
 struct OrbitView: View {
     @State private var rotation: Double = 0
+    @State private var poppingIndex: Int? = nil
     
     // Icons for the inner orbit (6 icons)
     let innerIcons = ["airplane", "creditcard.fill", "ticket.fill", "person.text.rectangle.fill", "car.fill", "doc.text.fill"]
@@ -215,14 +216,30 @@ struct OrbitView: View {
             // Inner Orbit (6 icons rotating clockwise)
             ForEach(0..<innerIcons.count, id: \.self) { index in
                 let initialAngle = Double(index) * (360.0 / Double(innerIcons.count))
-                OrbitIcon(iconName: innerIcons[index], counterRotation: -(initialAngle + rotation))
-                    .offset(x: 110)
-                    .rotationEffect(.degrees(initialAngle + rotation))
+                OrbitIcon(
+                    iconName: innerIcons[index], 
+                    counterRotation: -(initialAngle + rotation),
+                    isPopping: poppingIndex == index
+                )
+                .offset(x: 110)
+                .rotationEffect(.degrees(initialAngle + rotation))
             }
         }
         .onAppear {
             withAnimation(.linear(duration: 35).repeatForever(autoreverses: false)) {
                 rotation = 360
+            }
+            
+            startPoppingCycle()
+        }
+    }
+    
+    private func startPoppingCycle() {
+        var currentIndex = 0
+        Timer.scheduledTimer(withTimeInterval: 1.2, repeats: true) { _ in
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
+                poppingIndex = currentIndex
+                currentIndex = (currentIndex + 1) % innerIcons.count
             }
         }
     }
@@ -233,6 +250,7 @@ struct OrbitIcon: View {
     var size: CGFloat = 48
     var iconSize: CGFloat = 22
     var counterRotation: Double
+    var isPopping: Bool
     
     var body: some View {
         ZStack {
@@ -245,6 +263,8 @@ struct OrbitIcon: View {
                 .foregroundColor(.black)
                 .font(.system(size: iconSize, weight: .medium))
         }
+        .scaleEffect(isPopping ? 1.35 : 1.0)
+        .animation(.spring(response: 0.5, dampingFraction: 0.5), value: isPopping)
         .rotationEffect(.degrees(counterRotation))
     }
 }
@@ -305,12 +325,12 @@ struct CentralizePageView: View {
                 .frame(height: 40)
             
             VStack(spacing: 16) {
-                Text("Stop the Scramble")
+                Text("Stop the scramble")
                     .font(.system(size: 32, weight: .bold))
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
                 
-                Text("Passports, insurance, tickets, and IDs—centralized in one slick ecosystem. No more digging through photos.")
+                Text("Passports, insurance, tickets, and IDs - centralised in one ecosystem. No more digging through photos or files.")
                     .font(.system(size: 17, weight: .regular))
                     .foregroundColor(.white.opacity(0.7))
                     .multilineTextAlignment(.center)
@@ -326,7 +346,7 @@ struct CentralizePageView: View {
     }
 }
 
-// MARK: - Page 3: FaceID
+// MARK: - Page 3: Face ID
 struct FaceIDPageView: View {
     @State private var appear = false
     
@@ -336,19 +356,10 @@ struct FaceIDPageView: View {
             
             // FaceID Icon Animation
             ZStack {
-                // Glow
-                Circle()
-                    .fill(Color.blue.opacity(0.15))
-                    .frame(width: 180, height: 180)
-                    .blur(radius: 20)
-                    .scaleEffect(appear ? 1.0 : 0.5)
-                    .opacity(appear ? 1.0 : 0.0)
-                
-                // FaceID Icon (Static but animated entrance)
+                // Native FaceID Icon (Regular weight, Apple blue)
                 Image(systemName: "faceid")
-                    .font(.system(size: 100, weight: .ultraLight))
-                    .foregroundColor(.white)
-                    .shadow(color: .blue.opacity(0.5), radius: 10, x: 0, y: 0)
+                    .font(.system(size: 110, weight: .regular))
+                    .foregroundColor(.blue)
                     .scaleEffect(appear ? 1.0 : 0.8)
                     .opacity(appear ? 1.0 : 0.0)
             }
@@ -360,7 +371,7 @@ struct FaceIDPageView: View {
                 .frame(height: 40)
             
             VStack(spacing: 16) {
-                Text("Secure with FaceID")
+                Text("Secure with Face ID")
                     .font(.system(size: 32, weight: .bold))
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
@@ -419,12 +430,12 @@ struct FinalPageView: View {
                 .frame(height: 40)
             
             VStack(spacing: 16) {
-                Text("Let’s Get Organized")
+                Text("Let’s get organised")
                     .font(.system(size: 32, weight: .bold))
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
                 
-                Text("Your personal document vault is ready. Experience the peace of mind that comes with total organization.")
+                Text("Your personal document vault is ready. Experience the peace of mind that comes with total organisation.")
                     .font(.system(size: 17, weight: .regular))
                     .foregroundColor(.white.opacity(0.7))
                     .multilineTextAlignment(.center)
