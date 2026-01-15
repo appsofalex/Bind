@@ -1,5 +1,6 @@
 import SwiftUI
 import LocalAuthentication
+internal import Combine
 
 struct OnboardingView: View {
     @Binding var hasCompletedOnboarding: Bool
@@ -196,20 +197,23 @@ struct WelcomePageView: View {
                 .offset(y: moveOrbitsUp ? -geo.size.height * 0.14 : trueCenterOffset)
             }
             .frame(width: geo.size.width, height: geo.size.height)
-            .onAppear {
-                // Dramatic entry sequence: slow fade, scale, and de-blur
+            .task {
+                // 1. Initial entry: slow fade, scale, and de-blur
+                // Small delay ensures animation starts after the view is in the hierarchy
+                try? await Task.sleep(nanoseconds: 100_000_000)
+                
                 withAnimation(.easeOut(duration: 2.5)) {
                     orbitOpacity = 1.0
                     orbitScale = 1.05
                     orbitBlur = 0
                 }
                 
-                // Shift up and show text after the suspenseful intro
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                    withAnimation(.spring(response: 1.2, dampingFraction: 0.85)) {
-                        moveOrbitsUp = true
-                        showText = true
-                    }
+                // 2. Secondary entry: shift up and show text
+                try? await Task.sleep(nanoseconds: 2_500_000_000)
+                
+                withAnimation(.spring(response: 1.2, dampingFraction: 0.85)) {
+                    moveOrbitsUp = true
+                    showText = true
                 }
             }
         }
@@ -219,6 +223,9 @@ struct WelcomePageView: View {
 // MARK: - Page 2: Centralization / Ecosystem
 struct CentralizePageView: View {
     let isSelected: Bool
+    @State private var iconIndex = 0
+    let icons = ["doc.text.fill", "creditcard.fill", "airplane", "car.fill", "key.fill", "pills.fill"]
+    let timer = Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()
     
     var body: some View {
         VStack(spacing: 0) {
@@ -234,7 +241,7 @@ struct CentralizePageView: View {
                     .offset(x: -40, y: -20)
                     .opacity(isSelected ? 0.6 : 0)
                     .scaleEffect(isSelected ? 1 : 0.8)
-                    .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.2), value: isSelected)
+                    .animation(.spring(response: 1.5, dampingFraction: 0.8).delay(0.2), value: isSelected)
                 
                 // Background Card 2
                 RoundedRectangle(cornerRadius: 16)
@@ -244,7 +251,7 @@ struct CentralizePageView: View {
                     .offset(x: 40, y: -10)
                     .opacity(isSelected ? 0.8 : 0)
                     .scaleEffect(isSelected ? 1 : 0.8)
-                    .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.3), value: isSelected)
+                    .animation(.spring(response: 1, dampingFraction: 0.8).delay(0.4), value: isSelected)
                 
                 // Main Card
                 RoundedRectangle(cornerRadius: 16)
@@ -255,18 +262,32 @@ struct CentralizePageView: View {
                     )
                     .frame(width: 220, height: 150)
                     .overlay(
-                        // REMOVED TEXT, ENLARGED ICON
-                        Image(systemName: "folder.fill")
-                            .font(.system(size: 60)) // Larger icon
-                            .foregroundColor(.white)
+                        // SMOOTH ALTERNATING ICONS
+                        ZStack {
+                            Image(systemName: icons[iconIndex])
+                                .font(.system(size: 60))
+                                .foregroundColor(.white)
+                                .id(icons[iconIndex]) // Important for transition
+                                .transition(.asymmetric(
+                                    insertion: .opacity.combined(with: .scale(scale: 0.9)).combined(with: .offset(y: 5)),
+                                    removal: .opacity.combined(with: .scale(scale: 1.1)).combined(with: .offset(y: -5))
+                                ))
+                        }
                     )
                     .shadow(color: .black.opacity(0.5), radius: 20, x: 0, y: 10)
                     .offset(y: isSelected ? 0 : 40)
                     .opacity(isSelected ? 1 : 0)
-                    .animation(.spring(response: 0.6, dampingFraction: 0.7).delay(0.4), value: isSelected)
+                    .animation(.spring(response: 1.2, dampingFraction: 0.8).delay(0.7), value: isSelected)
             }
             .frame(height: 350)
             .offset(y: -30)
+            .onReceive(timer) { _ in
+                if isSelected {
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
+                        iconIndex = (iconIndex + 1) % icons.count
+                    }
+                }
+            }
             
             Spacer()
                 .frame(height: 40)
@@ -309,13 +330,12 @@ struct FaceIDPageView: View {
                     Image(systemName: "faceid")
                         .font(.system(size: 110, weight: .regular))
                         .foregroundColor(.white)
-                        // Base entry animation (scale from 0.6 to 1.0)
-                        .scaleEffect(isSelected ? (breathe ? 1.06 : 1.0) : 0.6)
+                        // Entry bounce animation
+                        .scaleEffect(isSelected ? 1.0 : 0.6)
                         .opacity(isSelected ? 1.0 : 0.0)
-                        // Entry spring animation
                         .animation(.spring(response: 0.8, dampingFraction: 0.45).delay(0.1), value: isSelected)
-                        // Breathing pulse animation (smoothly loops)
-                        .animation(isSelected ? .easeInOut(duration: 1.5).repeatForever(autoreverses: true) : .default, value: breathe)
+                        // Smooth breathing animation
+                        .scaleEffect(breathe ? 1.05 : 1.0)
                         .transition(.asymmetric(
                             insertion: .identity,
                             removal: .opacity.combined(with: .scale(scale: 0.8)).combined(with: .offset(y: -20))
@@ -354,21 +374,20 @@ struct FaceIDPageView: View {
             Spacer()
                 .frame(height: 50)
         }
-        .onAppear {
-            if isSelected {
-                breathe = true
-            }
-        }
-        .onChange(of: isSelected) { selected in
-            if selected {
-                // Small delay to let the entry animation "settle" before the loop starts
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                    if isSelected {
-                        breathe = true
-                    }
+        .task(id: isSelected && !isAuthenticating) {
+                    if isSelected && !isAuthenticating {
+                        // Wait for the entry animation (response: 0.8, delay: 0.1) to settle
+                        try? await Task.sleep(nanoseconds: 1_100_000_000) // 1.1 seconds
+                        
+                        // Only start breathing if we're still active
+                        withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
+                            breathe = true
+                        }
+                    } else {
+                        // Swiped away or started authenticating: reset breathing state
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            breathe = false
                 }
-            } else {
-                breathe = false
             }
         }
     }
