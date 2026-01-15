@@ -173,11 +173,11 @@ struct WelcomePageView: View {
                                 .padding(.bottom, 4)
                             
                             Text("Simply Bound")
-                                .font(.system(size: 38, weight: .bold))
+                                .font(.system(size: 40, weight: .bold))
                                 .foregroundColor(.white)
                             
                             Text("Securely Yours")
-                                .font(.system(size: 38, weight: .bold))
+                                .font(.system(size: 40, weight: .bold))
                                 .foregroundStyle(
                                     LinearGradient(
                                         colors: [
