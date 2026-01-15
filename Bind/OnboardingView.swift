@@ -230,7 +230,13 @@ struct WelcomePageView: View {
                         "ticket.fill",
                         "person.text.rectangle.fill",
                         "car.fill",
-                        "doc.text.fill"
+                        "doc.text.fill",
+                        "lock.fill",
+                        "tram.fill",
+                        "house.fill",
+                        "person.crop.rectangle.fill",
+                        "briefcase.fill",
+                        "folder.fill"
                     ]
                 )
                 .scaleEffect(orbitScale)

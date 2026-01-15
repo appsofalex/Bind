@@ -59,6 +59,16 @@ class AnimatedLogoOrbitScene: SKScene {
         animateNextIcon()
     }
     
+    private func iconTexture(for name: String) -> (SKTexture, CGSize) {
+        // Using .medium weight to prevent the "fat" look of .bold symbols
+        let configuration = UIImage.SymbolConfiguration(pointSize: 40, weight: .medium)
+        let image = UIImage(systemName: name, withConfiguration: configuration)?
+            .withTintColor(.black, renderingMode: .alwaysOriginal)
+        
+        let texture = image != nil ? SKTexture(image: image!) : SKTexture()
+        return (texture, image?.size ?? .zero)
+    }
+    
     private func buildCircles() {
         let circles = generateCircles()
         var angleOffset: CGFloat = 0
@@ -80,9 +90,29 @@ class AnimatedLogoOrbitScene: SKScene {
                 dot.physicsBody?.affectedByGravity = false
                 
                 if circleIndex == 0 {
-                    // Choose a set of outer circle dots to animate (no icons)
                     let step = max(1, Int(round(Double(dotsPerCircle) / Double(max(images.count, 1)))))
                     if dotIndex % step == 0 {
+                        // Add icon to the popping dots
+                        let imgIndex = outerCircleDots.count % images.count
+                        let iconName = images[imgIndex]
+                        let (texture, originalSize) = iconTexture(for: iconName)
+                        let icon = SKSpriteNode(texture: texture)
+                        icon.name = "icon"
+                        
+                        // Calculate size maintaining aspect ratio
+                        let aspectRatio = originalSize.width / originalSize.height
+                        
+                        var targetDimension: CGFloat = 8.0
+                        
+                        if aspectRatio > 1 {
+                            icon.size = CGSize(width: targetDimension, height: targetDimension / aspectRatio)
+                        } else {
+                            icon.size = CGSize(width: targetDimension * aspectRatio, height: targetDimension)
+                        }
+                        
+                        icon.alpha = 0
+                        dot.addChild(icon)
+                        
                         outerCircleDots.append(dot)
                     }
                 }
@@ -105,6 +135,7 @@ class AnimatedLogoOrbitScene: SKScene {
     
     private func animateNextIcon() {
         let dot = outerCircleDots[nextIconIndex]
+        let icon = dot.childNode(withName: "icon")
         
         dot.physicsBody? = SKPhysicsBody(circleOfRadius: 10)
         dot.physicsBody?.density = 110
@@ -115,6 +146,7 @@ class AnimatedLogoOrbitScene: SKScene {
             let a2 = SKAction.scale(to: 4.0, duration: 0.1)
             
             dot.run(.sequence([a1, a2]))
+            icon?.run(.fadeIn(withDuration: 0.15))
         }
         
         let wait = SKAction.wait(forDuration: 1)
@@ -123,6 +155,7 @@ class AnimatedLogoOrbitScene: SKScene {
             let scale = SKAction.scale(to: 1.0, duration: 0.6)
             scale.timingFunction = SpriteKitTimingFunctions.easeInQuad
             dot.run(scale)
+            icon?.run(.fadeOut(withDuration: 0.4))
         }
         
         // move dots back to their original position
@@ -174,8 +207,10 @@ class AnimatedLogoOrbitScene: SKScene {
             dot.fillColor = .white
         }
         
-        let dot = outerCircleDots[nextIconIndex]
-        dot.zRotation = -container.zRotation
+        // Keep all outer circle dots (and their icons) upright relative to the screen
+        for dot in outerCircleDots {
+            dot.zRotation = -container.zRotation
+        }
     }
     
 }
