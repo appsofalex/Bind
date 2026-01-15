@@ -16,18 +16,18 @@ struct EmptyWalletView: View {
                     .padding(.bottom, 10)
                 
                 Text("No Cards Yet")
-                    .font(.title2)
+                    .font(.system(size: 24, weight: .bold))
                     .fontWeight(.bold)
                     .foregroundColor(.white.opacity(0.8))
                 
                 Text("Add your first document or booking to get started.")
-                    .font(.subheadline)
+                    .font(.system(size: 17, weight: .regular))
                     .foregroundColor(.gray)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 50)
                 
                 Spacer()
-                    .frame(height: 100)
+                    .frame(height: 30)
                 
                 Spacer()
             }
