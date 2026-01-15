@@ -404,18 +404,15 @@ struct FinalPageView: View {
             // Shield / Check Animation
             ZStack {
                 Circle()
-                    .fill(Color.green.opacity(0.1))
-                    .frame(width: 200, height: 200)
+                    .fill(Color.white)
+                    .frame(width: 150, height: 150)
                     .scaleEffect(isSelected ? 1.0 : 0.5)
                     .opacity(isSelected ? 1.0 : 0.0)
                     .animation(.spring(response: 0.8, dampingFraction: 0.6).delay(0.1), value: isSelected)
                 
                 Image(systemName: "checkmark.shield.fill")
-                    .font(.system(size: 100))
-                    .foregroundStyle(
-                        LinearGradient(colors: [.white, .green.opacity(0.8)], startPoint: .top, endPoint: .bottom)
-                    )
-                    .shadow(color: .green.opacity(0.3), radius: 20, x: 0, y: 0)
+                    .font(.system(size: 75))
+                    .foregroundColor(.black)
                     .scaleEffect(isSelected ? 1.0 : 0.5)
                     .opacity(isSelected ? 1.0 : 0.0)
                     .rotationEffect(.degrees(isSelected ? 0 : -30))
