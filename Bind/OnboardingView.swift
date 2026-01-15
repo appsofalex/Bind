@@ -54,8 +54,8 @@ struct OnboardingView: View {
                             }
                             
                             // Add 1 second delay before showing the Face ID prompt
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
-                                // FaceID Logic
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                                // Face ID Logic
                                 authenticate()
                             }
                         } else {
@@ -138,7 +138,6 @@ struct WelcomePageView: View {
     @State private var orbitOpacity = 0.0
     @State private var orbitScale = 0.6 // Start smaller for dramatic entry
     @State private var orbitBlur = 20.0 // Start very blurred
-    @State private var innerRotationOffset: Double = -30 // Extra rotation for entry
     
     var body: some View {
         GeometryReader { geo in
@@ -180,11 +179,21 @@ struct WelcomePageView: View {
                 
                 // 2. Orbit Animation
                 // Starts at trueCenterOffset (screen middle) and shifts to its final position
-                OrbitView(extraRotation: innerRotationOffset)
-                    .scaleEffect(orbitScale)
-                    .blur(radius: orbitBlur)
-                    .opacity(orbitOpacity)
-                    .offset(y: moveOrbitsUp ? -geo.size.height * 0.14 : trueCenterOffset)
+                AppleLoginAnimation(
+                    logo: "creditcard.fill",
+                    images: [
+                        "airplane",
+                        "creditcard.fill",
+                        "ticket.fill",
+                        "person.text.rectangle.fill",
+                        "car.fill",
+                        "doc.text.fill"
+                    ]
+                )
+                .scaleEffect(orbitScale)
+                .blur(radius: orbitBlur)
+                .opacity(orbitOpacity)
+                .offset(y: moveOrbitsUp ? -geo.size.height * 0.14 : trueCenterOffset)
             }
             .frame(width: geo.size.width, height: geo.size.height)
             .onAppear {
@@ -193,7 +202,6 @@ struct WelcomePageView: View {
                     orbitOpacity = 1.0
                     orbitScale = 1.05
                     orbitBlur = 0
-                    innerRotationOffset = 0
                 }
                 
                 // Shift up and show text after the suspenseful intro
@@ -205,97 +213,6 @@ struct WelcomePageView: View {
                 }
             }
         }
-    }
-}
-
-struct OrbitView: View {
-    var extraRotation: Double = 0
-    @State private var rotation: Double = 0
-    @State private var poppingIndex: Int? = nil
-    
-    // Icons for the inner orbit (6 icons)
-    let innerIcons = ["airplane", "creditcard.fill", "ticket.fill", "person.text.rectangle.fill", "car.fill", "doc.text.fill"]
-    
-    var body: some View {
-        ZStack {
-            // Background Orbit Paths
-            Circle()
-                .stroke(
-                    AngularGradient(
-                        gradient: Gradient(colors: [.white.opacity(0.01), .white.opacity(0.1), .white.opacity(0.01)]),
-                        center: .center
-                    ),
-                    lineWidth: 1
-                )
-                .frame(width: 220, height: 220)
-
-            // Central Card Icon
-            ZStack {
-                Circle()
-                    .fill(Color.white)
-                    .frame(width: 85, height: 85)
-                    .shadow(color: .white.opacity(0.15), radius: 25)
-                
-                Image(systemName: "creditcard.fill")
-                    .foregroundColor(.black)
-                    .font(.system(size: 38, weight: .medium))
-            }
-            
-            // Inner Orbit (6 icons rotating clockwise)
-            ForEach(0..<innerIcons.count, id: \.self) { index in
-                let initialAngle = Double(index) * (360.0 / Double(innerIcons.count))
-                let currentRotation = initialAngle + rotation + extraRotation
-                
-                OrbitIcon(
-                    iconName: innerIcons[index],
-                    counterRotation: -currentRotation,
-                    isPopping: poppingIndex == index
-                )
-                .offset(x: 110)
-                .rotationEffect(.degrees(currentRotation))
-            }
-        }
-        .onAppear {
-            withAnimation(.linear(duration: 35).repeatForever(autoreverses: false)) {
-                rotation = 360
-            }
-            
-            startPoppingCycle()
-        }
-    }
-    
-    private func startPoppingCycle() {
-        var currentIndex = 0
-        Timer.scheduledTimer(withTimeInterval: 1.2, repeats: true) { _ in
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
-                poppingIndex = currentIndex
-                currentIndex = (currentIndex + 1) % innerIcons.count
-            }
-        }
-    }
-}
-
-struct OrbitIcon: View {
-    let iconName: String
-    var size: CGFloat = 48
-    var iconSize: CGFloat = 22
-    var counterRotation: Double
-    var isPopping: Bool
-    
-    var body: some View {
-        ZStack {
-            Circle()
-                .fill(Color.white)
-                .frame(width: size, height: size)
-                .shadow(color: .black.opacity(0.15), radius: 8)
-            
-            Image(systemName: iconName)
-                .foregroundColor(.black)
-                .font(.system(size: iconSize, weight: .medium))
-        }
-        .scaleEffect(isPopping ? 1.35 : 1.0)
-        .animation(.spring(response: 0.5, dampingFraction: 0.5), value: isPopping)
-        .rotationEffect(.degrees(counterRotation))
     }
 }
 
