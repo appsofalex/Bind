@@ -5,6 +5,7 @@ internal import Combine
 struct OnboardingView: View {
     @Binding var hasCompletedOnboarding: Bool
     @State private var currentPage = 0
+    @State private var isWelcomePhase2 = false
     @State private var showFooter = false
     @State private var isAuthenticating = false
     let totalPages = 4 // Welcome, Centralize, FaceID, Final
@@ -20,7 +21,7 @@ struct OnboardingView: View {
             VStack(spacing: 0) {
                 // Content Area
                 TabView(selection: $currentPage) {
-                    WelcomePageView(showText: $showFooter)
+                    WelcomePageView(showText: $showFooter, isPhase2: $isWelcomePhase2)
                         .tag(0)
                     
                     CentralizePageView(isSelected: currentPage == 1)
@@ -48,7 +49,11 @@ struct OnboardingView: View {
                     
                     // Action Button
                     Button(action: {
-                        if currentPage == 2 {
+                        if currentPage == 0 && !isWelcomePhase2 {
+                            withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                                isWelcomePhase2 = true
+                            }
+                        } else if currentPage == 2 {
                             // Trigger the icon transition immediately
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                 isAuthenticating = true
@@ -90,7 +95,7 @@ struct OnboardingView: View {
     
     var buttonText: String {
         switch currentPage {
-        case 0: return "Get Started"
+        case 0: return isWelcomePhase2 ? "Get Started" : "Let's go"
         case 2: return "Enable Face ID"
         case 3: return "Enter Bind"
         default: return "Continue"
@@ -135,6 +140,7 @@ struct OnboardingView: View {
 // MARK: - Page 1: Welcome / Introduction
 struct WelcomePageView: View {
     @Binding var showText: Bool
+    @Binding var isPhase2: Bool
     @State private var moveOrbitsUp = false
     @State private var orbitOpacity = 0.0
     @State private var orbitScale = 0.6 // Start smaller for dramatic entry
@@ -158,19 +164,55 @@ struct WelcomePageView: View {
                     Spacer().frame(height: 40)
                     
                     // Text Content
-                    VStack(spacing: 16) {
-                        Text("Welcome to Bind")
-                            .font(.system(size: 32, weight: .bold))
-                            .foregroundColor(.white)
-                            .multilineTextAlignment(.center)
+                    ZStack {
+                        // Phase 1: Catchy Header
+                        VStack(spacing: 4) {
+                            Text("Bind")
+                                .font(.system(size: 22, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.5))
+                                .padding(.bottom, 4)
+                            
+                            Text("Simply Bound")
+                                .font(.system(size: 38, weight: .bold))
+                                .foregroundColor(.white)
+                            
+                            Text("Securely Yours")
+                                .font(.system(size: 38, weight: .bold))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [
+                                            Color(red: 0.4, green: 0.6, blue: 1.0), // Soft Blue
+                                            Color(red: 0.9, green: 0.5, blue: 0.9), // Pinkish Purple
+                                            Color(red: 1.0, green: 0.7, blue: 0.4)  // Soft Orange
+                                        ],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                        }
+                        .opacity(isPhase2 ? 0 : 1)
+                        .blur(radius: isPhase2 ? 10 : 0)
+                        .scaleEffect(isPhase2 ? 0.95 : 1)
                         
-                        Text("The new home for life’s most important documents. Secure, organised, and always with you.")
-                            .font(.system(size: 17, weight: .regular))
-                            .foregroundColor(.white.opacity(0.7))
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 32)
-                            .lineSpacing(4)
+                        // Phase 2: Welcome Text
+                        VStack(spacing: 16) {
+                            Text("Welcome to Bind")
+                                .font(.system(size: 32, weight: .bold))
+                                .foregroundColor(.white)
+                                .multilineTextAlignment(.center)
+                            
+                            Text("The new home for life’s most important documents. Secure, organised, and always with you.")
+                                .font(.system(size: 17, weight: .regular))
+                                .foregroundColor(.white.opacity(0.7))
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 32)
+                                .lineSpacing(4)
+                        }
+                        .opacity(isPhase2 ? 1 : 0)
+                        .blur(radius: isPhase2 ? 0 : 10)
+                        .scaleEffect(isPhase2 ? 1 : 1.05)
                     }
+                    .animation(.spring(response: 0.8, dampingFraction: 0.8), value: isPhase2)
                     .opacity(showText ? 1 : 0)
                     .offset(y: showText ? 0 : 20)
                     
