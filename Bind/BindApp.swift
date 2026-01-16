@@ -27,7 +27,7 @@ struct BindApp: App {
             // Force Dark Mode to maintain the "Sexy/Slick" aesthetic
             // regardless of the user's system settings.
             .preferredColorScheme(.dark)
-            .animation(.easeInOut, value: hasCompletedOnboarding)
+            .animation(.easeInOut(duration: 0.8), value: hasCompletedOnboarding)
         }
     }
 }

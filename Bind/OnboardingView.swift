@@ -8,6 +8,7 @@ struct OnboardingView: View {
     @State private var isWelcomePhase2 = false
     @State private var showFooter = false
     @State private var isAuthenticating = false
+    @State private var isShowingFinalSplash = false
     let totalPages = 4 // Welcome, Centralize, FaceID, Final
     
     // Exact background color from main app
@@ -18,77 +19,88 @@ struct OnboardingView: View {
             // Background
             appBackgroundColor.ignoresSafeArea()
             
-            VStack(spacing: 0) {
-                // Content Area
-                TabView(selection: $currentPage) {
-                    WelcomePageView(showText: $showFooter, isPhase2: $isWelcomePhase2)
-                        .tag(0)
-                    
-                    CentralizePageView(isSelected: currentPage == 1)
-                        .tag(1)
-                    
-                    FaceIDPageView(isSelected: currentPage == 2, isAuthenticating: isAuthenticating)
-                        .tag(2)
-                    
-                    FinalPageView(isSelected: currentPage == 3)
-                        .tag(3)
-                }
-                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-                
-                // Footer Area
-                VStack(spacing: 24) {
-                    // Custom Page Indicator
-                    HStack(spacing: 8) {
-                        ForEach(0..<totalPages, id: \.self) { index in
-                            Capsule()
-                                .fill(currentPage == index ? Color.white : Color.white.opacity(0.2))
-                                .frame(width: currentPage == index ? 32 : 8, height: 6)
-                                .animation(.spring(response: 0.4, dampingFraction: 0.7), value: currentPage)
-                        }
+            if !isShowingFinalSplash {
+                VStack(spacing: 0) {
+                    // Content Area
+                    TabView(selection: $currentPage) {
+                        WelcomePageView(showText: $showFooter, isPhase2: $isWelcomePhase2)
+                            .tag(0)
+                        
+                        CentralizePageView(isSelected: currentPage == 1)
+                            .tag(1)
+                        
+                        FaceIDPageView(isSelected: currentPage == 2, isAuthenticating: isAuthenticating)
+                            .tag(2)
+                        
+                        FinalPageView(isSelected: currentPage == 3)
+                            .tag(3)
                     }
+                    .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
                     
-                    // Action Button
-                    Button(action: {
-                        if currentPage == 0 && !isWelcomePhase2 {
-                            withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                                isWelcomePhase2 = true
+                    // Footer Area
+                    VStack(spacing: 24) {
+                        // Custom Page Indicator
+                        HStack(spacing: 8) {
+                            ForEach(0..<totalPages, id: \.self) { index in
+                                Capsule()
+                                    .fill(currentPage == index ? Color.white : Color.white.opacity(0.2))
+                                    .frame(width: currentPage == index ? 32 : 8, height: 6)
+                                    .animation(.spring(response: 0.4, dampingFraction: 0.7), value: currentPage)
                             }
-                        } else if currentPage == 2 {
-                            // Trigger the icon transition immediately
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                isAuthenticating = true
-                            }
-                            
-                            // Add 1 second delay before showing the Face ID prompt
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                                // Face ID Logic
-                                authenticate()
-                            }
-                        } else {
-                            withAnimation {
-                                if currentPage < totalPages - 1 {
-                                    currentPage += 1
-                                } else {
-                                    // Final step
-                                    hasCompletedOnboarding = true
+                        }
+                        
+                        // Action Button
+                        Button(action: {
+                            if currentPage == 0 && !isWelcomePhase2 {
+                                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                                    isWelcomePhase2 = true
+                                }
+                            } else if currentPage == 2 {
+                                // Trigger the icon transition immediately
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    isAuthenticating = true
+                                }
+                                
+                                // Add 1 second delay before showing the Face ID prompt
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                                    // Face ID Logic
+                                    authenticate()
+                                }
+                            } else {
+                                withAnimation {
+                                    if currentPage < totalPages - 1 {
+                                        currentPage += 1
+                                    } else {
+                                        // Start final splash transition
+                                        isShowingFinalSplash = true
+                                    }
                                 }
                             }
+                        }) {
+                            Text(buttonText)
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundColor(.black)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 56)
+                                .background(Color.white)
+                                .clipShape(Capsule())
+                                .shadow(color: Color.white.opacity(0.1), radius: 10, x: 0, y: 5)
                         }
-                    }) {
-                        Text(buttonText)
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundColor(.black)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .background(Color.white)
-                            .clipShape(Capsule())
-                            .shadow(color: Color.white.opacity(0.1), radius: 10, x: 0, y: 5)
+                        .padding(.horizontal, 24)
                     }
-                    .padding(.horizontal, 24)
+                    .opacity(currentPage == 0 ? (showFooter ? 1 : 0) : 1)
+                    .offset(y: currentPage == 0 ? (showFooter ? 0 : 20) : 0)
+                    .padding(.bottom, 50)
                 }
-                .opacity(currentPage == 0 ? (showFooter ? 1 : 0) : 1)
-                .offset(y: currentPage == 0 ? (showFooter ? 0 : 20) : 0)
-                .padding(.bottom, 50)
+                .transition(.opacity) // Smoothly fade out the onboarding UI
+            }
+            
+            if isShowingFinalSplash {
+                FinalSplashView {
+                    // Hand-off to the main wallet view
+                    hasCompletedOnboarding = true
+                }
+                .zIndex(100)
             }
         }
     }
@@ -172,12 +184,12 @@ struct WelcomePageView: View {
                                 .foregroundColor(.white.opacity(0.5))
                                 .padding(.bottom, 4)
                             
-                            Text("Simply Bound")
-                                .font(.system(size: 40, weight: .bold))
+                            Text("Life's Essentials")
+                                .font(.system(size: 36, weight: .bold))
                                 .foregroundColor(.white)
                             
-                            Text("Securely Yours")
-                                .font(.system(size: 40, weight: .bold))
+                            Text("All In One Place")
+                                .font(.system(size: 36, weight: .bold))
                                 .foregroundStyle(
                                     LinearGradient(
                                         colors: [
@@ -197,7 +209,7 @@ struct WelcomePageView: View {
                         // Phase 2: Welcome Text
                         VStack(spacing: 16) {
                             Text("Welcome to Bind")
-                                .font(.system(size: 32, weight: .bold))
+                                .font(.system(size: 28, weight: .bold))
                                 .foregroundColor(.white)
                                 .multilineTextAlignment(.center)
                             
@@ -342,7 +354,7 @@ struct CentralizePageView: View {
             
             VStack(spacing: 16) {
                 Text("Stop the scramble")
-                    .font(.system(size: 32, weight: .bold))
+                    .font(.system(size: 28, weight: .bold))
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
                 
@@ -407,7 +419,7 @@ struct FaceIDPageView: View {
             
             VStack(spacing: 16) {
                 Text("Secure with Face ID")
-                    .font(.system(size: 32, weight: .bold))
+                    .font(.system(size: 28, weight: .bold))
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
                 
@@ -473,8 +485,8 @@ struct FinalPageView: View {
                 .frame(height: 40)
             
             VStack(spacing: 16) {
-                Text("Let’s get organised")
-                    .font(.system(size: 32, weight: .bold))
+                Text("Bind your world together")
+                    .font(.system(size: 28, weight: .bold))
                     .foregroundColor(.white)
                     .multilineTextAlignment(.center)
                 
