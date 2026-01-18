@@ -9,14 +9,13 @@ struct OnboardingView: View {
     @State private var showFooter = false
     @State private var isAuthenticating = false
     @State private var isShowingFinalSplash = false
-    let totalPages = 4 // Welcome, Centralize, FaceID, Final
+    let totalPages = 4
     
-    // Exact background color from main app
+    
     let appBackgroundColor = Color(red: 0.11, green: 0.11, blue: 0.12)
     
     var body: some View {
         ZStack {
-            // Background
             appBackgroundColor.ignoresSafeArea()
             
             if !isShowingFinalSplash {
@@ -39,7 +38,7 @@ struct OnboardingView: View {
                     
                     // Footer Area
                     VStack(spacing: 24) {
-                        // Custom Page Indicator
+                        // Custom Page indicator
                         HStack(spacing: 8) {
                             ForEach(0..<totalPages, id: \.self) { index in
                                 Capsule()
@@ -61,9 +60,8 @@ struct OnboardingView: View {
                                     isAuthenticating = true
                                 }
                                 
-                                // Add 1 second delay before showing the Face ID prompt
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                                    // Face ID Logic
+                                    // Face ID logic
                                     authenticate()
                                 }
                             } else {
@@ -71,7 +69,6 @@ struct OnboardingView: View {
                                     if currentPage < totalPages - 1 {
                                         currentPage += 1
                                     } else {
-                                        // Start final splash transition
                                         isShowingFinalSplash = true
                                     }
                                 }
@@ -92,12 +89,12 @@ struct OnboardingView: View {
                     .offset(y: currentPage == 0 ? (showFooter ? 0 : 20) : 0)
                     .padding(.bottom, 50)
                 }
-                .transition(.opacity) // Smoothly fade out the onboarding UI
+                .transition(.opacity) // Onboarding UI fade out
             }
             
             if isShowingFinalSplash {
                 FinalSplashView {
-                    // Hand-off to the main wallet view
+                    // Transition to the main wallet view
                     hasCompletedOnboarding = true
                 }
                 .zIndex(100)
@@ -118,7 +115,6 @@ struct OnboardingView: View {
         let context = LAContext()
         var error: NSError?
         
-        // Check if biometric authentication is available
         if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
             let reason = "Secure your documents with FaceID"
             
@@ -128,10 +124,9 @@ struct OnboardingView: View {
                         // Success - Move to next screen
                         withAnimation {
                             currentPage += 1
-                            isAuthenticating = false // Reset for potential back navigation
+                            isAuthenticating = false
                         }
                     } else {
-                        // Failed or Cancelled - Move to next screen anyway for now
                          withAnimation {
                             currentPage += 1
                             isAuthenticating = false
@@ -149,35 +144,31 @@ struct OnboardingView: View {
     }
 }
 
-// MARK: - Page 1: Welcome / Introduction
+// Page 1: Welcome / Introduction
 struct WelcomePageView: View {
     @Binding var showText: Bool
     @Binding var isPhase2: Bool
     @State private var moveOrbitsUp = false
     @State private var orbitOpacity = 0.0
-    @State private var orbitScale = 0.6 // Start smaller for dramatic entry
-    @State private var orbitBlur = 20.0 // Start very blurred
+    @State private var orbitScale = 0.6
+    @State private var orbitBlur = 20.0
     
     var body: some View {
         GeometryReader { geo in
-            // Calculate the exact offset needed to reach the true center of the device screen
+            // Calculate the exact offset needed to reach the true center of the screen
             let globalFrame = geo.frame(in: .global)
             let screenHeight = UIScreen.main.bounds.height
             let trueCenterOffset = (screenHeight / 2) - globalFrame.midY
             
             ZStack {
-                // 1. Standard Layout for Text Alignment (Matches other pages exactly)
                 VStack(spacing: 0) {
                     Spacer()
                     
-                    // Invisible placeholder for Orbit slot to maintain layout consistency
                     Color.clear.frame(height: 350)
                     
                     Spacer().frame(height: 40)
                     
-                    // Text Content
                     ZStack {
-                        // Phase 1: Catchy Header
                         VStack(spacing: 4) {
                             Text("Bind")
                                 .font(.system(size: 22, weight: .semibold))
@@ -193,9 +184,9 @@ struct WelcomePageView: View {
                                 .foregroundStyle(
                                     LinearGradient(
                                         colors: [
-                                            Color(red: 0.4, green: 0.6, blue: 1.0), // Soft Blue
-                                            Color(red: 0.9, green: 0.5, blue: 0.9), // Pinkish Purple
-                                            Color(red: 1.0, green: 0.7, blue: 0.4)  // Soft Orange
+                                            Color(red: 0.4, green: 0.6, blue: 1.0),
+                                            Color(red: 0.9, green: 0.5, blue: 0.9),
+                                            Color(red: 1.0, green: 0.7, blue: 0.4)
                                         ],
                                         startPoint: .leading,
                                         endPoint: .trailing
@@ -206,7 +197,7 @@ struct WelcomePageView: View {
                         .blur(radius: isPhase2 ? 10 : 0)
                         .scaleEffect(isPhase2 ? 0.95 : 1)
                         
-                        // Phase 2: Welcome Text
+                        // Phase 2: Welcome copy
                         VStack(spacing: 16) {
                             Text("Welcome to Bind")
                                 .font(.system(size: 28, weight: .bold))
@@ -233,7 +224,6 @@ struct WelcomePageView: View {
                 }
                 
                 // 2. Orbit Animation
-                // Starts at trueCenterOffset (screen middle) and shifts to its final position
                 AppleLoginAnimation(
                     logo: "creditcard.fill",
                     images: [
@@ -259,7 +249,6 @@ struct WelcomePageView: View {
             .frame(width: geo.size.width, height: geo.size.height)
             .task {
                 // 1. Initial entry: slow fade, scale, and de-blur
-                // Small delay ensures animation starts after the view is in the hierarchy
                 try? await Task.sleep(nanoseconds: 100_000_000)
                 
                 withAnimation(.easeOut(duration: 2.5)) {
@@ -280,7 +269,7 @@ struct WelcomePageView: View {
     }
 }
 
-// MARK: - Page 2: Centralization / Ecosystem
+// Centralization / Ecosystem / Stop the scramble screen
 struct CentralizePageView: View {
     let isSelected: Bool
     @State private var iconIndex = 0
@@ -291,7 +280,7 @@ struct CentralizePageView: View {
         VStack(spacing: 0) {
             Spacer()
             
-            // Floating Cards Animation
+            // Floating Cards animation
             ZStack {
                 // Background Card 1
                 RoundedRectangle(cornerRadius: 16)
@@ -373,7 +362,7 @@ struct CentralizePageView: View {
     }
 }
 
-// MARK: - Page 3: Face ID
+// Page 3: Face ID
 struct FaceIDPageView: View {
     let isSelected: Bool
     let isAuthenticating: Bool
@@ -383,10 +372,10 @@ struct FaceIDPageView: View {
         VStack(spacing: 0) {
             Spacer()
             
-            // Face ID Icon Animation
+            // Face ID Icon animation
             ZStack {
                 if !isAuthenticating {
-                    // Native Face ID Icon (White, with smooth breathing pulse)
+                    // Native Face ID Icon
                     Image(systemName: "faceid")
                         .font(.system(size: 110, weight: .regular))
                         .foregroundColor(.white)
@@ -401,7 +390,7 @@ struct FaceIDPageView: View {
                             removal: .opacity.combined(with: .scale(scale: 0.8)).combined(with: .offset(y: -20))
                         ))
                 } else {
-                    // Traditional Arrow pointing to where FaceID prompt appears
+                    // Traditional Arrow pointing to where Face ID prompt appears
                     Image(systemName: "arrow.up")
                         .font(.system(size: 85, weight: .semibold))
                         .foregroundColor(.white)
@@ -436,15 +425,14 @@ struct FaceIDPageView: View {
         }
         .task(id: isSelected && !isAuthenticating) {
                     if isSelected && !isAuthenticating {
-                        // Wait for the entry animation (response: 0.8, delay: 0.1) to settle
-                        try? await Task.sleep(nanoseconds: 1_100_000_000) // 1.1 seconds
+                        try? await Task.sleep(nanoseconds: 1_100_000_000)
                         
-                        // Only start breathing if we're still active
+                        
                         withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
                             breathe = true
                         }
                     } else {
-                        // Swiped away or started authenticating: reset breathing state
+                        
                         withAnimation(.easeInOut(duration: 0.3)) {
                             breathe = false
                 }
@@ -453,7 +441,7 @@ struct FaceIDPageView: View {
     }
 }
 
-// MARK: - Page 4: Final
+// Page 4: Final
 struct FinalPageView: View {
     let isSelected: Bool
     
