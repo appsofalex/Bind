@@ -43,6 +43,13 @@ struct TravelDocument: Identifiable, Codable, Equatable {
     var pickupDate: Date?
     var dropoffDate: Date?
     
+    // NEW: Pet Specific Fields
+    var petName: String?
+    var petSpecies: String?
+    var petBreed: String?
+    var petMicrochipNumber: String?
+    var vetName: String?
+    
     // Internal storage for Codable colors
     private let primaryColorData: CodableColor
     private let secondaryColorData: CodableColor
@@ -86,6 +93,11 @@ struct TravelDocument: Identifiable, Codable, Equatable {
          dropoffLocation: String? = nil,
          pickupDate: Date? = nil,
          dropoffDate: Date? = nil,
+         petName: String? = nil,
+         petSpecies: String? = nil,
+         petBreed: String? = nil,
+         petMicrochipNumber: String? = nil,
+         vetName: String? = nil,
          primaryColor: Color,
          secondaryColor: Color,
          iconName: String,
@@ -122,6 +134,11 @@ struct TravelDocument: Identifiable, Codable, Equatable {
         self.dropoffLocation = dropoffLocation
         self.pickupDate = pickupDate
         self.dropoffDate = dropoffDate
+        self.petName = petName
+        self.petSpecies = petSpecies
+        self.petBreed = petBreed
+        self.petMicrochipNumber = petMicrochipNumber
+        self.vetName = vetName
         self.primaryColorData = CodableColor(color: primaryColor)
         self.secondaryColorData = CodableColor(color: secondaryColor)
         self.iconName = iconName
@@ -134,6 +151,8 @@ struct TravelDocument: Identifiable, Codable, Equatable {
         // NEW TYPES
         case driversLicense, studentID, prescription, vaccineRecord, medicalAlert
         case rewardsCard, event, carRental, hotelKeyCard
+        // PET TYPES
+        case petInsurance, petVaccineRecord, petPassport, petID
         
         var id: String { rawValue }
         
@@ -152,6 +171,10 @@ struct TravelDocument: Identifiable, Codable, Equatable {
             case .event: return "Event"
             case .carRental: return "Car Rental"
             case .hotelKeyCard: return "Hotel Key Card"
+            case .petInsurance: return "Pet Insurance"
+            case .petVaccineRecord: return "Pet Vaccination"
+            case .petPassport: return "Pet Passport"
+            case .petID: return "Pet ID"
             default: return rawValue.capitalized
             }
         }

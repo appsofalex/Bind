@@ -67,6 +67,13 @@ struct DocumentFormView: View {
     @State private var selectedRewardType: String = "Coffee"
     @State private var selectedRewardBrand: String = ""
     
+    // PET SPECIFIC FIELDS
+    @State private var petName: String = ""
+    @State private var petSpecies: String = "Dog"
+    @State private var petBreed: String = ""
+    @State private var petMicrochipNumber: String = ""
+    @State private var vetName: String = ""
+    
     // Image Picker & Cropper State
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var imageToCrop: CroppableImage?
@@ -89,6 +96,8 @@ struct DocumentFormView: View {
         "Hertz", "Avis", "Europcar", "Sixt", "Enterprise", "Budget", "National", "Alamo",
         "Dollar", "Thrifty", "Goldcar", "Centauro", "Virtuo", "Keddy", "Record Go", "Locauto"
     ]
+    
+    let petSpeciesList = ["Dog", "Cat", "Bird", "Rabbit", "Hamster", "Reptile", "Other"]
 
     let countries = [
         "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan",
@@ -218,7 +227,7 @@ struct DocumentFormView: View {
     
     // Helper to determine if we show the photo upload section
     private var shouldShowPhotoUpload: Bool {
-        return [.passport, .driversLicense, .studentID, .idCard, .birthCertificate, .marriageCertificate, .rewardsCard, .event, .carRental, .hotelKeyCard].contains(type)
+        return [.passport, .driversLicense, .studentID, .idCard, .birthCertificate, .marriageCertificate, .rewardsCard, .event, .carRental, .hotelKeyCard, .petPassport, .petID].contains(type)
     }
     
     // Initialize default values based on type OR existing document
@@ -257,6 +266,12 @@ struct DocumentFormView: View {
         _height = State(initialValue: "")
         _eyeColor = State(initialValue: "")
         _documentImage = State(initialValue: nil)
+        
+        _petName = State(initialValue: "")
+        _petSpecies = State(initialValue: "Dog")
+        _petBreed = State(initialValue: "")
+        _petMicrochipNumber = State(initialValue: "")
+        _vetName = State(initialValue: "")
         
         if let doc = document {
             // EDIT MODE
@@ -300,6 +315,12 @@ struct DocumentFormView: View {
             if doc.type == .carRental {
                 _selectedCarBrand = State(initialValue: doc.title)
             }
+            
+            _petName = State(initialValue: doc.petName ?? "")
+            _petSpecies = State(initialValue: doc.petSpecies ?? "Dog")
+            _petBreed = State(initialValue: doc.petBreed ?? "")
+            _petMicrochipNumber = State(initialValue: doc.petMicrochipNumber ?? "")
+            _vetName = State(initialValue: doc.vetName ?? "")
             
             if doc.type == .medicalAlert {
                 if let bloodTypeRange = doc.holderName.range(of: "TYPE: ") {
@@ -379,6 +400,21 @@ struct DocumentFormView: View {
                 _subtitle = State(initialValue: "NATIONAL ID")
                 _nationality = State(initialValue: "United Kingdom")
                 _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60 * 10))
+            case .petInsurance:
+                _title = State(initialValue: "Pet Plan")
+                _subtitle = State(initialValue: "PET INSURANCE")
+                _issueDate = State(initialValue: Date())
+                _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60))
+            case .petVaccineRecord:
+                _title = State(initialValue: "Veterinary Clinic")
+                _subtitle = State(initialValue: "VACCINATION")
+            case .petPassport:
+                _title = State(initialValue: "United Kingdom")
+                _subtitle = State(initialValue: "PET PASSPORT")
+                _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60 * 5))
+            case .petID:
+                _title = State(initialValue: "Pet ID")
+                _subtitle = State(initialValue: "REGISTRATION")
             default:
                 break
             }
@@ -607,13 +643,80 @@ struct DocumentFormView: View {
                     TextField("Or enter custom name", text: $title)
                         .textInputAutocapitalization(.words)
                 }
+            
+            case .petInsurance:
+                TextField("Insurance Provider", text: $title)
+                    .textInputAutocapitalization(.words)
+                TextField("Plan Type", text: $subtitle)
+                    .textInputAutocapitalization(.words)
+                
+            case .petVaccineRecord:
+                TextField("Clinic / Vet Name", text: $title)
+                    .textInputAutocapitalization(.words)
+                TextField("Vaccine Name", text: $subtitle)
+                    .textInputAutocapitalization(.words)
+                
+            case .petPassport:
+                Picker("Issuing Country", selection: $title) {
+                    ForEach(countries, id: \.self) { country in
+                        Text(country).tag(country)
+                    }
+                }
+                
+            case .petID:
+                TextField("Issuing Authority", text: $title)
+                    .textInputAutocapitalization(.words)
+                TextField("Registration Type", text: $subtitle)
+                    .textInputAutocapitalization(.words)
             }
         }
     }
     
     private var personalInfoSection: some View {
-        Section(header: Text("Personal Info")) {
+        Section(header: Text(isPetDocument ? "Pet Info" : "Personal Info")) {
             switch type {
+            case .petInsurance:
+                TextField("Pet Name", text: $petName)
+                    .textInputAutocapitalization(.words)
+                Picker("Species", selection: $petSpecies) {
+                    ForEach(petSpeciesList, id: \.self) { Text($0).tag($0) }
+                }
+                TextField("Breed (Optional)", text: $petBreed)
+                    .textInputAutocapitalization(.words)
+                TextField("Policy Number", text: $detailValue)
+                    .textInputAutocapitalization(.characters)
+                
+                DatePicker("Start Date", selection: $issueDate, displayedComponents: .date)
+                DatePicker("End Date", selection: $expiryDate, displayedComponents: .date)
+                
+            case .petVaccineRecord:
+                TextField("Pet Name", text: $petName)
+                    .textInputAutocapitalization(.words)
+                Picker("Species", selection: $petSpecies) {
+                    ForEach(petSpeciesList, id: \.self) { Text($0).tag($0) }
+                }
+                TextField("Batch / Dose Number", text: $detailValue)
+                    .textInputAutocapitalization(.characters)
+                DatePicker("Date Administered", selection: $issueDate, displayedComponents: .date)
+                DatePicker("Next Due", selection: $expiryDate, displayedComponents: .date)
+                
+            case .petPassport, .petID:
+                TextField("Pet Name", text: $petName)
+                    .textInputAutocapitalization(.words)
+                Picker("Species", selection: $petSpecies) {
+                    ForEach(petSpeciesList, id: \.self) { Text($0).tag($0) }
+                }
+                TextField("Breed", text: $petBreed)
+                    .textInputAutocapitalization(.words)
+                TextField("Microchip Number", text: $petMicrochipNumber)
+                    .textInputAutocapitalization(.characters)
+                
+                if type == .petPassport {
+                    DatePicker("Date of Birth", selection: $birthDate, displayedComponents: .date)
+                }
+                DatePicker("Issue Date", selection: $issueDate, displayedComponents: .date)
+                DatePicker("Expiry Date", selection: $expiryDate, displayedComponents: .date)
+                
             case .medicalAlert:
                 TextField("Emergency Contact", text: $detailValue)
                     .textInputAutocapitalization(.words)
@@ -806,9 +909,19 @@ struct DocumentFormView: View {
             return "Room / Res Number"
         case .idCard:
             return "ID Number"
+        case .petInsurance:
+            return "Policy Number"
+        case .petVaccineRecord:
+            return "Batch Number"
+        case .petPassport, .petID:
+            return "ID / Chip Number"
         default:
             return "Booking Number"
         }
+    }
+    
+    var isPetDocument: Bool {
+        return [.petInsurance, .petVaccineRecord, .petPassport, .petID].contains(type)
     }
     
     func saveDocument() {
@@ -859,13 +972,28 @@ struct DocumentFormView: View {
         case .hotelKeyCard:
             finalSubtitle = "HOTEL ACCESS"
             
+        case .petInsurance:
+            if finalSubtitle.isEmpty { finalSubtitle = "PET INSURANCE" }
+        case .petVaccineRecord:
+            if finalSubtitle.isEmpty { finalSubtitle = "VACCINATION" }
+        case .petPassport:
+            finalSubtitle = "PET PASSPORT"
+        case .petID:
+            finalSubtitle = "PET REGISTRATION"
+            
         default:
             break
         }
         
         if finalTitle.isEmpty { finalTitle = "New Document" }
         if finalSubtitle.isEmpty { finalSubtitle = type.displayName.uppercased() }
-        if finalHolder.isEmpty { finalHolder = "CARD HOLDER" }
+        
+        // PET NAME HANDLING
+        if isPetDocument {
+            finalHolder = petName.isEmpty ? "PET NAME" : petName.uppercased()
+        } else if finalHolder.isEmpty {
+             finalHolder = "CARD HOLDER"
+        }
         
         let newDoc = TravelDocument(
             id: existingID ?? UUID(),
@@ -876,9 +1004,9 @@ struct DocumentFormView: View {
             detailValue: finalDetail,
             origin: type == .boardingPass ? origin : nil,
             nationality: (type == .passport || type == .driversLicense || type == .idCard) ? nationality : nil,
-            birthDate: (type == .passport || type == .driversLicense || type == .idCard) ? birthDate : nil,
-            issueDate: (type == .passport || type == .insurance || type == .driversLicense || type == .idCard) ? issueDate : nil,
-            expiryDate: (type == .passport || type == .insurance || type == .driversLicense || type == .visa || type == .studentID || type == .idCard) ? expiryDate : nil,
+            birthDate: (type == .passport || type == .driversLicense || type == .idCard || type == .petPassport) ? birthDate : nil,
+            issueDate: (type == .passport || type == .insurance || type == .driversLicense || type == .idCard || type == .petInsurance || type == .petVaccineRecord || type == .petPassport || type == .petID) ? issueDate : nil,
+            expiryDate: (type == .passport || type == .insurance || type == .driversLicense || type == .visa || type == .studentID || type == .idCard || type == .petInsurance || type == .petVaccineRecord || type == .petPassport || type == .petID) ? expiryDate : nil,
             gate: type == .boardingPass ? gate : nil,
             seat: type == .boardingPass ? seat : nil,
             flightClass: type == .boardingPass ? flightClass : nil,
@@ -892,12 +1020,17 @@ struct DocumentFormView: View {
             endorsements: type == .driversLicense ? endorsements : nil,
             height: type == .driversLicense ? height : nil,
             eyeColor: type == .driversLicense ? eyeColor : nil,
-            documentImageData: (type == .driversLicense || type == .passport || type == .idCard || type == .studentID || type == .birthCertificate || type == .marriageCertificate || type == .rewardsCard || type == .event || type == .carRental || type == .hotelKeyCard) ? documentImage : nil,
+            documentImageData: (type == .driversLicense || type == .passport || type == .idCard || type == .studentID || type == .birthCertificate || type == .marriageCertificate || type == .rewardsCard || type == .event || type == .carRental || type == .hotelKeyCard || type == .petPassport || type == .petID) ? documentImage : nil,
             carModel: type == .carRental ? carModel : nil,
             pickupLocation: type == .carRental ? pickupLocation : nil,
             dropoffLocation: type == .carRental ? dropoffLocation : nil,
             pickupDate: type == .carRental ? pickupDate : nil,
             dropoffDate: type == .carRental ? dropoffDate : nil,
+            petName: isPetDocument ? petName : nil,
+            petSpecies: isPetDocument ? petSpecies : nil,
+            petBreed: isPetDocument ? petBreed : nil,
+            petMicrochipNumber: isPetDocument ? petMicrochipNumber : nil,
+            vetName: isPetDocument ? vetName : nil,
             primaryColor: getColor(for: type),
             secondaryColor: .white,
             iconName: getIcon(for: type),
@@ -926,6 +1059,10 @@ struct DocumentFormView: View {
         case .visa: return Color(red: 0.85, green: 0.2, blue: 0.3)
         case .insurance: return Color(red: 0.0, green: 0.5, blue: 0.5)
         case .idCard: return Color(red: 0.45, green: 0.2, blue: 0.6)
+        case .petInsurance: return Color(red: 0.2, green: 0.6, blue: 0.3) // Green
+        case .petVaccineRecord: return Color(red: 0.2, green: 0.4, blue: 0.7) // Same as vaccine
+        case .petPassport: return Color(red: 0.5, green: 0.1, blue: 0.2) // Burgundy
+        case .petID: return Color(red: 0.8, green: 0.4, blue: 0.0) // Orange
         }
     }
     
@@ -947,6 +1084,10 @@ struct DocumentFormView: View {
         case .visa: return "checkmark.seal"
         case .insurance: return "cross.case.fill"
         case .idCard: return "person.text.rectangle.fill"
+        case .petInsurance: return "cross.case.fill"
+        case .petVaccineRecord: return "syringe.fill"
+        case .petPassport: return "pawprint.fill"
+        case .petID: return "pawprint.fill"
         }
     }
 }

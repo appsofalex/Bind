@@ -2,13 +2,8 @@
 //  SKTimingFunctions.swift
 //  Apple iCloud Setup Animation
 //
-//  Created by Alex Walters on 15/01/2026.
+//  Created by Alex Walters on 07/01/2026.
 //
-
-//  Copyright © 2017 Allan Weir. All rights reserved.
-//  Adapted from a JavaScript version found at https://gist.github.com/gre/1650294
-//
-// https://gist.github.com/allanweir/1cb972b0b8f93077dc501f2e1b6311cf
 
 import SpriteKit
 

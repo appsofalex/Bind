@@ -256,6 +256,13 @@ struct TravelDocsWalletView: View {
                                 Button(action: { startAdd(.medicalAlert) }) { Label("Blood & Allergies", systemImage: "staroflife") }
                                 Button(action: { startAdd(.insurance) }) { Label("Insurance", systemImage: "cross.case") }
                             }
+                            
+                            Section("Pets") {
+                                Button(action: { startAdd(.petInsurance) }) { Label("Pet Insurance", systemImage: "cross.case.fill") }
+                                Button(action: { startAdd(.petVaccineRecord) }) { Label("Pet Vaccination", systemImage: "syringe.fill") }
+                                Button(action: { startAdd(.petPassport) }) { Label("Pet Passport", systemImage: "pawprint.fill") }
+                                Button(action: { startAdd(.petID) }) { Label("Pet ID", systemImage: "pawprint.fill") }
+                            }
 
                             Section("Other") {
                                 Button(action: { startAdd(.birthCertificate) }) { Label("Birth Certificate", systemImage: "stroller.fill") }
