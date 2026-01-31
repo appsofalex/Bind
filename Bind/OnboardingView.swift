@@ -35,20 +35,22 @@ struct OnboardingView: View {
                             .tag(3)
                     }
                     .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+                    .disabled(currentPage == 0 && !isWelcomePhase2)
                     
                     // Footer Area
                     VStack(spacing: 24) {
-                        // Custom Page indicator
-                        HStack(spacing: 8) {
-                            ForEach(0..<totalPages, id: \.self) { index in
-                                Capsule()
-                                    .fill(currentPage == index ? Color.white : Color.white.opacity(0.2))
-                                    .frame(width: currentPage == index ? 32 : 8, height: 6)
-                                    .animation(.spring(response: 0.4, dampingFraction: 0.7), value: currentPage)
-                            }
-                        }
-                        
-                        // Action Button
+                // Custom Page indicator
+                HStack(spacing: 8) {
+                    ForEach(0..<totalPages, id: \.self) { index in
+                        Capsule()
+                            .fill(currentPage == index ? Color.white : Color.white.opacity(0.2))
+                            .frame(width: currentPage == index ? 32 : 8, height: 6)
+                            .animation(.spring(response: 0.4, dampingFraction: 0.7), value: currentPage)
+                    }
+                }
+                .opacity((currentPage == 0 && !isWelcomePhase2) ? 0 : 1)
+                
+                // Action Button
                         Button(action: {
                             if currentPage == 0 && !isWelcomePhase2 {
                                 withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
