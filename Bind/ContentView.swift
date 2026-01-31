@@ -60,7 +60,7 @@ struct EmptyWalletView: View {
     }
 }
 
-// MARK: - 3. MAIN WALLET VIEW
+// 3. MAIN WALLET VIEW
 struct TravelDocsWalletView: View {
     // Selection State
     @State private var selectedID: UUID? = nil

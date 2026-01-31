@@ -9,6 +9,7 @@ struct OnboardingView: View {
     @State private var showFooter = false
     @State private var isAuthenticating = false
     @State private var isShowingFinalSplash = false
+    @State private var animateSwipeArrow = false
     let totalPages = 4
     
     
@@ -39,53 +40,97 @@ struct OnboardingView: View {
                     
                     // Footer Area
                     VStack(spacing: 24) {
-                // Custom Page indicator
-                HStack(spacing: 8) {
-                    ForEach(0..<totalPages, id: \.self) { index in
-                        Capsule()
-                            .fill(currentPage == index ? Color.white : Color.white.opacity(0.2))
-                            .frame(width: currentPage == index ? 32 : 8, height: 6)
-                            .animation(.spring(response: 0.4, dampingFraction: 0.7), value: currentPage)
-                    }
-                }
-                .opacity((currentPage == 0 && !isWelcomePhase2) ? 0 : 1)
-                
-                // Action Button
-                        Button(action: {
-                            if currentPage == 0 && !isWelcomePhase2 {
-                                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                                    isWelcomePhase2 = true
-                                }
-                            } else if currentPage == 2 {
-                                // Trigger the icon transition immediately
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                    isAuthenticating = true
-                                }
+                        // Custom Page indicator
+                        HStack(spacing: 8) {
+                            ForEach(0..<totalPages, id: \.self) { index in
+                                Capsule()
+                                    .fill(currentPage == index ? Color.white : Color.white.opacity(0.2))
+                                    .frame(width: currentPage == index ? 32 : 8, height: 6)
+                                    .animation(.spring(response: 0.4, dampingFraction: 0.7), value: currentPage)
+                            }
+                        }
+                        .opacity((currentPage == 0 && !isWelcomePhase2) ? 0 : 1)
+                        
+                        // Action Button or Swipe Hint
+                        if currentPage == 0 && isWelcomePhase2 {
+                            // Swipe Hint
+                            HStack(spacing: 8) {
+                                Text("Swipe to get started")
+                                    .font(.system(size: 17, weight: .semibold)) // Match button font weight
+                                    .foregroundColor(.black) // Black text for white pill
                                 
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                                    // Face ID logic
-                                    authenticate()
-                                }
-                            } else {
-                                withAnimation {
-                                    if currentPage < totalPages - 1 {
-                                        currentPage += 1
-                                    } else {
-                                        isShowingFinalSplash = true
+                                Image(systemName: "arrow.right")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(.black) // Black arrow
+                                    .offset(x: animateSwipeArrow ? 6 : -2) // Adjusted offset for emphasis
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 56)
+                            .background(Color.white)
+                            .clipShape(Capsule())
+                            .shadow(color: Color.white.opacity(0.1), radius: 10, x: 0, y: 5)
+                            .padding(.horizontal, 24)
+                            // Add Swiping Gesture to this area
+                            .gesture(
+                                DragGesture()
+                                    .onEnded { value in
+                                        // Swipe Left (Next Page)
+                                        if value.translation.width < -50 {
+                                            withAnimation {
+                                                if currentPage < totalPages - 1 {
+                                                    currentPage += 1
+                                                } else {
+                                                    isShowingFinalSplash = true
+                                                }
+                                            }
+                                        }
                                     }
+                            )
+                            .onAppear {
+                                withAnimation(
+                                    .timingCurve(0.25, 0.1, 0.25, 1, duration: 1.0)
+                                    .repeatForever(autoreverses: true)
+                                ) {
+                                    animateSwipeArrow = true
                                 }
                             }
-                        }) {
-                            Text(buttonText)
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundColor(.black)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 56)
-                                .background(Color.white)
-                                .clipShape(Capsule())
-                                .shadow(color: Color.white.opacity(0.1), radius: 10, x: 0, y: 5)
+                        } else {
+                            Button(action: {
+                        if currentPage == 0 && !isWelcomePhase2 {
+                            withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                                isWelcomePhase2 = true
+                            }
+                        } else if currentPage == 2 {
+                            // Trigger the icon transition immediately
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                isAuthenticating = true
+                            }
+                            
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                                // Face ID logic
+                                authenticate()
+                            }
+                        } else {
+                            withAnimation {
+                                if currentPage < totalPages - 1 {
+                                    currentPage += 1
+                                } else {
+                                    isShowingFinalSplash = true
+                                }
+                            }
                         }
-                        .padding(.horizontal, 24)
+                    }) {
+                        Text(buttonText)
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundColor(.black)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 56)
+                            .background(Color.white)
+                            .clipShape(Capsule())
+                            .shadow(color: Color.white.opacity(0.1), radius: 10, x: 0, y: 5)
+                    }
+                    .padding(.horizontal, 24)
+                }
                     }
                     .opacity(currentPage == 0 ? (showFooter ? 1 : 0) : 1)
                     .offset(y: currentPage == 0 ? (showFooter ? 0 : 20) : 0)
