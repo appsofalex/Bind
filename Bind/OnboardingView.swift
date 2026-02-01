@@ -35,6 +35,7 @@ struct OnboardingView: View {
                             .tag(3)
                     }
                     .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+                    .allowsHitTesting(false)
                     
                     // Footer Area
                     VStack(spacing: 24) {
@@ -48,40 +49,66 @@ struct OnboardingView: View {
                             }
                         }
                         
-                        // Action Button
-                        Button(action: {
-                            if currentPage == 0 && !isWelcomePhase2 {
-                                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                                    isWelcomePhase2 = true
+                        // Action Buttons
+                        HStack(spacing: 12) {
+                            if isWelcomePhase2 || currentPage > 0 {
+                                Button(action: {
+                                    withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                                        if currentPage > 0 {
+                                            currentPage -= 1
+                                        } else {
+                                            isWelcomePhase2 = false
+                                        }
+                                    }
+                                }) {
+                                    Image(systemName: "arrow.left")
+                                        .font(.system(size: 20, weight: .semibold))
+                                        .foregroundColor(.black)
+                                        .frame(width: 56, height: 56)
+                                        .background(Color.white)
+                                        .clipShape(Circle())
+                                        .shadow(color: Color.white.opacity(0.1), radius: 10, x: 0, y: 5)
                                 }
-                            } else if currentPage == 2 {
-                                // Trigger the icon transition immediately
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                    isAuthenticating = true
-                                }
-                                
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                                    // Face ID logic
-                                    authenticate()
-                                }
-                            } else {
-                                withAnimation {
-                                    if currentPage < totalPages - 1 {
-                                        currentPage += 1
-                                    } else {
-                                        isShowingFinalSplash = true
+                                .transition(.asymmetric(
+                                    insertion: .scale(scale: 0.3).combined(with: .opacity),
+                                    removal: .scale(scale: 0.3).combined(with: .opacity)
+                                ))
+                            }
+                            
+                            Button(action: {
+                                if currentPage == 0 && !isWelcomePhase2 {
+                                    withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                                        isWelcomePhase2 = true
+                                    }
+                                } else if currentPage == 2 {
+                                    // Trigger the icon transition immediately
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                        isAuthenticating = true
+                                    }
+                                    
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                                        // Face ID logic
+                                        authenticate()
+                                    }
+                                } else {
+                                    withAnimation {
+                                        if currentPage < totalPages - 1 {
+                                            currentPage += 1
+                                        } else {
+                                            isShowingFinalSplash = true
+                                        }
                                     }
                                 }
+                            }) {
+                                Text(buttonText)
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(.black)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 56)
+                                    .background(Color.white)
+                                    .clipShape(Capsule())
+                                    .shadow(color: Color.white.opacity(0.1), radius: 10, x: 0, y: 5)
                             }
-                        }) {
-                            Text(buttonText)
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundColor(.black)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 56)
-                                .background(Color.white)
-                                .clipShape(Capsule())
-                                .shadow(color: Color.white.opacity(0.1), radius: 10, x: 0, y: 5)
                         }
                         .padding(.horizontal, 24)
                     }
@@ -273,6 +300,7 @@ struct WelcomePageView: View {
 struct CentralizePageView: View {
     let isSelected: Bool
     @State private var iconIndex = 0
+    @State private var animateCards = false
     let icons = ["doc.text.fill", "creditcard.fill", "airplane", "car.fill", "key.fill", "pills.fill"]
     let timer = Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()
     
@@ -288,9 +316,9 @@ struct CentralizePageView: View {
                     .frame(width: 200, height: 140)
                     .rotationEffect(.degrees(-12))
                     .offset(x: -40, y: -20)
-                    .opacity(isSelected ? 0.6 : 0)
-                    .scaleEffect(isSelected ? 1 : 0.8)
-                    .animation(.spring(response: 1.5, dampingFraction: 0.8).delay(0.2), value: isSelected)
+                    .opacity(animateCards ? 0.6 : 0)
+                    .scaleEffect(animateCards ? 1 : 0.8)
+                    .animation(.spring(response: 1.5, dampingFraction: 0.8).delay(0.2), value: animateCards)
                 
                 // Background Card 2
                 RoundedRectangle(cornerRadius: 16)
@@ -298,9 +326,9 @@ struct CentralizePageView: View {
                     .frame(width: 200, height: 140)
                     .rotationEffect(.degrees(12))
                     .offset(x: 40, y: -10)
-                    .opacity(isSelected ? 0.8 : 0)
-                    .scaleEffect(isSelected ? 1 : 0.8)
-                    .animation(.spring(response: 1, dampingFraction: 0.8).delay(0.4), value: isSelected)
+                    .opacity(animateCards ? 0.8 : 0)
+                    .scaleEffect(animateCards ? 1 : 0.8)
+                    .animation(.spring(response: 1, dampingFraction: 0.8).delay(0.4), value: animateCards)
                 
                 // Main Card
                 RoundedRectangle(cornerRadius: 16)
@@ -324,17 +352,32 @@ struct CentralizePageView: View {
                         }
                     )
                     .shadow(color: .black.opacity(0.5), radius: 20, x: 0, y: 10)
-                    .offset(y: isSelected ? 0 : 40)
-                    .opacity(isSelected ? 1 : 0)
-                    .animation(.spring(response: 1.2, dampingFraction: 0.8).delay(0.7), value: isSelected)
+                    .offset(y: animateCards ? 0 : 40)
+                    .opacity(animateCards ? 1 : 0)
+                    .animation(.spring(response: 1.2, dampingFraction: 0.8).delay(0.7), value: animateCards)
             }
             .frame(height: 350)
             .offset(y: -30)
             .onReceive(timer) { _ in
-                if isSelected {
+                if animateCards {
                     withAnimation(.spring(response: 0.6, dampingFraction: 0.7)) {
                         iconIndex = (iconIndex + 1) % icons.count
                     }
+                }
+            }
+            .onChange(of: isSelected) { newValue in
+                if newValue {
+                    // Small delay to ensure view is ready and break parent transaction
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        animateCards = true
+                    }
+                } else {
+                    animateCards = false
+                }
+            }
+            .onAppear {
+                if isSelected {
+                    animateCards = true
                 }
             }
             
@@ -444,6 +487,7 @@ struct FaceIDPageView: View {
 // Page 4: Final
 struct FinalPageView: View {
     let isSelected: Bool
+    @State private var animateContent = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -454,17 +498,17 @@ struct FinalPageView: View {
                 Circle()
                     .fill(Color.white)
                     .frame(width: 150, height: 150)
-                    .scaleEffect(isSelected ? 1.0 : 0.5)
-                    .opacity(isSelected ? 1.0 : 0.0)
-                    .animation(.spring(response: 0.8, dampingFraction: 0.6).delay(0.1), value: isSelected)
+                    .scaleEffect(animateContent ? 1.0 : 0.5)
+                    .opacity(animateContent ? 1.0 : 0.0)
+                    .animation(.spring(response: 0.8, dampingFraction: 0.6).delay(0.1), value: animateContent)
                 
                 Image(systemName: "checkmark.shield.fill")
                     .font(.system(size: 75))
                     .foregroundColor(.black)
-                    .scaleEffect(isSelected ? 1.0 : 0.5)
-                    .opacity(isSelected ? 1.0 : 0.0)
-                    .rotationEffect(.degrees(isSelected ? 0 : -30))
-                    .animation(.spring(response: 0.6, dampingFraction: 0.6).delay(0.2), value: isSelected)
+                    .scaleEffect(animateContent ? 1.0 : 0.5)
+                    .opacity(animateContent ? 1.0 : 0.0)
+                    .rotationEffect(.degrees(animateContent ? 0 : -30))
+                    .animation(.spring(response: 0.6, dampingFraction: 0.6).delay(0.2), value: animateContent)
             }
             .frame(height: 350)
             .offset(y: -30)
@@ -487,7 +531,21 @@ struct FinalPageView: View {
             }
             
             Spacer()
-                .frame(height: 50)
+            .frame(height: 50)
+        }
+        .onChange(of: isSelected) { newValue in
+            if newValue {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    animateContent = true
+                }
+            } else {
+                animateContent = false
+            }
+        }
+        .onAppear {
+            if isSelected {
+                animateContent = true
+            }
         }
     }
 }
