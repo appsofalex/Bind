@@ -1,5 +1,7 @@
 import SwiftUI
 import PhotosUI
+import VisionKit
+import Vision
 
 // A helper struct to make UIImage identifiable for use with .sheet(item:).
 fileprivate struct CroppableImage: Identifiable {
@@ -77,6 +79,11 @@ struct DocumentFormView: View {
     // Image Picker & Cropper State
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var imageToCrop: CroppableImage?
+    
+    // SCANNER STATE
+    @State private var showScanner = false
+    @State private var scannedData: ScanResult?
+    @State private var showScannerUnavailableAlert = false
     
     // MARK: - DATA COLLECTIONS
     let bloodTypes = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"]
@@ -448,6 +455,20 @@ struct DocumentFormView: View {
                     documentImage = croppedImage.jpegData(compressionQuality: 0.8)
                 }
             }
+            // SCANNER SHEET
+            .sheet(isPresented: $showScanner) {
+                ScannerView(scannedData: $scannedData, recognizedDataTypes: scannerDataTypes)
+            }
+            .alert("Scanner Unavailable", isPresented: $showScannerUnavailableAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("Your device does not support scanning documents. This feature requires a camera and is not available on simulators.")
+            }
+            .onChange(of: scannedData) { _, data in
+                if let data = data {
+                    handleScanResult(data)
+                }
+            }
             .onChange(of: selectedPhotoItem) {
                 Task {
                     if let data = try? await selectedPhotoItem?.loadTransferable(type: Data.self) {
@@ -464,6 +485,23 @@ struct DocumentFormView: View {
     
     private var documentDetailsSection: some View {
         Section(header: Text("Document Details")) {
+            // SCAN BUTTON
+            if type == .passport || type == .boardingPass {
+                Button(action: {
+                    if ScannerView.isSupported {
+                        showScanner = true
+                    } else {
+                        showScannerUnavailableAlert = true
+                    }
+                }) {
+                    HStack {
+                        Image(systemName: "camera.viewfinder")
+                        Text("Scan \(type.displayName)")
+                    }
+                    .foregroundColor(.blue)
+                }
+            }
+            
             switch type {
             case .medicalAlert:
                 Picker("Blood Type", selection: $selectedBloodType) {
@@ -728,8 +766,6 @@ struct DocumentFormView: View {
                     .onChange(of: detailValue) { newValue in
                         detailValue = newValue.uppercased()
                     }
-                TextField("Nationality", text: $nationality)
-                    .textInputAutocapitalization(.words)
                 
                 DatePicker("Date of Birth", selection: $birthDate, displayedComponents: .date)
                 DatePicker("Date of Expiry", selection: $expiryDate, displayedComponents: .date)
@@ -891,7 +927,50 @@ struct DocumentFormView: View {
         )
     }
     
-    // Helper Methods
+    // MARK: - SCANNER LOGIC
+    var scannerDataTypes: Set<DataScannerViewController.RecognizedDataType> {
+        switch type {
+        case .passport:
+            return [.text(textContentType: nil)]
+        case .boardingPass:
+            return [.barcode(symbologies: [.qr, .aztec, .pdf417])]
+        default:
+            return []
+        }
+    }
+    
+    func handleScanResult(_ result: ScanResult) {
+        switch result {
+        case .passport(let data):
+            holderName = "\(data.firstName) \(data.lastName)"
+            detailValue = data.documentNumber
+            
+            // Sync Picker with Scanned Nationality
+            // We trim whitespace and do a case-insensitive match against the countries list
+            let cleanNationality = data.nationality.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let matchedCountry = countries.first(where: { $0.localizedCaseInsensitiveCompare(cleanNationality) == .orderedSame }) {
+                title = matchedCountry
+                nationality = matchedCountry
+            } else {
+                title = cleanNationality
+                nationality = cleanNationality
+            }
+            
+            if let dob = data.birthDate { birthDate = dob }
+            if let exp = data.expiryDate { expiryDate = exp }
+            
+        case .boardingPass(let data):
+            holderName = data.name
+            detailValue = data.flightNumber
+            selectedAirline = data.carrier
+            
+            origin = data.origin
+            title = data.destination
+            
+            if let seatNum = data.seat { seat = seatNum }
+            if let fDate = data.flightDate { flightDate = fDate }
+        }
+    }
     
     private func getDetailLabel() -> String {
         switch type {
