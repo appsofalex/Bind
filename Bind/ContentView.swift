@@ -12,17 +12,17 @@ struct EmptyWalletView: View {
                 
                 Image(systemName: "wallet.pass")
                     .font(.system(size: 70))
-                    .foregroundColor(.white.opacity(0.2))
+                    .foregroundColor(.primary.opacity(0.2))
                     .padding(.bottom, 10)
                 
                 Text("No Cards Yet")
                     .font(.system(size: 24, weight: .bold))
                     .fontWeight(.bold)
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundColor(.primary.opacity(0.8))
                 
                 Text("Add your first document or booking by clicking the '+' button.")
                     .font(.system(size: 17, weight: .regular))
-                    .foregroundColor(.gray)
+                    .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 50)
                 
@@ -38,7 +38,7 @@ struct EmptyWalletView: View {
                 ZStack(alignment: .topTrailing) {
                     Image(systemName: "arrow.up.right") // Using the curved arrow
                         .font(.system(size: 35, weight: .light))
-                        .foregroundColor(.white.opacity(0.6))
+                        .foregroundColor(.primary.opacity(0.6))
                         .rotationEffect(.degrees(45))
                         // Animate position: Move left to right horizontally
                         .offset(x: animateArrow ? 15 : -15, y: 0)
@@ -88,6 +88,8 @@ struct TravelDocsWalletView: View {
     private let cardSpacing: CGFloat = 65
     private let maxCardsOnScreen = 6
     
+    @Environment(\.colorScheme) var colorScheme
+    
     // MARK: - NEW: ONLY SHOW ACTIVE CARDS (Max 6 handled by toggles)
     var activeDocuments: [TravelDocument] {
         documents.filter { $0.isActive }
@@ -135,7 +137,13 @@ struct TravelDocsWalletView: View {
     var body: some View {
         ZStack {
             // Background
-            Color(red: 0.11, green: 0.11, blue: 0.12).ignoresSafeArea()
+            Group {
+                if colorScheme == .dark {
+                    Color(red: 0.11, green: 0.11, blue: 0.12)
+                } else {
+                    Color(red: 0.96, green: 0.96, blue: 0.97)
+                }
+            }.ignoresSafeArea()
             
             // MARK: - NEW: EMPTY STATE
             if documents.isEmpty {
@@ -284,7 +292,7 @@ struct TravelDocsWalletView: View {
                         Text("Bind")
                             .font(.largeTitle)
                             .fontWeight(.bold)
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                             .transition(.opacity)
                     } else {
                         // Invisible text to maintain height
@@ -394,7 +402,7 @@ struct TravelDocsWalletView: View {
                                 }) {
                                     Image(systemName: "bolt.fill")
                                         .font(.system(size: 20))
-                                        .foregroundColor(.white)
+                                        .foregroundColor(.primary)
                                         .frame(width: 44, height: 44)
                                         .background(.ultraThinMaterial)
                                         .clipShape(Circle())
@@ -416,7 +424,7 @@ struct TravelDocsWalletView: View {
                                     .padding(.vertical, 12)
                                     .background(.ultraThinMaterial)
                                     .clipShape(Capsule())
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.primary)
                                     .shadow(radius: 5)
                                 }
                                 
@@ -428,7 +436,7 @@ struct TravelDocsWalletView: View {
                                 }) {
                                     Image(systemName: "gearshape.fill")
                                         .font(.system(size: 20))
-                                        .foregroundColor(.white)
+                                        .foregroundColor(.primary)
                                         .frame(width: 44, height: 44)
                                         .background(.ultraThinMaterial)
                                         .clipShape(Circle())
@@ -445,7 +453,7 @@ struct TravelDocsWalletView: View {
                                 }) {
                                     Image(systemName: "gearshape.fill")
                                         .font(.system(size: 20))
-                                        .foregroundColor(.white)
+                                        .foregroundColor(.primary)
                                         .frame(width: 44, height: 44)
                                         .background(.ultraThinMaterial)
                                         .clipShape(Circle())
@@ -669,6 +677,6 @@ struct TravelDocsWalletView: View {
 struct Bind_Previews: PreviewProvider {
     static var previews: some View {
         TravelDocsWalletView()
-            .preferredColorScheme(.dark)
+            // .preferredColorScheme(.dark)
     }
 }

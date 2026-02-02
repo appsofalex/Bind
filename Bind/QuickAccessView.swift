@@ -3,6 +3,7 @@ import SwiftUI
 struct QuickAccessView: View {
     @Binding var documents: [TravelDocument]
     @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
     
     // Add Sheet State
     @State private var showAddSheet = false
@@ -25,7 +26,13 @@ struct QuickAccessView: View {
         NavigationView {
             ZStack {
                 // Background
-                Color(red: 0.11, green: 0.11, blue: 0.12).ignoresSafeArea()
+                Group {
+                    if colorScheme == .dark {
+                        Color(red: 0.11, green: 0.11, blue: 0.12)
+                    } else {
+                        Color(red: 0.96, green: 0.96, blue: 0.97)
+                    }
+                }.ignoresSafeArea()
                 
                 ScrollView {
                     LazyVGrid(columns: columns, spacing: 16) {
@@ -149,7 +156,7 @@ struct QuickAccessView: View {
                 }
             }
         }
-        .preferredColorScheme(.dark)
+        // .preferredColorScheme(.dark)
     }
     
     // MARK: - Logic
@@ -231,6 +238,8 @@ struct QuickAccessCard: View {
     let onCopy: (String) -> Void
     let height: CGFloat
     
+    @Environment(\.colorScheme) var colorScheme
+    
     var body: some View {
         Button(action: {
             if let info = data, !info.isEmpty {
@@ -251,13 +260,13 @@ struct QuickAccessCard: View {
                     if data != nil {
                         Image(systemName: "doc.on.doc")
                             .font(.system(size: 14))
-                            .foregroundColor(.gray.opacity(0.6))
+                            .foregroundColor(.secondary)
                     }
                 }
                 
                 Text(title)
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
                 
@@ -266,7 +275,7 @@ struct QuickAccessCard: View {
                 if let info = data, !info.isEmpty {
                     Text(info)
                         .font(.system(size: 19, weight: .bold, design: .rounded)) // Slightly adjusted for grid
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                         .lineLimit(2)
                         .minimumScaleFactor(0.5)
                         .multilineTextAlignment(.leading)
@@ -275,15 +284,16 @@ struct QuickAccessCard: View {
                         Spacer()
                         Image(systemName: "plus")
                             .font(.system(size: 24, weight: .regular))
-                            .foregroundColor(.white.opacity(0.3))
+                            .foregroundColor(.secondary.opacity(0.3))
                         Spacer()
                     }
                 }
             }
             .padding(16)
             .frame(height: height)
-            .background(Color(red: 0.18, green: 0.18, blue: 0.20))
+            .background(colorScheme == .dark ? Color(red: 0.18, green: 0.18, blue: 0.20) : Color.white)
             .cornerRadius(20)
+            .shadow(color: colorScheme == .dark ? .clear : .black.opacity(0.05), radius: 5, x: 0, y: 2)
         }
         .buttonStyle(PlainButtonStyle()) // Remove default button fade
     }
@@ -293,6 +303,6 @@ struct QuickAccessCard: View {
 struct QuickAccessView_Previews: PreviewProvider {
     static var previews: some View {
         QuickAccessView(documents: .constant([]))
-            .preferredColorScheme(.dark)
+            // .preferredColorScheme(.dark)
     }
 }

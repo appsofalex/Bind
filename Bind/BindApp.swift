@@ -12,6 +12,7 @@ struct BindApp: App {
     // Persistent storage for onboarding state
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @AppStorage("isFaceIDEnabled") private var isFaceIDEnabled = false
+    @AppStorage("appTheme") private var appTheme: AppTheme = .dark
     
     @Environment(\.scenePhase) private var scenePhase
     @State private var isUnlocked = false
@@ -35,9 +36,8 @@ struct BindApp: App {
                         .transition(.opacity)
                 }
             }
-            // Force Dark Mode to maintain the "Sexy/Slick" aesthetic
-            // regardless of the user's system settings.
-            .preferredColorScheme(.dark)
+            // Apply selected theme
+            .preferredColorScheme(appTheme == .dark ? .dark : .light)
             .animation(.easeInOut(duration: 0.8), value: hasCompletedOnboarding)
             .animation(.easeInOut(duration: 0.5), value: isUnlocked)
             .onChange(of: scenePhase) { newPhase in

@@ -3,9 +3,16 @@ import LocalAuthentication
 
 struct LockScreenView: View {
     var onSuccess: () -> Void
+    @Environment(\.colorScheme) var colorScheme
     
     // Matches the app background color used in Onboarding
-    let appBackgroundColor = Color(red: 0.11, green: 0.11, blue: 0.12)
+    var appBackgroundColor: Color {
+        if colorScheme == .dark {
+            return Color(red: 0.11, green: 0.11, blue: 0.12)
+        } else {
+            return Color(red: 0.96, green: 0.96, blue: 0.97)
+        }
+    }
     
     var body: some View {
         ZStack {
@@ -16,18 +23,18 @@ struct LockScreenView: View {
                 
                 Image(systemName: "lock.fill")
                     .font(.system(size: 80))
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                     .padding(.bottom, 20)
                 
                 VStack(spacing: 16) {
                     Text("All your Bind cards are secure")
                         .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                         .multilineTextAlignment(.center)
                     
                     Text("Unlock using Face ID")
                         .font(.system(size: 17, weight: .regular))
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(.secondary)
                 }
                 
                 Spacer()
@@ -40,12 +47,12 @@ struct LockScreenView: View {
                         Text("Unlock")
                     }
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.black)
+                    .foregroundColor(colorScheme == .dark ? .black : .white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
-                    .background(Color.white)
+                    .background(colorScheme == .dark ? Color.white : Color.black)
                     .clipShape(Capsule())
-                    .shadow(color: Color.white.opacity(0.1), radius: 10, x: 0, y: 5)
+                    .shadow(color: colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
                 }
                 .padding(.horizontal, 24)
                 .padding(.bottom, 50)

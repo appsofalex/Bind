@@ -7,6 +7,7 @@ struct SettingsView: View {
     // App Preferences
     @AppStorage("isFaceIDEnabled") private var isFaceIDEnabled = false
     @AppStorage("isHapticsEnabled") private var isHapticsEnabled = true
+    @AppStorage("appTheme") private var appTheme: AppTheme = .dark
     
     // Alert State
     @State private var showDeleteConfirmation = false
@@ -28,6 +29,18 @@ struct SettingsView: View {
                 
                 // MARK: - PREFERENCES
                 Section(header: Text("Preferences")) {
+                    Picker(selection: $appTheme, label: Label {
+                        Text("Appearance")
+                    } icon: {
+                        Image(systemName: appTheme == .dark ? "moon.fill" : "sun.max.fill")
+                            .foregroundColor(appTheme == .dark ? .purple : .orange)
+                    }) {
+                        ForEach(AppTheme.allCases) { theme in
+                            Text(theme.rawValue).tag(theme)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    
                     Toggle(isOn: $isHapticsEnabled) {
                         Label {
                             Text("Haptic Feedback")
@@ -95,7 +108,7 @@ struct SettingsView: View {
                 Text("This action cannot be undone. All your stored cards and documents will be permanently removed.")
             }
         }
-        .preferredColorScheme(.dark) // Keep the app's dark aesthetic
+        .preferredColorScheme(appTheme == .dark ? .dark : .light)
     }
     
     private func deleteAllData() {
@@ -111,6 +124,6 @@ struct SettingsView: View {
 struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
         SettingsView(documents: .constant([]))
-            .preferredColorScheme(.dark)
+            // .preferredColorScheme(.dark)
     }
 }
