@@ -157,40 +157,53 @@ struct TravelDocsWalletView: View {
                         let isBoardingPass = (doc.type == .boardingPass)
                         let isRewardsCard = (doc.type == .rewardsCard)
                         let isCarRental = (doc.type == .carRental)
+                        let isMedicalAlert = (doc.type == .medicalAlert)
                         let isSelected = (selectedID == doc.id)
                         
                         PositionSmoother(target: targetPos, totalHeight: totalScrollHeight) { currentPos in
                             Group {
                                 if isPassport {
-                                    // Use the specialized flip card for Passport
+                                    // Use the specialised flip card for Passport
                                     PassportFlipCard(
                                         document: doc,
                                         isSelected: isSelected,
                                         onTap: { toggleSelection(for: doc.id) }
                                     )
+                                } else if isMedicalAlert {
+                                    // Use specialised flip card for Medical Alert
+                                    MedicalFlipCard(
+                                        document: doc,
+                                        isSelected: isSelected,
+                                        onTap: { toggleSelection(for: doc.id) }
+                                    )
+                                } else if doc.type == .vaccineRecord {
+                                    // NEW: Flip card for Vaccination
+                                    VaccinationFlipCard(
+                                        document: doc,
+                                        isSelected: isSelected,
+                                        onTap: { toggleSelection(for: doc.id) }
+                                    )
                                 } else if isIDCard {
-                                    // Use specialized flip card for ID
+                                    // Use specialised flip card for ID
                                     IDFlipCard(
                                         document: doc,
                                         isSelected: isSelected,
                                         onTap: { toggleSelection(for: doc.id) }
                                     )
                                 } else if isBoardingPass {
-                                    // Use specialized animation for Boarding Pass
+                                    // Use specialised animation for Boarding Pass
                                     BoardingPassAnimatedCard(
                                         document: doc,
                                         isSelected: isSelected,
                                         onTap: { toggleSelection(for: doc.id) }
                                     )
                                 } else if isRewardsCard {
-                                    // Use new Rewards animation
                                     RewardsAnimatedCard(
                                         document: doc,
                                         isSelected: isSelected,
                                         onTap: { toggleSelection(for: doc.id) }
                                     )
                                 } else if isCarRental {
-                                    // Use new Car Rental animation
                                     CarRentalAnimatedCard(
                                         document: doc,
                                         isSelected: isSelected,
@@ -301,7 +314,7 @@ struct TravelDocsWalletView: View {
                             
                             Section("Health") {
                                 Button(action: { startAdd(.prescription) }) { Label("Prescription", systemImage: "pills") }
-                                Button(action: { startAdd(.vaccineRecord) }) { Label("Vaccination Record", systemImage: "syringe") }
+                                Button(action: { startAdd(.vaccineRecord) }) { Label("Vaccination", systemImage: "syringe") }
                                 Button(action: { startAdd(.medicalAlert) }) { Label("Blood & Allergies", systemImage: "staroflife") }
                                 Button(action: { startAdd(.insurance) }) { Label("Insurance", systemImage: "cross.case") }
                             }

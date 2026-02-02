@@ -203,8 +203,13 @@ struct QuickAccessView: View {
     }
     
     var emergencyContactData: String? {
-        // 1. Dedicated Emergency Alert
-        if let contact = documents.first(where: { $0.type == .medicalAlert && $0.title.localizedCaseInsensitiveContains("Emergency") }) {
+        // 1. Dedicated Emergency Alert / Medical Card
+        if let contact = documents.first(where: { $0.type == .medicalAlert }) {
+            // New Priority: Explicit Phone Number
+            if let phone = contact.emergencyPhoneNumber, !phone.isEmpty {
+                return phone
+            }
+            // Fallback to detailValue if legacy or no specific phone field
             return contact.detailValue.isEmpty ? contact.subtitle : contact.detailValue
         }
         // 2. Insurance Emergency Phone

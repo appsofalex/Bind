@@ -23,6 +23,10 @@ struct TravelDocument: Identifiable, Codable, Equatable {
     var flightDate: Date?
     var boardingTime: Date?
     
+    // NEW: Medical Card Specific Fields
+    var emergencyContactName: String?
+    var emergencyContactEmail: String?
+
     // NEW: Insurance Specific Fields
     var groupNumber: String?
     var emergencyPhoneNumber: String?
@@ -35,6 +39,10 @@ struct TravelDocument: Identifiable, Codable, Equatable {
     var height: String?
     var eyeColor: String?
     var documentImageData: Data?
+    
+    // NEW: Vaccine Specific Fields
+    var dose: String?
+    var manufacturer: String?
     
     // NEW: Car Rental Specific Fields
     var carModel: String?
@@ -79,6 +87,8 @@ struct TravelDocument: Identifiable, Codable, Equatable {
          flightClass: String? = nil,
          flightDate: Date? = nil,
          boardingTime: Date? = nil,
+         emergencyContactName: String? = nil,
+         emergencyContactEmail: String? = nil,
          groupNumber: String? = nil,
          emergencyPhoneNumber: String? = nil,
          address: String? = nil,
@@ -88,6 +98,8 @@ struct TravelDocument: Identifiable, Codable, Equatable {
          height: String? = nil,
          eyeColor: String? = nil,
          documentImageData: Data? = nil,
+         dose: String? = nil,
+         manufacturer: String? = nil,
          carModel: String? = nil,
          pickupLocation: String? = nil,
          dropoffLocation: String? = nil,
@@ -120,6 +132,8 @@ struct TravelDocument: Identifiable, Codable, Equatable {
         self.flightClass = flightClass
         self.flightDate = flightDate
         self.boardingTime = boardingTime
+        self.emergencyContactName = emergencyContactName
+        self.emergencyContactEmail = emergencyContactEmail
         self.groupNumber = groupNumber
         self.emergencyPhoneNumber = emergencyPhoneNumber
         self.address = address
@@ -129,6 +143,8 @@ struct TravelDocument: Identifiable, Codable, Equatable {
         self.height = height
         self.eyeColor = eyeColor
         self.documentImageData = documentImageData
+        self.dose = dose
+        self.manufacturer = manufacturer
         self.carModel = carModel
         self.pickupLocation = pickupLocation
         self.dropoffLocation = dropoffLocation
@@ -161,8 +177,8 @@ struct TravelDocument: Identifiable, Codable, Equatable {
             case .driversLicense: return "Driver's License"
             case .studentID: return "Student ID"
             case .prescription: return "Prescription"
-            case .vaccineRecord: return "Vaccination Record"
-            case .medicalAlert: return "Medical Alert"
+            case .vaccineRecord: return "Vaccination"
+            case .medicalAlert: return "Medical Card"
             case .idCard: return "ID Card"
             case .boardingPass: return "Boarding Pass"
             case .birthCertificate: return "Birth Certificate"
