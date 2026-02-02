@@ -148,6 +148,9 @@ struct OnboardingView: View {
             context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason) { success, authenticationError in
                 DispatchQueue.main.async {
                     if success {
+                        // Save Face ID preference
+                        UserDefaults.standard.set(true, forKey: "isFaceIDEnabled")
+                        
                         // Success - Move to next screen
                         withAnimation {
                             currentPage += 1
