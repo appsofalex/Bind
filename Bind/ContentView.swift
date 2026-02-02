@@ -200,13 +200,20 @@ struct TravelDocsWalletView: View {
                             guard selectedID == nil else { return }
                             
                             let totalDrag = CGFloat(baseScrollOffset) + value.translation.height
-                            let velocity = value.predictedEndTranslation.height / 5
-                            let projectedTotal = totalDrag + velocity
+                            
+                            // Calculate pure velocity impact for inertial scrolling
+                            // Subtract translation to isolate the momentum
+                            let velocity = (value.predictedEndTranslation.height - value.translation.height)
+                            
+                            // Apply friction to the slide (adjustable for feel, 0.5 is balanced)
+                            let friction: CGFloat = 0.5 
+                            let projectedTotal = totalDrag + (velocity * friction)
                             
                             let snapStep = cardSpacing
                             let nearestStep = (projectedTotal / snapStep).rounded() * snapStep
                             
-                            withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                            // "Slider.js" style smoothness: Slightly slower response, higher damping for a 'gliding' stop
+                            withAnimation(.spring(response: 0.55, dampingFraction: 0.825)) {
                                 baseScrollOffset = Double(nearestStep)
                                 dragOffset = 0
                             }
