@@ -70,7 +70,11 @@ struct TravelDocsWalletView: View {
     
     // ADD MENU STATE
     @State private var showAllCardsSheet = false
+    @State private var showSettingsSheet = false
     @State private var selectedTypeToAdd: TravelDocument.DocumentType? = nil
+    
+    // PREFERENCES
+    @AppStorage("isHapticsEnabled") private var isHapticsEnabled = true
     
     // EDIT STATE
     @State private var documentToEdit: TravelDocument? = nil
@@ -359,25 +363,46 @@ struct TravelDocsWalletView: View {
             // Ensure header doesn't block card touches in empty space
             .allowsHitTesting(true)
             
-            // MARK: - NEW: OVERFLOW BUTTON (If > 6 cards OR user wants to edit)
+            // MARK: - BOTTOM CONTROLS
             // Changed logic: Always show if there are documents
             if !documents.isEmpty && selectedID == nil {
                 VStack {
                     Spacer()
-                    Button(action: {
-                        showAllCardsSheet = true
-                    }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "square.stack.3d.up.fill")
-                            Text("All Cards")
-                                .fontWeight(.medium)
+                    
+                    ZStack {
+                        // Centered "All Cards" Button
+                        Button(action: {
+                            showAllCardsSheet = true
+                        }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "square.stack.3d.up.fill")
+                                Text("All Cards")
+                                    .fontWeight(.medium)
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 12)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Capsule())
+                            .foregroundColor(.white)
+                            .shadow(radius: 5)
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 12)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Capsule())
-                        .foregroundColor(.white)
-                        .shadow(radius: 5)
+                        
+                        // Settings Button (Bottom Right)
+                        HStack {
+                            Spacer()
+                            Button(action: {
+                                showSettingsSheet = true
+                            }) {
+                                Image(systemName: "gearshape.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(.white)
+                                    .frame(width: 44, height: 44)
+                                    .background(.ultraThinMaterial)
+                                    .clipShape(Circle())
+                                    .shadow(radius: 5)
+                            }
+                            .padding(.trailing, 20)
+                        }
                     }
                     .padding(.bottom, 20)
                 }
@@ -437,6 +462,10 @@ struct TravelDocsWalletView: View {
                     documents[index] = updatedDoc
                 }
             }
+        }
+        // MARK: - SETTINGS SHEET
+        .sheet(isPresented: $showSettingsSheet) {
+            SettingsView(documents: $documents)
         }
         // MARK: - NEW: ALL CARDS SHEET WITH TOGGLES
         .sheet(isPresented: $showAllCardsSheet) {
@@ -509,8 +538,10 @@ struct TravelDocsWalletView: View {
     }
     
     func toggleSelection(for id: UUID?) {
-        let generator = UIImpactFeedbackGenerator(style: .medium)
-        generator.impactOccurred()
+        if isHapticsEnabled {
+            let generator = UIImpactFeedbackGenerator(style: .medium)
+            generator.impactOccurred()
+        }
         
         withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
             if let id = id, selectedID == id {
@@ -521,7 +552,7 @@ struct TravelDocsWalletView: View {
         }
     }
     
-    // --- ROLODEX MATH ---
+    // --- ROLODEX MATHS ---
     
     // Calculates where the card is in the loop (0 to totalScrollHeight)
     func getCircularPosition(for index: Int) -> CGFloat {
