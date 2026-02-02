@@ -158,6 +158,9 @@ struct DocumentFormView: View {
         ("DFW", "Dallas/Fort Worth"),
         ("DEN", "Denver International"),
         ("SFO", "San Francisco International"),
+        ("SEA", "Seattle-Tacoma International"),
+        ("EWR", "Newark Liberty International"),
+        ("IAD", "Washington Dulles"),
         ("YYZ", "Toronto Pearson"),
         ("YVR", "Vancouver International"),
         ("LHR", "London Heathrow"),
@@ -457,7 +460,7 @@ struct DocumentFormView: View {
             }
             // SCANNER SHEET
             .sheet(isPresented: $showScanner) {
-                ScannerView(scannedData: $scannedData, recognizedDataTypes: scannerDataTypes)
+                ScannerView(scannedData: $scannedData, recognizedDataTypes: scannerDataTypes, mode: (type == .passport) ? .passport : .boardingPass)
             }
             .alert("Scanner Unavailable", isPresented: $showScannerUnavailableAlert) {
                 Button("OK", role: .cancel) { }
@@ -964,8 +967,19 @@ struct DocumentFormView: View {
             detailValue = data.flightNumber
             selectedAirline = data.carrier
             
-            origin = data.origin
-            title = data.destination
+            // Lookup origin
+            if let foundOrigin = airports.first(where: { $0.0 == data.origin }) {
+                origin = "\(foundOrigin.1) (\(foundOrigin.0))"
+            } else {
+                origin = data.origin
+            }
+            
+            // Lookup destination (title)
+            if let foundDest = airports.first(where: { $0.0 == data.destination }) {
+                title = "\(foundDest.1) (\(foundDest.0))"
+            } else {
+                title = data.destination
+            }
             
             if let seatNum = data.seat { seat = seatNum }
             if let fDate = data.flightDate { flightDate = fDate }

@@ -20,7 +20,7 @@ struct EmptyWalletView: View {
                     .fontWeight(.bold)
                     .foregroundColor(.white.opacity(0.8))
                 
-                Text("Add your first document or booking to get started.")
+                Text("Add your first document or booking by clicking the '+' button.")
                     .font(.system(size: 17, weight: .regular))
                     .foregroundColor(.gray)
                     .multilineTextAlignment(.center)

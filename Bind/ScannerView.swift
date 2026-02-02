@@ -9,6 +9,13 @@ struct ScannerView: UIViewControllerRepresentable {
     // The types of items we want to scan
     let recognizedDataTypes: Set<DataScannerViewController.RecognizedDataType>
     
+    enum ScanMode {
+        case passport
+        case boardingPass
+    }
+    
+    let mode: ScanMode
+    
     func makeUIViewController(context: Context) -> DataScannerViewController {
         let scanner = DataScannerViewController(
             recognizedDataTypes: recognizedDataTypes,
@@ -81,7 +88,7 @@ struct ScannerView: UIViewControllerRepresentable {
         // --- Added Padding via container view or internal insets logic ---
         // Simpler approach: Make the label larger than its text by adding padding constraints
         
-        // 2. Example MRZ Code (Faded Grey) - Only shows in Landscape
+        // 2. Example MRZ Code (Faded Grey) - Only shows in Landscape for Passport
         let exampleLabel = UILabel()
         exampleLabel.text = "P<GBRDOE<<JOHN<<<<<<<<<<<<<<<<<<<<\n1234567897GBR9001018M2801019<<<<<<"
         exampleLabel.textColor = UIColor.white.withAlphaComponent(0.5)
@@ -90,47 +97,58 @@ struct ScannerView: UIViewControllerRepresentable {
         // Monospaced and larger to be clear
         exampleLabel.font = .monospacedSystemFont(ofSize: 18, weight: .semibold) 
         exampleLabel.translatesAutoresizingMaskIntoConstraints = false
-        // Hide initially (portrait default)
+        // Hide initially
         exampleLabel.alpha = 0
-        exampleLabel.transform = .identity // Ready for landscape
+        exampleLabel.transform = .identity
         
-        // Only show overlays for Passport Scanning
-        if recognizedDataTypes.contains(.text(textContentType: nil)) {
-            // Wrap label in a container to provide padding
-            let labelContainer = UIView()
-            labelContainer.translatesAutoresizingMaskIntoConstraints = false
-            labelContainer.backgroundColor = UIColor.black.withAlphaComponent(0.6)
-            labelContainer.layer.cornerRadius = 16
-            
-            label.backgroundColor = .clear // Remove background from label itself
-            labelContainer.addSubview(label)
-            
-            overlayView.addSubview(labelContainer)
-            overlayView.addSubview(exampleLabel)
-            
-            // Store references
-            context.coordinator.exampleLabel = exampleLabel
-            context.coordinator.instructionLabel = label
-            context.coordinator.instructionContainer = labelContainer
-            context.coordinator.overlayView = overlayView
-            
-            // Enable manual layout for the container to handle rotation positioning precisely
-            labelContainer.translatesAutoresizingMaskIntoConstraints = true 
-            
-            // Define Constraints for Label INSIDE Container (Padding) - these are permanent
-            NSLayoutConstraint.activate([
-                label.topAnchor.constraint(equalTo: labelContainer.topAnchor, constant: 12),
-                label.bottomAnchor.constraint(equalTo: labelContainer.bottomAnchor, constant: -12),
-                label.leadingAnchor.constraint(equalTo: labelContainer.leadingAnchor, constant: 20),
-                label.trailingAnchor.constraint(equalTo: labelContainer.trailingAnchor, constant: -20),
-                
-                // Example Code in center (Visual Guide)
-                exampleLabel.centerXAnchor.constraint(equalTo: overlayView.centerXAnchor),
-                exampleLabel.centerYAnchor.constraint(equalTo: overlayView.centerYAnchor)
-            ])
-            
-            // Initial Layout is handled by Coordinator
+        // 3. Determine Mode & Configure UI
+        // Uses explicit mode passed in
+        
+        // Customize Text based on mode
+        if mode == .passport {
+            label.text = "Rotate phone to landscape & align the bottom 2 lines of passport"
+            exampleLabel.text = "P<GBRDOE<<JOHN<<<<<<<<<<<<<<<<<<<<\n1234567897GBR9001018M2801019<<<<<<"
+        } else {
+            label.text = "Align the barcode to scan"
+            // Hide example label for boarding pass as it's confusing (barcodes are shapes not text lines)
+            exampleLabel.isHidden = true
         }
+        
+        // Wrap label in a container to provide padding
+        let labelContainer = UIView()
+        labelContainer.translatesAutoresizingMaskIntoConstraints = false
+        labelContainer.backgroundColor = UIColor.black.withAlphaComponent(0.6)
+        labelContainer.layer.cornerRadius = 16
+        
+        label.backgroundColor = .clear // Remove background from label itself
+        labelContainer.addSubview(label)
+        
+        overlayView.addSubview(labelContainer)
+        overlayView.addSubview(exampleLabel)
+        
+        // Store references
+        context.coordinator.exampleLabel = exampleLabel
+        context.coordinator.instructionLabel = label
+        context.coordinator.instructionContainer = labelContainer
+        context.coordinator.overlayView = overlayView
+        context.coordinator.mode = mode // Pass mode to coordinator
+        
+        // Enable manual layout for the container to handle rotation positioning precisely
+        labelContainer.translatesAutoresizingMaskIntoConstraints = true 
+        
+        // Define Constraints for Label INSIDE Container (Padding) - these are permanent
+        NSLayoutConstraint.activate([
+            label.topAnchor.constraint(equalTo: labelContainer.topAnchor, constant: 12),
+            label.bottomAnchor.constraint(equalTo: labelContainer.bottomAnchor, constant: -12),
+            label.leadingAnchor.constraint(equalTo: labelContainer.leadingAnchor, constant: 20),
+            label.trailingAnchor.constraint(equalTo: labelContainer.trailingAnchor, constant: -20),
+            
+            // Example Code in center (Visual Guide)
+            exampleLabel.centerXAnchor.constraint(equalTo: overlayView.centerXAnchor),
+            exampleLabel.centerYAnchor.constraint(equalTo: overlayView.centerYAnchor)
+        ])
+        
+        // Initial Layout is handled by Coordinator
         
         scanner.delegate = context.coordinator
         return scanner
@@ -156,6 +174,7 @@ struct ScannerView: UIViewControllerRepresentable {
         var instructionLabel: UILabel?
         var instructionContainer: UIView?
         var overlayView: UIView?
+        var mode: ScanMode = .passport
         
         init(parent: ScannerView) {
             self.parent = parent
@@ -312,9 +331,15 @@ struct ScannerView: UIViewControllerRepresentable {
                 } else {
                     // Reset if lost (optional, but good for feedback)
                     DispatchQueue.main.async {
-                        self.instructionLabel?.text = "Rotate phone to landscape & align the bottom 2 lines of passport"
-                        self.instructionLabel?.textColor = .white
-                        self.layoutInstructions()
+                        let text = (self.mode == .passport) ? 
+                            "Rotate phone to landscape & align the bottom 2 lines of passport" : 
+                            "Align the barcode to scan"
+                        
+                        if self.instructionLabel?.text != text {
+                            self.instructionLabel?.text = text
+                            self.instructionLabel?.textColor = .white
+                            self.layoutInstructions()
+                        }
                     }
                 }
                 
@@ -324,6 +349,10 @@ struct ScannerView: UIViewControllerRepresentable {
                    let boardingPassData = DocumentParser.parseBoardingPass(payload) {
                     parent.scannedData = .boardingPass(boardingPassData)
                     parent.dismiss()
+                } else {
+                     // Partial Match / Wrong Barcode logic could go here
+                     // For now, maybe just feedback if it's a barcode but not a valid boarding pass?
+                     // Or just keep scanning silently.
                 }
             default:
                 break
@@ -552,3 +581,4 @@ struct DocumentParser {
         )
     }
 }
+
