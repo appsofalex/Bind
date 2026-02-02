@@ -14,7 +14,8 @@ struct DocumentFormView: View {
     let type: TravelDocument.DocumentType
     let onSave: (TravelDocument) -> Void
     let existingID: UUID? // Stores ID if we are editing
-    
+    let prefilledTitle: String? // Optional prefill title
+
     @Environment(\.dismiss) var dismiss
     
     // Form Fields
@@ -246,9 +247,11 @@ struct DocumentFormView: View {
     // Initialize default values based on type OR existing document
     init(type: TravelDocument.DocumentType? = nil,
          document: TravelDocument? = nil,
+         prefilledTitle: String? = nil,
          onSave: @escaping (TravelDocument) -> Void) {
         
         self.onSave = onSave
+        self.prefilledTitle = prefilledTitle
         
         // Initialize all @State properties
         _title = State(initialValue: "")
@@ -364,12 +367,34 @@ struct DocumentFormView: View {
                 _title = State(initialValue: "United Kingdom")
                 _nationality = State(initialValue: "United Kingdom")
                 _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60 * 10))
+            case .medicalAlert:
+                // Special handling for prefilled titles
+                if let prefill = prefilledTitle, !prefill.isEmpty {
+                    _title = State(initialValue: prefill)
+                    if prefill == "Blood Type" {
+                        _subtitle = State(initialValue: "BLOOD TYPE")
+                        _holderName = State(initialValue: "TYPE: A+")
+                    } else if prefill == "Emergency Contact" {
+                        _subtitle = State(initialValue: "CONTACT")
+                    } else {
+                        _subtitle = State(initialValue: "EMERGENCY INFO")
+                    }
+                } else {
+                    _title = State(initialValue: "Medical Alert")
+                    _subtitle = State(initialValue: "EMERGENCY INFO")
+                    _holderName = State(initialValue: "TYPE: A+")
+                }
             case .visa:
                 _title = State(initialValue: "United States")
                 _subtitle = State(initialValue: "Tourist Visa")
                 _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60 * 5))
             case .insurance:
-                _subtitle = State(initialValue: "Health")
+                if let prefill = prefilledTitle, prefill == "NHS Number" {
+                    _title = State(initialValue: "NHS")
+                    _subtitle = State(initialValue: "NHS NUMBER")
+                } else {
+                    _subtitle = State(initialValue: "Health")
+                }
                 _issueDate = State(initialValue: Date())
                 _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60))
             case .driversLicense:
@@ -409,10 +434,19 @@ struct DocumentFormView: View {
                 _title = State(initialValue: "Hotel Key")
                 _subtitle = State(initialValue: "GUEST ACCESS")
             case .idCard:
-                _title = State(initialValue: "United Kingdom")
-                _subtitle = State(initialValue: "NATIONAL ID")
-                _nationality = State(initialValue: "United Kingdom")
+                // Pre-fill logic for National Insurance
+                if let prefill = prefilledTitle, (prefill == "National Insurance" || prefill == "SSN") {
+                    _title = State(initialValue: "National Insurance")
+                    _subtitle = State(initialValue: "NATIONAL INSURANCE")
+                    _nationality = State(initialValue: "United Kingdom")
+                } else {
+                    _title = State(initialValue: "United Kingdom")
+                    _subtitle = State(initialValue: "NATIONAL ID")
+                    _nationality = State(initialValue: "United Kingdom")
+                }
+                
                 _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60 * 10))
+                
             case .petInsurance:
                 _title = State(initialValue: "Pet Plan")
                 _subtitle = State(initialValue: "PET INSURANCE")

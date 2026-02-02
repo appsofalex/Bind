@@ -71,7 +71,7 @@ struct TravelDocsWalletView: View {
     // ADD MENU STATE
     @State private var showAllCardsSheet = false
     @State private var showSettingsSheet = false
-    @State private var showMedicalIDSheet = false
+    @State private var showQuickAccessSheet = false
     @State private var selectedTypeToAdd: TravelDocument.DocumentType? = nil
     
     // PREFERENCES
@@ -371,58 +371,74 @@ struct TravelDocsWalletView: View {
                     Spacer()
                     
                     ZStack {
-                        // Centered "All Cards" Button - Only if documents exist
-                        if !documents.isEmpty {
-                            Button(action: {
-                                showAllCardsSheet = true
-                            }) {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "square.stack.3d.up.fill")
-                                    Text("All Cards")
-                                        .fontWeight(.medium)
-                                }
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 12)
-                                .background(.ultraThinMaterial)
-                                .clipShape(Capsule())
-                                .foregroundColor(.white)
-                                .shadow(radius: 5)
-                            }
-                        }
-                        
-                        // Settings Button (Bottom Right)
-                        HStack {
-                            Spacer()
-                            Button(action: {
-                                showSettingsSheet = true
-                            }) {
-                                Image(systemName: "gearshape.fill")
-                                    .font(.system(size: 20))
-                                    .foregroundColor(.white)
-                                    .frame(width: 44, height: 44)
-                                    .background(.ultraThinMaterial)
-                                    .clipShape(Circle())
-                                    .shadow(radius: 5)
-                            }
-                            .padding(.trailing, 20)
-                        }
-                        
-                        // Medical ID Button (Bottom Left)
                         if !documents.isEmpty {
                             HStack {
+                                Spacer()
+                                
+                                // Quick Access Button
                                 Button(action: {
-                                    showMedicalIDSheet = true
+                                    showQuickAccessSheet = true
                                 }) {
-                                    Image(systemName: "staroflife.fill")
+                                    Image(systemName: "bolt.fill")
                                         .font(.system(size: 20))
-                                        .foregroundColor(.red) // Red for Medical/Emergency
+                                        .foregroundColor(.white)
                                         .frame(width: 44, height: 44)
                                         .background(.ultraThinMaterial)
                                         .clipShape(Circle())
                                         .shadow(radius: 5)
                                 }
-                                .padding(.leading, 20)
+                                
                                 Spacer()
+                                
+                                // All Cards Button
+                                Button(action: {
+                                    showAllCardsSheet = true
+                                }) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "square.stack.3d.up.fill")
+                                        Text("All Cards")
+                                            .fontWeight(.medium)
+                                    }
+                                    .padding(.horizontal, 20)
+                                    .padding(.vertical, 12)
+                                    .background(.ultraThinMaterial)
+                                    .clipShape(Capsule())
+                                    .foregroundColor(.white)
+                                    .shadow(radius: 5)
+                                }
+                                
+                                Spacer()
+                                
+                                // Settings Button
+                                Button(action: {
+                                    showSettingsSheet = true
+                                }) {
+                                    Image(systemName: "gearshape.fill")
+                                        .font(.system(size: 20))
+                                        .foregroundColor(.white)
+                                        .frame(width: 44, height: 44)
+                                        .background(.ultraThinMaterial)
+                                        .clipShape(Circle())
+                                        .shadow(radius: 5)
+                                }
+                                
+                                Spacer()
+                            }
+                        } else {
+                            HStack {
+                                Spacer()
+                                Button(action: {
+                                    showSettingsSheet = true
+                                }) {
+                                    Image(systemName: "gearshape.fill")
+                                        .font(.system(size: 20))
+                                        .foregroundColor(.white)
+                                        .frame(width: 44, height: 44)
+                                        .background(.ultraThinMaterial)
+                                        .clipShape(Circle())
+                                        .shadow(radius: 5)
+                                }
+                                .padding(.trailing, 20)
                             }
                         }
                     }
@@ -489,9 +505,9 @@ struct TravelDocsWalletView: View {
         .sheet(isPresented: $showSettingsSheet) {
             SettingsView(documents: $documents)
         }
-        // MARK: - MEDICAL ID SHEET
-        .sheet(isPresented: $showMedicalIDSheet) {
-            MedicalIDView(documents: documents)
+        // MARK: - QUICK ACCESS SHEET
+        .sheet(isPresented: $showQuickAccessSheet) {
+            QuickAccessView(documents: $documents)
         }
         // MARK: - NEW: ALL CARDS SHEET WITH TOGGLES
         .sheet(isPresented: $showAllCardsSheet) {
