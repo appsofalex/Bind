@@ -376,8 +376,8 @@ struct TravelDocsWalletView: View {
                         }
                     }
                     
-                    // 2. Insert new card at top (it is active by default)
-                    documents.insert(newDoc, at: 0)
+                    // 2. Add new card at the end so it appears at the front of the stack
+                    documents.append(newDoc)
                     
                     // 3. Reset scroll so the top (0th item) is front-and-center
                     baseScrollOffset = 0
