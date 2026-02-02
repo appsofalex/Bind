@@ -92,6 +92,41 @@ struct TravelDocsWalletView: View {
         CGFloat(activeDocuments.count) * cardSpacing
     }
     
+    // MARK: - HELPER VIEW FOR SMOOTH WRAPPING
+    struct PositionSmoother<Content: View>: View {
+        var target: CGFloat
+        var totalHeight: CGFloat
+        @ViewBuilder var content: (CGFloat) -> Content
+        
+        @State private var currentVisualPosition: CGFloat?
+        
+        var body: some View {
+            content(currentVisualPosition ?? target)
+                .onAppear {
+                    currentVisualPosition = target
+                }
+                .onChange(of: target) { newValue in
+                    guard let oldVal = currentVisualPosition else {
+                        currentVisualPosition = newValue
+                        return
+                    }
+                    
+                    let delta = newValue - oldVal
+                    
+                    // Detect Wrap: If change is larger than half the loop
+                    if abs(delta) > (totalHeight * 0.5) {
+                        // Animate the snap (wrap around)
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                            currentVisualPosition = newValue
+                        }
+                    } else {
+                        // Instant update for drag/scroll
+                        currentVisualPosition = newValue
+                    }
+                }
+        }
+    }
+    
     var body: some View {
         ZStack {
             // Background
@@ -110,7 +145,7 @@ struct TravelDocsWalletView: View {
                     ForEach(Array(activeDocuments.enumerated()), id: \.element.id) { index, doc in
                         
                         // 1. CALCULATE DYNAMIC POSITION
-                        let currentPos = getCircularPosition(for: index)
+                        let targetPos = getCircularPosition(for: index)
                         let isPassport = (doc.type == .passport)
                         // CHANGED: Group generic ID types together for the flip animation
                         let isIDCard = (doc.type == .idCard || doc.type == .driversLicense || doc.type == .studentID)
@@ -119,71 +154,73 @@ struct TravelDocsWalletView: View {
                         let isCarRental = (doc.type == .carRental)
                         let isSelected = (selectedID == doc.id)
                         
-                        Group {
-                            if isPassport {
-                                // Use the specialized flip card for Passport
-                                PassportFlipCard(
-                                    document: doc,
-                                    isSelected: isSelected,
-                                    onTap: { toggleSelection(for: doc.id) }
-                                )
-                            } else if isIDCard {
-                                // Use specialized flip card for ID
-                                IDFlipCard(
-                                    document: doc,
-                                    isSelected: isSelected,
-                                    onTap: { toggleSelection(for: doc.id) }
-                                )
-                            } else if isBoardingPass {
-                                // Use specialized animation for Boarding Pass
-                                BoardingPassAnimatedCard(
-                                    document: doc,
-                                    isSelected: isSelected,
-                                    onTap: { toggleSelection(for: doc.id) }
-                                )
-                            } else if isRewardsCard {
-                                // Use new Rewards animation
-                                RewardsAnimatedCard(
-                                    document: doc,
-                                    isSelected: isSelected,
-                                    onTap: { toggleSelection(for: doc.id) }
-                                )
-                            } else if isCarRental {
-                                // Use new Car Rental animation
-                                CarRentalAnimatedCard(
-                                    document: doc,
-                                    isSelected: isSelected,
-                                    onTap: { toggleSelection(for: doc.id) }
-                                )
-                            } else {
-                                // Standard cards for new types
-                                DocumentCardView(document: doc)
-                                    .onTapGesture { toggleSelection(for: doc.id) }
+                        PositionSmoother(target: targetPos, totalHeight: totalScrollHeight) { currentPos in
+                            Group {
+                                if isPassport {
+                                    // Use the specialized flip card for Passport
+                                    PassportFlipCard(
+                                        document: doc,
+                                        isSelected: isSelected,
+                                        onTap: { toggleSelection(for: doc.id) }
+                                    )
+                                } else if isIDCard {
+                                    // Use specialized flip card for ID
+                                    IDFlipCard(
+                                        document: doc,
+                                        isSelected: isSelected,
+                                        onTap: { toggleSelection(for: doc.id) }
+                                    )
+                                } else if isBoardingPass {
+                                    // Use specialized animation for Boarding Pass
+                                    BoardingPassAnimatedCard(
+                                        document: doc,
+                                        isSelected: isSelected,
+                                        onTap: { toggleSelection(for: doc.id) }
+                                    )
+                                } else if isRewardsCard {
+                                    // Use new Rewards animation
+                                    RewardsAnimatedCard(
+                                        document: doc,
+                                        isSelected: isSelected,
+                                        onTap: { toggleSelection(for: doc.id) }
+                                    )
+                                } else if isCarRental {
+                                    // Use new Car Rental animation
+                                    CarRentalAnimatedCard(
+                                        document: doc,
+                                        isSelected: isSelected,
+                                        onTap: { toggleSelection(for: doc.id) }
+                                    )
+                                } else {
+                                    // Standard cards for new types
+                                    DocumentCardView(document: doc)
+                                        .onTapGesture { toggleSelection(for: doc.id) }
+                                }
                             }
-                        }
-                        .frame(width: geo.size.width - 40)
-                        
-                        // 2. POSITIONING & DEPTH
-                        .scaleEffect(getScale(for: currentPos, docID: doc.id))
-                        .rotation3DEffect(
-                            .degrees(getRotation(for: currentPos, docID: doc.id)),
-                            axis: (x: 1, y: 0, z: 0)
-                        )
-                        .offset(y: getOffset(for: currentPos, docID: doc.id))
-                        
-                        // 3. STACK ORDER (Z-Index)
-                        .zIndex(getZIndex(for: currentPos, docID: doc.id))
-                        
-                        // Animation value
-                        .animation(.spring(response: 0.5, dampingFraction: 0.75), value: selectedID)
-                        
-                        // DELETE ANIMATION (Fly off to right)
-                        .transition(
-                            .asymmetric(
-                                insertion: .identity,
-                                removal: .move(edge: .trailing).combined(with: .opacity)
+                            .frame(width: geo.size.width - 40)
+                            
+                            // 2. POSITIONING & DEPTH
+                            .scaleEffect(getScale(for: currentPos, docID: doc.id))
+                            .rotation3DEffect(
+                                .degrees(getRotation(for: currentPos, docID: doc.id)),
+                                axis: (x: 1, y: 0, z: 0)
                             )
-                        )
+                            .offset(y: getOffset(for: currentPos, docID: doc.id))
+                            
+                            // 3. STACK ORDER (Z-Index)
+                            .zIndex(getZIndex(for: currentPos, docID: doc.id))
+                            
+                            // Animation value
+                            .animation(.spring(response: 0.5, dampingFraction: 0.75), value: selectedID)
+                            
+                            // DELETE ANIMATION (Fly off to right)
+                            .transition(
+                                .asymmetric(
+                                    insertion: .identity,
+                                    removal: .move(edge: .trailing).combined(with: .opacity)
+                                )
+                            )
+                        }
                     }
                 }
                 .frame(width: geo.size.width, height: geo.size.height)
@@ -206,7 +243,7 @@ struct TravelDocsWalletView: View {
                             let velocity = (value.predictedEndTranslation.height - value.translation.height)
                             
                             // Apply friction to the slide (adjustable for feel, 0.5 is balanced)
-                            let friction: CGFloat = 0.5 
+                            let friction: CGFloat = 0.5
                             let projectedTotal = totalDrag + (velocity * friction)
                             
                             let snapStep = cardSpacing
@@ -510,7 +547,7 @@ struct TravelDocsWalletView: View {
     func getOffset(for position: CGFloat, docID: UUID) -> CGFloat {
         if let selected = selectedID {
             // Return to 0 for true center
-            return selected == docID ? 0 : 1000 
+            return selected == docID ? 0 : 1000
         }
         
         // FIX: Center the stack based on the number of actual cards, not the scroll loop.
@@ -549,4 +586,3 @@ struct Bind_Previews: PreviewProvider {
             .preferredColorScheme(.dark)
     }
 }
-
