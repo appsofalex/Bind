@@ -71,6 +71,7 @@ struct TravelDocsWalletView: View {
     // ADD MENU STATE
     @State private var showAllCardsSheet = false
     @State private var showSettingsSheet = false
+    @State private var showMedicalIDSheet = false
     @State private var selectedTypeToAdd: TravelDocument.DocumentType? = nil
     
     // PREFERENCES
@@ -364,27 +365,29 @@ struct TravelDocsWalletView: View {
             .allowsHitTesting(true)
             
             // MARK: - BOTTOM CONTROLS
-            // Changed logic: Always show if there are documents
-            if !documents.isEmpty && selectedID == nil {
+            // Changed logic: Always show buttons if no card is selected
+            if selectedID == nil {
                 VStack {
                     Spacer()
                     
                     ZStack {
-                        // Centered "All Cards" Button
-                        Button(action: {
-                            showAllCardsSheet = true
-                        }) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "square.stack.3d.up.fill")
-                                Text("All Cards")
-                                    .fontWeight(.medium)
+                        // Centered "All Cards" Button - Only if documents exist
+                        if !documents.isEmpty {
+                            Button(action: {
+                                showAllCardsSheet = true
+                            }) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "square.stack.3d.up.fill")
+                                    Text("All Cards")
+                                        .fontWeight(.medium)
+                                }
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 12)
+                                .background(.ultraThinMaterial)
+                                .clipShape(Capsule())
+                                .foregroundColor(.white)
+                                .shadow(radius: 5)
                             }
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 12)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Capsule())
-                            .foregroundColor(.white)
-                            .shadow(radius: 5)
                         }
                         
                         // Settings Button (Bottom Right)
@@ -402,6 +405,25 @@ struct TravelDocsWalletView: View {
                                     .shadow(radius: 5)
                             }
                             .padding(.trailing, 20)
+                        }
+                        
+                        // Medical ID Button (Bottom Left)
+                        if !documents.isEmpty {
+                            HStack {
+                                Button(action: {
+                                    showMedicalIDSheet = true
+                                }) {
+                                    Image(systemName: "staroflife.fill")
+                                        .font(.system(size: 20))
+                                        .foregroundColor(.red) // Red for Medical/Emergency
+                                        .frame(width: 44, height: 44)
+                                        .background(.ultraThinMaterial)
+                                        .clipShape(Circle())
+                                        .shadow(radius: 5)
+                                }
+                                .padding(.leading, 20)
+                                Spacer()
+                            }
                         }
                     }
                     .padding(.bottom, 20)
@@ -466,6 +488,10 @@ struct TravelDocsWalletView: View {
         // MARK: - SETTINGS SHEET
         .sheet(isPresented: $showSettingsSheet) {
             SettingsView(documents: $documents)
+        }
+        // MARK: - MEDICAL ID SHEET
+        .sheet(isPresented: $showMedicalIDSheet) {
+            MedicalIDView(documents: documents)
         }
         // MARK: - NEW: ALL CARDS SHEET WITH TOGGLES
         .sheet(isPresented: $showAllCardsSheet) {
