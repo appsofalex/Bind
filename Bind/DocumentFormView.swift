@@ -158,9 +158,11 @@ struct DocumentFormView: View {
         ("DFW", "Dallas/Fort Worth"),
         ("DEN", "Denver International"),
         ("SFO", "San Francisco International"),
+        ("SJC", "San Jose International"),
         ("SEA", "Seattle-Tacoma International"),
         ("EWR", "Newark Liberty International"),
         ("IAD", "Washington Dulles"),
+        ("SJU", "San Juan Luis Muñoz Marín"),
         ("YYZ", "Toronto Pearson"),
         ("YVR", "Vancouver International"),
         ("LHR", "London Heathrow"),
@@ -189,6 +191,7 @@ struct DocumentFormView: View {
         ("PVG", "Shanghai Pudong"),
         ("BKK", "Bangkok Suvarnabhumi"),
         ("DEL", "Delhi Indira Gandhi"),
+        ("BOM", "Mumbai International"),
         ("SYD", "Sydney Kingsford Smith"),
         ("MEL", "Melbourne Tullamarine"),
         ("AKL", "Auckland Airport"),
@@ -965,7 +968,32 @@ struct DocumentFormView: View {
         case .boardingPass(let data):
             holderName = data.name
             detailValue = data.flightNumber
-            selectedAirline = data.carrier
+            
+            // Map Carrier Code to Name
+            let carrierCode = data.carrier.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+            let airlineMapping: [String: String] = [
+                "BA": "British Airways", "BAW": "British Airways",
+                "U2": "easyJet", "EZY": "easyJet",
+                "VS": "Virgin Atlantic", "VIR": "Virgin Atlantic",
+                "AA": "American Airlines", "AAL": "American Airlines",
+                "DL": "Delta", "DAL": "Delta",
+                "UA": "United", "UAL": "United",
+                "QF": "Qantas", "QFA": "Qantas",
+                "AC": "Air Canada", "ACA": "Air Canada",
+                "CA": "Air China", "CCA": "Air China",
+                "LH": "Lufthansa", "DLH": "Lufthansa",
+                "FR": "Ryanair", "RYR": "Ryanair",
+                "JL": "Japan Airlines", "JAL": "Japan Airlines",
+                "QR": "Qatar Airways", "QTR": "Qatar Airways",
+                "SQ": "Singapore Airlines", "SIA": "Singapore Airlines",
+                "EK": "Emirates", "UAE": "Emirates"
+            ]
+            
+            if let airlineName = airlineMapping[carrierCode] {
+                selectedAirline = airlineName
+            } else {
+                selectedAirline = data.carrier // Fallback
+            }
             
             // Lookup origin
             if let foundOrigin = airports.first(where: { $0.0 == data.origin }) {
@@ -983,6 +1011,22 @@ struct DocumentFormView: View {
             
             if let seatNum = data.seat { seat = seatNum }
             if let fDate = data.flightDate { flightDate = fDate }
+            
+            // Map Class Code
+            if let classCode = data.classCode {
+                switch classCode {
+                case "F", "A", "P":
+                    flightClass = "First"
+                case "C", "J", "D", "I", "Z":
+                    flightClass = "Business"
+                case "W", "E":
+                    flightClass = "Premium Economy"
+                case "Y", "B", "H", "K", "M", "L", "V", "S", "N", "Q", "O", "G", "X":
+                    flightClass = "Economy"
+                default:
+                    flightClass = "Economy"
+                }
+            }
         }
     }
     

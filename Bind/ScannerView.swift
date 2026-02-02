@@ -540,7 +540,23 @@ struct DocumentParser {
         let nameString = String(payload.dropFirst(2).prefix(20)).trimmingCharacters(in: .whitespaces)
         let nameParts = nameString.components(separatedBy: "/")
         let last = nameParts.first ?? ""
-        let first = nameParts.count > 1 ? nameParts[1] : ""
+        var first = nameParts.count > 1 ? nameParts[1] : ""
+        
+        // Cleanup Titles (MR, MRS, MS, MISS, DR, MSTR) from end of First Name
+        let titles = ["MSTR", "MISS", "MRS", "MR", "MS", "DR", "PROF"]
+        for title in titles {
+            if first.hasSuffix(title) {
+                // Ensure we don't accidentally strip names that just end in these letters
+                // usually titles are appended without space (e.g. JOHNMR)
+                // We'll strip it if the remaining name is at least 2 chars long
+                let newLength = first.count - title.count
+                if newLength >= 2 {
+                    first = String(first.prefix(newLength))
+                    break // Only remove one title
+                }
+            }
+        }
+        
         let fullName = "\(first) \(last)".trimmingCharacters(in: .whitespaces)
         
         // PNR: Often at position 23 (7 chars)
@@ -552,13 +568,30 @@ struct DocumentParser {
         
         // Carrier (36-38), FlightNum (39-43)
         let carrier = String(payload.dropFirst(36).prefix(3)).trimmingCharacters(in: .whitespaces)
-        let flightNum = String(payload.dropFirst(39).prefix(5)).trimmingCharacters(in: .whitespaces)
+        let rawFlightNum = String(payload.dropFirst(39).prefix(5)).trimmingCharacters(in: .whitespaces)
+        
+        // Format Flight Number: Carrier + Number (stripping leading zeros)
+        // e.g. "00206" -> "206", combined with "EK" -> "EK206"
+        let flightNum: String
+        if let number = Int(rawFlightNum) {
+             flightNum = "\(carrier)\(number)"
+        } else {
+             flightNum = "\(carrier)\(rawFlightNum)"
+        }
         
         // Julian Date (44-46) - Day of year
         let dayOfYear = Int(String(payload.dropFirst(44).prefix(3))) ?? 1
         
+        // Compartment Code (Class) - Position 47 (1 char)
+        // Standard BCBP often has it here.
+        let classCode = String(payload.dropFirst(47).prefix(1))
+        
         // Seat (48-51)
-        let seat = String(payload.dropFirst(48).prefix(4)).trimmingCharacters(in: .whitespaces)
+        var seat = String(payload.dropFirst(48).prefix(4)).trimmingCharacters(in: .whitespaces)
+        // Strip leading zeros (e.g., "09D" -> "9D", "048C" -> "48C")
+        if seat.hasPrefix("0") {
+            seat = String(seat.drop(while: { $0 == "0" }))
+        }
         
         // Calc date
         let calendar = Calendar.current
@@ -577,7 +610,7 @@ struct DocumentParser {
             flightNumber: flightNum,
             flightDate: flightDate,
             seat: seat,
-            classCode: "Economy" // Default/Unknown
+            classCode: classCode
         )
     }
 }
