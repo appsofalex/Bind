@@ -23,8 +23,19 @@ class TravelDocumentStore {
         do {
             let data = try JSONEncoder().encode(docs)
             try data.write(to: fileURL)
+            
+            // Trigger Cloud Sync if Pro
+            if SubscriptionManager.shared.isPro {
+                syncToCloud(data)
+            }
         } catch {
             print("Error saving documents: \(error)")
         }
+    }
+    
+    private func syncToCloud(_ data: Data) {
+        // TODO: Implement CloudKit or iCloud Drive sync here
+        // This is where you would push the updated JSON to the user's private CloudKit database
+        print("Pro Feature: Syncing \(data.count) bytes to iCloud...")
     }
 }

@@ -11,6 +11,10 @@ struct SettingsView: View {
     
     // Alert State
     @State private var showDeleteConfirmation = false
+    @State private var showUpgradeSheet = false
+    
+    // Subscription Manager
+    @StateObject private var subscriptionManager = SubscriptionManager.shared
     
     var body: some View {
         NavigationView {
@@ -22,7 +26,7 @@ struct SettingsView: View {
                             Text("Require Face ID")
                         } icon: {
                             Image(systemName: "faceid")
-                                .foregroundColor(.blue)
+                            .foregroundColor(.blue)
                         }
                     }
                 }
@@ -33,7 +37,7 @@ struct SettingsView: View {
                         Text("Appearance")
                     } icon: {
                         Image(systemName: appTheme == .dark ? "moon.fill" : "sun.max.fill")
-                            .foregroundColor(appTheme == .dark ? .purple : .orange)
+                        .foregroundColor(appTheme == .dark ? .purple : .orange)
                     }) {
                         ForEach(AppTheme.allCases) { theme in
                             Text(theme.rawValue).tag(theme)
@@ -46,9 +50,64 @@ struct SettingsView: View {
                             Text("Haptic Feedback")
                         } icon: {
                             Image(systemName: "iphone.radiowaves.left.and.right")
-                                .foregroundColor(.orange)
+                            .foregroundColor(.orange)
                         }
                     }
+                }
+                
+                // MARK: - BIND PRO
+                Section {
+                    if subscriptionManager.isPro {
+                        HStack {
+                            Image(systemName: "crown.fill")
+                                .foregroundColor(.yellow)
+                                .font(.title2)
+                            VStack(alignment: .leading) {
+                                Text("Bind Pro Active")
+                                    .font(.headline)
+                                Text("Thank you for your support!")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                        
+                        // Testing/Demo Button
+                        Button("Demote to Free Plan (Test)") {
+                            subscriptionManager.downgradeToFree()
+                        }
+                        .foregroundColor(.red)
+                    } else {
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                Image(systemName: "crown.fill")
+                                    .foregroundColor(.yellow)
+                                    .font(.title2)
+                                Text("Bind Pro")
+                                    .font(.headline)
+                            }
+                            
+                            Text("Unlock unlimited cards, cloud sync, and quick access personalization.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            Button(action: {
+                                showUpgradeSheet = true
+                            }) {
+                                Text("Upgrade")
+                                    .bold()
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 8)
+                                    .background(Color.blue)
+                                    .foregroundColor(.white)
+                                    .clipShape(Capsule())
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                        .padding(.vertical, 8)
+                    }
+                } header: {
+                    Text("Membership")
                 }
                 
                 // MARK: - DATA
@@ -106,6 +165,9 @@ struct SettingsView: View {
                 }
             } message: {
                 Text("This action cannot be undone. All your stored cards and documents will be permanently removed.")
+            }
+            .sheet(isPresented: $showUpgradeSheet) {
+                ProUpgradeView()
             }
         }
         .preferredColorScheme(appTheme == .dark ? .dark : .light)

@@ -227,7 +227,7 @@ struct QuickAccessView: View {
     }
 }
 
-// MARK: - Subviews
+// Subviews
 
 struct QuickAccessCard: View {
     let title: String

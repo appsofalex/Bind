@@ -1,0 +1,95 @@
+import SwiftUI
+
+struct ProUpgradeView: View {
+    @Environment(\.dismiss) var dismiss
+    @StateObject private var subscriptionManager = SubscriptionManager.shared
+    
+    // Feature list
+    let features = [
+        ("rectangle.stack.fill", "Unlimited Cards", "Store as many passports, IDs, and cards as you need. No more limits."),
+        ("icloud.fill", "Cloud Sync", "Seamlessly sync your documents across all your Apple devices via iCloud."),
+        ("bolt.fill", "Quick Access Personalization", "Customize your Quick Access view to keep your most vital info just a tap away.")
+    ]
+    
+    var body: some View {
+        ZStack {
+            Color(UIColor.systemBackground)
+                .ignoresSafeArea()
+            
+            VStack(spacing: 30) {
+                // Header
+                VStack(spacing: 15) {
+                    Image(systemName: "crown.fill")
+                        .font(.system(size: 60))
+                        .foregroundColor(.yellow)
+                        .padding(.top, 40)
+                    
+                    Text("Upgrade to Bind Pro")
+                        .font(.system(size: 32, weight: .bold))
+                        .multilineTextAlignment(.center)
+                    
+                    Text("Unlock the full potential of your digital wallet.")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                }
+                
+                // Features List
+                VStack(alignment: .leading, spacing: 25) {
+                    ForEach(features, id: \.1) { icon, title, desc in
+                        HStack(alignment: .top, spacing: 15) {
+                            Image(systemName: icon)
+                                .font(.system(size: 24))
+                                .foregroundColor(.blue)
+                                .frame(width: 30)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(title)
+                                    .font(.headline)
+                                Text(desc)
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, 30)
+                .padding(.top, 20)
+                
+                Spacer()
+                
+                // Purchase Button
+                Button(action: {
+                    subscriptionManager.upgradeToPro()
+                    dismiss()
+                }) {
+                    Text("Upgrade for $4.99/Year")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(Color.blue)
+                        .clipShape(Capsule())
+                        .shadow(radius: 5)
+                }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 10)
+                
+                // Restore Purchase / Close
+                Button("No Thanks") {
+                    dismiss()
+                }
+                .foregroundColor(.secondary)
+                .padding(.bottom, 20)
+            }
+        }
+    }
+}
+
+struct ProUpgradeView_Previews: PreviewProvider {
+    static var previews: some View {
+        ProUpgradeView()
+    }
+}

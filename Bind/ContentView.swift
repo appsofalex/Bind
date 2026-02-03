@@ -72,6 +72,7 @@ struct TravelDocsWalletView: View {
     @State private var showAllCardsSheet = false
     @State private var showSettingsSheet = false
     @State private var showQuickAccessSheet = false
+    @State private var showLimitReachedSheet = false // New state for limit reached
     @State private var selectedTypeToAdd: TravelDocument.DocumentType? = nil
     
     // PREFERENCES
@@ -86,7 +87,11 @@ struct TravelDocsWalletView: View {
     
     // Configuration
     private let cardSpacing: CGFloat = 65
-    private let maxCardsOnScreen = 6
+    @StateObject private var subscriptionManager = SubscriptionManager.shared
+    
+    private var maxCardsOnScreen: Int {
+        subscriptionManager.isPro ? Int.max : 6
+    }
     
     @Environment(\.colorScheme) var colorScheme
     
@@ -530,6 +535,71 @@ struct TravelDocsWalletView: View {
         .sheet(isPresented: $showQuickAccessSheet) {
             QuickAccessView(documents: $documents)
         }
+        // MARK: - LIMIT REACHED SHEET
+        .sheet(isPresented: $showLimitReachedSheet) {
+            VStack(spacing: 25) {
+                Spacer()
+                
+                Image(systemName: "rectangle.stack.fill")
+                    .font(.system(size: 60))
+                    .foregroundColor(.orange)
+                
+                VStack(spacing: 10) {
+                    Text("Free Limit Reached")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    
+                    Text("You've hit the limit of 6 active cards on the free plan.")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                }
+                
+                VStack(spacing: 15) {
+                    Button(action: {
+                        showLimitReachedSheet = false
+                        // Small delay to allow sheet to close before opening upgrade view
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            showSettingsSheet = true // Re-using settings sheet which has the upgrade flow
+                        }
+                    }) {
+                        Text("Upgrade to Pro")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(Color.blue)
+                            .clipShape(Capsule())
+                    }
+                    
+                    Button(action: {
+                        showLimitReachedSheet = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            showAllCardsSheet = true
+                        }
+                    }) {
+                        Text("Manage Cards")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(Color.secondary.opacity(0.15))
+                            .clipShape(Capsule())
+                    }
+                    
+                    Button("Cancel") {
+                        showLimitReachedSheet = false
+                    }
+                    .foregroundColor(.secondary)
+                    .padding(.top, 5)
+                }
+                .padding(.horizontal, 30)
+                
+                Spacer()
+            }
+            .presentationDetents([.medium])
+        }
         // MARK: - NEW: ALL CARDS SHEET WITH TOGGLES
         .sheet(isPresented: $showAllCardsSheet) {
             NavigationView {
@@ -573,7 +643,7 @@ struct TravelDocsWalletView: View {
                         documents.move(fromOffsets: indices, toOffset: newOffset)
                     }
                 }
-                .navigationTitle("All Cards (\(activeDocuments.count)/\(maxCardsOnScreen))")
+                .navigationTitle(subscriptionManager.isPro ? "All Cards" : "All Cards (\(activeDocuments.count)/\(maxCardsOnScreen))")
                 .navigationBarItems(
                     leading: EditButton(),
                     trailing: Button("Done") { showAllCardsSheet = false }
@@ -597,7 +667,12 @@ struct TravelDocsWalletView: View {
     }
     
     func startAdd(_ type: TravelDocument.DocumentType) {
-        selectedTypeToAdd = type
+        if !subscriptionManager.isPro && activeDocuments.count >= maxCardsOnScreen {
+            // Trigger limit reached sheet instead of proceeding
+            showLimitReachedSheet = true
+        } else {
+            selectedTypeToAdd = type
+        }
     }
     
     func toggleSelection(for id: UUID?) {
