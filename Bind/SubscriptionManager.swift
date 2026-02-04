@@ -10,6 +10,8 @@ class SubscriptionManager: ObservableObject {
         }
     }
     
+    @Published var showUpgradeAnimation: Bool = false
+    
     private init() {
         self.isPro = UserDefaults.standard.bool(forKey: "isProUser")
     }
@@ -17,6 +19,7 @@ class SubscriptionManager: ObservableObject {
     func upgradeToPro() {
         // In a real app, this would trigger StoreKit purchase flow
         isPro = true
+        showUpgradeAnimation = true
     }
     
     func downgradeToFree() {
