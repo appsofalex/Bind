@@ -2,13 +2,15 @@ import SwiftUI
 
 struct ProUpgradeView: View {
     @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) var colorScheme
     @StateObject private var subscriptionManager = SubscriptionManager.shared
     
     // Feature list
     let features = [
         ("rectangle.stack.fill", "Unlimited Cards", "Store as many passports, IDs, and cards as you need. No more limits."),
         ("icloud.fill", "Cloud Sync", "Seamlessly sync your documents across all your Apple devices via iCloud."),
-        ("bolt.fill", "Quick Access Personalization", "Customize your Quick Access view to keep your most vital info just a tap away.")
+        ("bolt.fill", "Quick Access Personalization", "Customize your Quick Access view to keep your most vital info just a tap away."),
+        ("bell.badge.fill", "Smart Expiry Alerts", "Get notified before your passports or visas expire. Never get caught out at the border.")
     ]
     
     var body: some View {
@@ -19,9 +21,9 @@ struct ProUpgradeView: View {
             VStack(spacing: 30) {
                 // Header
                 VStack(spacing: 15) {
-                    Image(systemName: "crown.fill")
+                    Image(systemName: "creditcard.fill")
                         .font(.system(size: 60))
-                        .foregroundColor(.yellow)
+                        .foregroundColor(colorScheme == .dark ? .white : Color(red: 0.11, green: 0.11, blue: 0.12))
                         .padding(.top, 40)
                     
                     Text("Upgrade to Bind Pro")
@@ -63,6 +65,10 @@ struct ProUpgradeView: View {
                 // Purchase Button
                 Button(action: {
                     subscriptionManager.upgradeToPro()
+                    
+                    // Request Notification Permission on upgrade
+                    NotificationManager.shared.requestPermission()
+                    
                     dismiss()
                 }) {
                     Text("Upgrade for $4.99/Year")

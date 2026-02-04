@@ -73,6 +73,7 @@ struct TravelDocsWalletView: View {
     @State private var showSettingsSheet = false
     @State private var showQuickAccessSheet = false
     @State private var showLimitReachedSheet = false // New state for limit reached
+    @State private var showUpgradeSheet = false // New state for direct upgrade sheet
     @State private var selectedTypeToAdd: TravelDocument.DocumentType? = nil
     
     // PREFERENCES
@@ -561,7 +562,7 @@ struct TravelDocsWalletView: View {
                         showLimitReachedSheet = false
                         // Small delay to allow sheet to close before opening upgrade view
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                            showSettingsSheet = true // Re-using settings sheet which has the upgrade flow
+                            showUpgradeSheet = true // Direct to Pro Upgrade View
                         }
                     }) {
                         Text("Upgrade to Pro")
@@ -650,6 +651,10 @@ struct TravelDocsWalletView: View {
                 )
             }
         }
+        // MARK: - UPGRADE SHEET (Direct Access)
+        .sheet(isPresented: $showUpgradeSheet) {
+            ProUpgradeView()
+        }
     }
     
     // MARK: - LOGIC
@@ -667,7 +672,8 @@ struct TravelDocsWalletView: View {
     }
     
     func startAdd(_ type: TravelDocument.DocumentType) {
-        if !subscriptionManager.isPro && activeDocuments.count >= maxCardsOnScreen {
+        // Changed Check: Count total documents instead of just active ones
+        if !subscriptionManager.isPro && documents.count >= maxCardsOnScreen {
             // Trigger limit reached sheet instead of proceeding
             showLimitReachedSheet = true
         } else {

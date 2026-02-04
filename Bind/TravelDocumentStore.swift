@@ -27,6 +27,9 @@ class TravelDocumentStore {
             // Trigger Cloud Sync if Pro
             if SubscriptionManager.shared.isPro {
                 syncToCloud(data)
+                
+                // Update Notifications
+                NotificationManager.shared.scheduleExpiryNotifications(for: docs)
             }
         } catch {
             print("Error saving documents: \(error)")

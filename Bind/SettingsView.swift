@@ -37,7 +37,7 @@ struct SettingsView: View {
                         Text("Appearance")
                     } icon: {
                         Image(systemName: appTheme == .dark ? "moon.fill" : "sun.max.fill")
-                        .foregroundColor(appTheme == .dark ? .purple : .orange)
+                            .foregroundColor(.gray)
                     }) {
                         ForEach(AppTheme.allCases) { theme in
                             Text(theme.rawValue).tag(theme)
@@ -50,7 +50,7 @@ struct SettingsView: View {
                             Text("Haptic Feedback")
                         } icon: {
                             Image(systemName: "iphone.radiowaves.left.and.right")
-                            .foregroundColor(.orange)
+                                .foregroundColor(.gray)
                         }
                     }
                 }
@@ -59,8 +59,8 @@ struct SettingsView: View {
                 Section {
                     if subscriptionManager.isPro {
                         HStack {
-                            Image(systemName: "crown.fill")
-                                .foregroundColor(.yellow)
+                            Image(systemName: "creditcard.fill")
+                                .foregroundColor(.gray)
                                 .font(.title2)
                             VStack(alignment: .leading) {
                                 Text("Bind Pro Active")
@@ -72,6 +72,29 @@ struct SettingsView: View {
                         }
                         .padding(.vertical, 4)
                         
+                        Toggle(isOn: Binding(
+                            get: { NotificationManager.shared.isAuthorized },
+                            set: { newValue in
+                                if newValue {
+                                    NotificationManager.shared.requestPermission()
+                                    // Reschedule if enabling
+                                    NotificationManager.shared.scheduleExpiryNotifications(for: documents)
+                                } else {
+                                    // Open settings to disable manually since we can't toggle auth status programmatically
+                                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                                        UIApplication.shared.open(url)
+                                    }
+                                }
+                            }
+                        )) {
+                            Label {
+                                Text("Enable Expiry Alerts")
+                            } icon: {
+                                Image(systemName: "bell.badge.fill")
+                                    .foregroundColor(.red)
+                            }
+                        }
+                        
                         // Testing/Demo Button
                         Button("Demote to Free Plan (Test)") {
                             subscriptionManager.downgradeToFree()
@@ -80,8 +103,8 @@ struct SettingsView: View {
                     } else {
                         VStack(alignment: .leading, spacing: 10) {
                             HStack {
-                                Image(systemName: "crown.fill")
-                                    .foregroundColor(.yellow)
+                                Image(systemName: "creditcard.fill")
+                                    .foregroundColor(.gray)
                                     .font(.title2)
                                 Text("Bind Pro")
                                     .font(.headline)
@@ -94,12 +117,12 @@ struct SettingsView: View {
                             Button(action: {
                                 showUpgradeSheet = true
                             }) {
-                                Text("Upgrade")
-                                    .bold()
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 8)
-                                    .background(Color.blue)
+                                Text("Upgrade to Pro")
+                                    .font(.headline)
                                     .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 50)
+                                    .background(Color.blue)
                                     .clipShape(Capsule())
                             }
                             .buttonStyle(PlainButtonStyle())
@@ -132,7 +155,7 @@ struct SettingsView: View {
                             Text("Privacy Policy")
                         } icon: {
                             Image(systemName: "hand.raised")
-                                .foregroundColor(.purple)
+                                .foregroundColor(.blue)
                         }
                     }
                     
