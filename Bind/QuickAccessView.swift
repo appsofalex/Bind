@@ -12,7 +12,6 @@ enum QuickAccessTileType: String, CaseIterable, Identifiable {
     case flightNumber
     case rewardsNumber
     case vaccineDose
-    case allergies
     case visaNumber
     case insurancePolicy
     case studentIDNumber
@@ -31,7 +30,6 @@ enum QuickAccessTileType: String, CaseIterable, Identifiable {
         case .flightNumber: return "Flight\nNumber"
         case .rewardsNumber: return "Rewards\nNumber"
         case .vaccineDose: return "Vaccine\nDose"
-        case .allergies: return "Allergies"
         case .visaNumber: return "Visa\nNumber"
         case .insurancePolicy: return "Insurance\nPolicy"
         case .studentIDNumber: return "Student\nID"
@@ -50,7 +48,6 @@ enum QuickAccessTileType: String, CaseIterable, Identifiable {
         case .flightNumber: return "airplane"
         case .rewardsNumber: return "star.fill"
         case .vaccineDose: return "syringe.fill"
-        case .allergies: return "exclamationmark.shield.fill"
         case .visaNumber: return "checkmark.seal.fill"
         case .insurancePolicy: return "cross.case.fill"
         case .studentIDNumber: return "graduationcap.fill"
@@ -69,7 +66,6 @@ enum QuickAccessTileType: String, CaseIterable, Identifiable {
         case .flightNumber: return .cyan
         case .rewardsNumber: return .mint
         case .vaccineDose: return .teal
-        case .allergies: return .red
         case .visaNumber: return .orange
         case .insurancePolicy: return .red
         case .studentIDNumber: return .blue
@@ -80,7 +76,7 @@ enum QuickAccessTileType: String, CaseIterable, Identifiable {
     // Helper to determine which document type creates this data
     var associatedDocType: TravelDocument.DocumentType {
         switch self {
-        case .bloodType, .emergencyContact, .allergies: return .medicalAlert
+        case .bloodType, .emergencyContact: return .medicalAlert
         case .passportNumber: return .passport
         case .nationalInsurance: return .nationalInsurance
         case .nhsNumber: return .idCard
@@ -101,7 +97,6 @@ enum QuickAccessTileType: String, CaseIterable, Identifiable {
         case .nationalInsurance: return "National Insurance"
         case .nhsNumber: return "NHS Number"
         case .emergencyContact: return "Emergency Contact"
-        case .allergies: return "Allergies"
         case .visaNumber: return "Visa Number"
         case .insurancePolicy: return "Policy Number"
         case .studentIDNumber: return "Student ID"
@@ -341,9 +336,6 @@ struct QuickAccessView: View {
             
         case .vaccineDose:
             return documents.first(where: { $0.type == .vaccineRecord })?.dose
-            
-        case .allergies:
-            return documents.first(where: { $0.type == .medicalAlert && $0.title.localizedCaseInsensitiveContains("Allergies") })?.subtitle
             
         case .visaNumber:
             return documents.first(where: { $0.type == .visa })?.detailValue

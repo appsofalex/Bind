@@ -26,7 +26,6 @@ struct DocumentFormView: View {
     
     // Specific Dropdowns
     @State private var selectedBloodType: String
-    @State private var selectedAllergy: String
     @State private var selectedVaccine: String
     @State private var selectedUniversity: String
     @State private var selectedAirline: String
@@ -50,6 +49,7 @@ struct DocumentFormView: View {
     @State private var emergencyPhoneNumber: String
     @State private var emergencyContactName: String
     @State private var emergencyContactEmail: String
+    @State private var allergies: String
     
     // DRIVER'S LICENSE SPECIFIC FIELDS
     @State private var address: String
@@ -282,7 +282,6 @@ struct DocumentFormView: View {
         _holderName = State(initialValue: "")
         _detailValue = State(initialValue: "")
         _selectedBloodType = State(initialValue: "A+")
-        _selectedAllergy = State(initialValue: "None")
         _selectedVaccine = State(initialValue: "COVID-19")
         _selectedUniversity = State(initialValue: "State Univ")
         _selectedAirline = State(initialValue: "British Airways")
@@ -300,6 +299,7 @@ struct DocumentFormView: View {
         _emergencyPhoneNumber = State(initialValue: "")
         _emergencyContactName = State(initialValue: "")
         _emergencyContactEmail = State(initialValue: "")
+        _allergies = State(initialValue: "")
         _address = State(initialValue: "")
         _licenseClass = State(initialValue: "")
         _restrictions = State(initialValue: "")
@@ -344,6 +344,7 @@ struct DocumentFormView: View {
             _emergencyPhoneNumber = State(initialValue: doc.emergencyPhoneNumber ?? "")
             _emergencyContactName = State(initialValue: doc.emergencyContactName ?? "")
             _emergencyContactEmail = State(initialValue: doc.emergencyContactEmail ?? "")
+            _allergies = State(initialValue: doc.allergies ?? "")
             
             _address = State(initialValue: doc.address ?? "")
             _licenseClass = State(initialValue: doc.licenseClass ?? "")
@@ -595,6 +596,8 @@ struct DocumentFormView: View {
                 Picker("Blood Type", selection: $selectedBloodType) {
                     ForEach(bloodTypes, id: \.self) { Text($0) }
                 }
+                TextField("Allergies (e.g. Peanuts, Penicillin)", text: $allergies)
+                    .textInputAutocapitalization(.words)
             case .vaccineRecord:
                  TextField("Provider / Clinic", text: $title)
                      .textInputAutocapitalization(.words)
@@ -1263,6 +1266,7 @@ struct DocumentFormView: View {
             boardingTime: type == .boardingPass ? boardingTime : nil,
             emergencyContactName: type == .medicalAlert ? emergencyContactName : nil,
             emergencyContactEmail: type == .medicalAlert ? emergencyContactEmail : nil,
+            allergies: type == .medicalAlert ? (allergies.isEmpty ? nil : allergies) : nil,
             groupNumber: type == .insurance ? groupNumber : nil,
             emergencyPhoneNumber: (type == .insurance || type == .medicalAlert) ? emergencyPhoneNumber : nil,
             address: type == .driversLicense ? address : nil,

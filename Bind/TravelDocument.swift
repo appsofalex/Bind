@@ -26,6 +26,7 @@ struct TravelDocument: Identifiable, Codable, Equatable {
     // NEW: Medical Card Specific Fields
     var emergencyContactName: String?
     var emergencyContactEmail: String?
+    var allergies: String?
 
     // NEW: Insurance Specific Fields
     var groupNumber: String?
@@ -89,6 +90,7 @@ struct TravelDocument: Identifiable, Codable, Equatable {
          boardingTime: Date? = nil,
          emergencyContactName: String? = nil,
          emergencyContactEmail: String? = nil,
+         allergies: String? = nil,
          groupNumber: String? = nil,
          emergencyPhoneNumber: String? = nil,
          address: String? = nil,
@@ -134,6 +136,7 @@ struct TravelDocument: Identifiable, Codable, Equatable {
         self.boardingTime = boardingTime
         self.emergencyContactName = emergencyContactName
         self.emergencyContactEmail = emergencyContactEmail
+        self.allergies = allergies
         self.groupNumber = groupNumber
         self.emergencyPhoneNumber = emergencyPhoneNumber
         self.address = address

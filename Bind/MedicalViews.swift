@@ -53,79 +53,96 @@ struct MedicalCardDetailView: View {
                         .font(.caption)
                 }
                 .padding(.horizontal)
-                .padding(.vertical, 12)
+                .padding(.vertical, 8)
                 .background(document.primaryColor)
                 
                 // Main Content
-                HStack(alignment: .top, spacing: 20) {
+                HStack(alignment: .top, spacing: 15) {
                     // Left Column: Blood Type (Prominent)
-                    VStack(alignment: .center, spacing: 8) {
+                    VStack(alignment: .center, spacing: 4) {
                         Text("BLOOD TYPE")
-                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
                             .foregroundColor(.gray)
                         
                         ZStack {
                             Circle()
-                                .stroke(document.primaryColor, lineWidth: 3)
-                                .frame(width: 70, height: 70)
+                                .stroke(document.primaryColor, lineWidth: 2.5)
+                                .frame(width: 60, height: 60)
                             
                             Text(bloodType)
-                                .font(.system(size: 28, weight: .heavy, design: .rounded))
+                                .font(.system(size: 24, weight: .heavy, design: .rounded))
                                 .foregroundColor(document.primaryColor)
                         }
                         
                         Image(systemName: "drop.fill")
-                            .font(.title2)
+                            .font(.subheadline)
                             .foregroundColor(document.primaryColor.opacity(0.6))
-                            .padding(.top, 4)
                     }
-                    .frame(width: 100)
-                    .padding(.top, 20)
+                    .frame(width: 80)
+                    .padding(.top, 10)
                     
                     // Right Column: Emergency Contact
-                    VStack(alignment: .leading, spacing: 15) {
+                    VStack(alignment: .leading, spacing: 8) {
                         Text("EMERGENCY CONTACT")
-                            .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
                             .foregroundColor(document.primaryColor)
-                            .padding(.bottom, -5)
+                            .padding(.bottom, -2)
                         
                         // Name
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: 0) {
                             Text("NAME")
-                                .font(.system(size: 8, weight: .bold))
+                                .font(.system(size: 7, weight: .bold))
                                 .foregroundColor(.gray)
                             Text(document.emergencyContactName?.isEmpty == false ? document.emergencyContactName! : "Not Set")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(.black)
                         }
                         
                         // Phone
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: 0) {
                             Text("PHONE")
-                                .font(.system(size: 8, weight: .bold))
+                                .font(.system(size: 7, weight: .bold))
                                 .foregroundColor(.gray)
                             Text(document.emergencyPhoneNumber?.isEmpty == false ? document.emergencyPhoneNumber! : "Not Set")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(.black)
                         }
                         
                         // Email
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: 0) {
                             Text("EMAIL")
-                                .font(.system(size: 8, weight: .bold))
+                                .font(.system(size: 7, weight: .bold))
                                 .foregroundColor(.gray)
                             Text(document.emergencyContactEmail?.isEmpty == false ? document.emergencyContactEmail! : "Not Set")
-                                .font(.system(size: 12, weight: .medium))
+                                .font(.system(size: 11, weight: .medium))
                                 .foregroundColor(.black)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.8)
                         }
                     }
-                    .padding(.top, 20)
+                    .padding(.top, 10)
                     
                     Spacer()
                 }
                 .padding(.horizontal)
+                
+                // Allergies Section
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("ALLERGIES")
+                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                        .foregroundColor(document.primaryColor)
+                    
+                    Text(document.allergies?.isEmpty == false ? document.allergies! : "N/A")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(document.primaryColor.opacity(0.05))
+                        .cornerRadius(8)
+                }
+                .padding(.horizontal)
+                .padding(.top, 6)
                 
                 Spacer()
                 
