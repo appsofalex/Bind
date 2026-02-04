@@ -460,6 +460,8 @@ struct IDFlipCard: View {
                         DriversLicenseDetailView(document: document)
                     } else if document.type == .studentID {
                         StudentIdDetailView(document: document)
+                    } else if document.type == .nationalInsurance {
+                         IDCardDetailView(document: document)
                     } else {
                         IDCardDetailView(document: document)
                     }

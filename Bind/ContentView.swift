@@ -167,7 +167,7 @@ struct TravelDocsWalletView: View {
                         let targetPos = getCircularPosition(for: index)
                         let isPassport = (doc.type == .passport)
                         // CHANGED: Group generic ID types together for the flip animation
-                        let isIDCard = (doc.type == .idCard || doc.type == .driversLicense || doc.type == .studentID)
+                        let isIDCard = (doc.type == .idCard || doc.type == .driversLicense || doc.type == .studentID || doc.type == .nationalInsurance)
                         let isBoardingPass = (doc.type == .boardingPass)
                         let isRewardsCard = (doc.type == .rewardsCard)
                         let isCarRental = (doc.type == .carRental)
@@ -294,19 +294,35 @@ struct TravelDocsWalletView: View {
             // Sits on top of cards so it doesn't push them down
             VStack {
                 HStack {
-                    if selectedID == nil {
+                    HStack(alignment: .center, spacing: 10) {
                         Text("Bind")
                             .font(.largeTitle)
                             .fontWeight(.bold)
                             .foregroundColor(.primary)
-                            .transition(.opacity)
-                    } else {
-                        // Invisible text to maintain height
-                         Text("Bind")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
-                            .opacity(0)
+                        
+                        if subscriptionManager.isPro {
+                            Text("PRO")
+                                .font(.system(size: 14, weight: .black, design: .rounded))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .background(
+                                    LinearGradient(
+                                        colors: [Color.blue, Color.purple],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .clipShape(Capsule())
+                                .shadow(color: Color.purple.opacity(0.5), radius: 8, x: 0, y: 0)
+                                .overlay(
+                                    Capsule()
+                                        .stroke(Color.white.opacity(0.4), lineWidth: 1)
+                                )
+                        }
                     }
+                    .opacity(selectedID == nil ? 1 : 0)
+                    .transition(.opacity)
                     
                     Spacer()
                     
@@ -324,6 +340,7 @@ struct TravelDocsWalletView: View {
                                 Button(action: { startAdd(.driversLicense) }) { Label("Driver's License", systemImage: "car") }
                                 Button(action: { startAdd(.studentID) }) { Label("Student ID", systemImage: "graduationcap") }
                                 Button(action: { startAdd(.idCard) }) { Label("National ID", systemImage: "person.text.rectangle") }
+                                Button(action: { startAdd(.nationalInsurance) }) { Label("National Insurance", systemImage: "number.square.fill") }
                             }
                             
                             Section("Health") {

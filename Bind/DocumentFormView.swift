@@ -264,7 +264,7 @@ struct DocumentFormView: View {
     
     // Helper to determine if we show the photo upload section
     private var shouldShowPhotoUpload: Bool {
-        return [.passport, .driversLicense, .studentID, .idCard, .birthCertificate, .marriageCertificate, .rewardsCard, .event, .carRental, .hotelKeyCard, .petPassport, .petID].contains(type)
+        return [.passport, .driversLicense, .studentID, .idCard, .nationalInsurance, .birthCertificate, .marriageCertificate, .rewardsCard, .event, .carRental, .hotelKeyCard, .petPassport, .petID].contains(type)
     }
     
     // Initialize default values based on type OR existing document
@@ -459,10 +459,6 @@ struct DocumentFormView: View {
                 _dose = State(initialValue: "1st Dose")
                 _manufacturer = State(initialValue: "Pfizer (Comirnaty)")
                 _issueDate = State(initialValue: Date())
-            case .medicalAlert:
-                _title = State(initialValue: "Medical Card")
-                _subtitle = State(initialValue: "EMERGENCY INFO")
-                _holderName = State(initialValue: "TYPE: A+")
             case .birthCertificate:
                 _title = State(initialValue: "Birth Certificate")
                 _subtitle = State(initialValue: "OFFICIAL RECORD")
@@ -484,7 +480,7 @@ struct DocumentFormView: View {
             case .idCard:
                 // Pre-fill logic for National Insurance
                 if let prefill = prefilledTitle, (prefill == "National Insurance" || prefill == "SSN") {
-                    _title = State(initialValue: "National Insurance")
+                    _title = State(initialValue: "United Kingdom")
                     _subtitle = State(initialValue: "NATIONAL INSURANCE")
                     _nationality = State(initialValue: "United Kingdom")
                 } else {
@@ -494,6 +490,10 @@ struct DocumentFormView: View {
                 }
                 
                 _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60 * 10))
+            case .nationalInsurance:
+                _title = State(initialValue: "United Kingdom")
+                _subtitle = State(initialValue: "NI NUMBER")
+                _nationality = State(initialValue: "United Kingdom")
                 
             case .petInsurance:
                 _title = State(initialValue: "Pet Plan")
@@ -657,6 +657,12 @@ struct DocumentFormView: View {
                 }
                 .onChange(of: title) { newValue in
                     nationality = newValue
+                }
+            case .nationalInsurance:
+                Picker("Issuing Country", selection: $nationality) {
+                    ForEach(countries, id: \.self) { country in
+                        Text(country).tag(country)
+                    }
                 }
             case .visa:
                 Picker("Country", selection: $title) {
@@ -910,17 +916,14 @@ struct DocumentFormView: View {
                 DatePicker("Issue Date", selection: $issueDate, displayedComponents: .date)
                 DatePicker("Expiry Date", selection: $expiryDate, displayedComponents: .date)
 
-            case .idCard:
+            case .idCard, .nationalInsurance:
                 TextField("Full Name", text: $holderName)
                     .textInputAutocapitalization(.words)
-                TextField("ID Number", text: $detailValue)
+                TextField(type == .idCard ? "ID Number" : "NI Number", text: $detailValue)
                     .textInputAutocapitalization(.characters)
                     .onChange(of: detailValue) { newValue in
                         detailValue = newValue.uppercased()
                     }
-                TextField("Nationality", text: $nationality)
-                    .textInputAutocapitalization(.words)
-                
                 DatePicker("Date of Birth", selection: $birthDate, displayedComponents: .date)
                 DatePicker("Issue Date", selection: $issueDate, displayedComponents: .date)
                 DatePicker("Expiry Date", selection: $expiryDate, displayedComponents: .date)
@@ -1147,6 +1150,8 @@ struct DocumentFormView: View {
             return "Room / Res Number"
         case .idCard:
             return "ID Number"
+        case .nationalInsurance:
+            return "NI Number"
         case .petInsurance:
             return "Policy Number"
         case .petVaccineRecord:
@@ -1196,6 +1201,9 @@ struct DocumentFormView: View {
         case .idCard:
             finalSubtitle = "NATIONAL ID"
 
+        case .nationalInsurance:
+            finalSubtitle = "NI NUMBER"
+
         case .birthCertificate, .marriageCertificate:
             finalSubtitle = "OFFICIAL RECORD"
             
@@ -1244,10 +1252,10 @@ struct DocumentFormView: View {
             holderName: finalHolder,
             detailValue: finalDetail,
             origin: type == .boardingPass ? origin : nil,
-            nationality: (type == .passport || type == .driversLicense || type == .idCard) ? nationality : nil,
-            birthDate: (type == .passport || type == .driversLicense || type == .idCard || type == .petPassport) ? birthDate : nil,
-            issueDate: (type == .passport || type == .insurance || type == .driversLicense || type == .idCard || type == .petInsurance || type == .petVaccineRecord || type == .petPassport || type == .petID || type == .vaccineRecord) ? issueDate : nil,
-            expiryDate: (type == .passport || type == .insurance || type == .driversLicense || type == .visa || type == .studentID || type == .idCard || type == .petInsurance || type == .petVaccineRecord || type == .petPassport || type == .petID) ? expiryDate : nil,
+            nationality: (type == .passport || type == .driversLicense || type == .idCard || type == .nationalInsurance) ? nationality : nil,
+            birthDate: (type == .passport || type == .driversLicense || type == .idCard || type == .nationalInsurance || type == .petPassport) ? birthDate : nil,
+            issueDate: (type == .passport || type == .insurance || type == .driversLicense || type == .idCard || type == .nationalInsurance || type == .petInsurance || type == .petVaccineRecord || type == .petPassport || type == .petID || type == .vaccineRecord) ? issueDate : nil,
+            expiryDate: (type == .passport || type == .insurance || type == .driversLicense || type == .visa || type == .studentID || type == .idCard || type == .nationalInsurance || type == .petInsurance || type == .petVaccineRecord || type == .petPassport || type == .petID) ? expiryDate : nil,
             gate: type == .boardingPass ? gate : nil,
             seat: type == .boardingPass ? seat : nil,
             flightClass: type == .boardingPass ? flightClass : nil,
@@ -1263,7 +1271,7 @@ struct DocumentFormView: View {
             endorsements: type == .driversLicense ? endorsements : nil,
             height: type == .driversLicense ? height : nil,
             eyeColor: type == .driversLicense ? eyeColor : nil,
-            documentImageData: (type == .driversLicense || type == .passport || type == .idCard || type == .studentID || type == .birthCertificate || type == .marriageCertificate || type == .rewardsCard || type == .event || type == .carRental || type == .hotelKeyCard || type == .petPassport || type == .petID) ? documentImage : nil,
+            documentImageData: (type == .driversLicense || type == .passport || type == .idCard || type == .nationalInsurance || type == .studentID || type == .birthCertificate || type == .marriageCertificate || type == .rewardsCard || type == .event || type == .carRental || type == .hotelKeyCard || type == .petPassport || type == .petID) ? documentImage : nil,
             dose: type == .vaccineRecord ? dose : nil, manufacturer: type == .vaccineRecord ? manufacturer : nil, carModel: type == .carRental ? carModel : nil,
             pickupLocation: type == .carRental ? pickupLocation : nil,
             dropoffLocation: type == .carRental ? dropoffLocation : nil,
@@ -1302,6 +1310,7 @@ struct DocumentFormView: View {
         case .visa: return Color(red: 0.85, green: 0.2, blue: 0.3)
         case .insurance: return Color(red: 0.0, green: 0.5, blue: 0.5)
         case .idCard: return Color(red: 0.45, green: 0.2, blue: 0.6)
+        case .nationalInsurance: return Color(red: 0.2, green: 0.6, blue: 0.3)
         case .petInsurance: return Color(red: 0.2, green: 0.6, blue: 0.3) // Green
         case .petVaccineRecord: return Color(red: 0.2, green: 0.4, blue: 0.7) // Same as vaccine
         case .petPassport: return Color(red: 0.5, green: 0.1, blue: 0.2) // Burgundy
@@ -1326,7 +1335,8 @@ struct DocumentFormView: View {
         case .boardingPass: return "airplane"
         case .visa: return "checkmark.seal"
         case .insurance: return "cross.case.fill"
-        case .idCard: return "person.text.rectangle.fill"
+        case .idCard: return "person.text.rectangle"
+        case .nationalInsurance: return "number.square.fill"
         case .petInsurance: return "cross.case.fill"
         case .petVaccineRecord: return "syringe.fill"
         case .petPassport: return "pawprint.fill"

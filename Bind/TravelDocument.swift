@@ -165,7 +165,7 @@ struct TravelDocument: Identifiable, Codable, Equatable {
     enum DocumentType: String, CaseIterable, Identifiable, Codable {
         case passport, visa, boardingPass, insurance, idCard, birthCertificate, marriageCertificate
         // NEW TYPES
-        case driversLicense, studentID, prescription, vaccineRecord, medicalAlert
+        case driversLicense, studentID, prescription, vaccineRecord, medicalAlert, nationalInsurance
         case rewardsCard, event, carRental, hotelKeyCard
         // PET TYPES
         case petInsurance, petVaccineRecord, petPassport, petID
@@ -180,6 +180,7 @@ struct TravelDocument: Identifiable, Codable, Equatable {
             case .vaccineRecord: return "Vaccination"
             case .medicalAlert: return "Medical Card"
             case .idCard: return "National ID"
+            case .nationalInsurance: return "National Insurance"
             case .visa: return "Tourist Visa"
             case .boardingPass: return "Boarding Pass"
             case .birthCertificate: return "Birth Certificate"
