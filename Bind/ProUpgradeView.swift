@@ -66,8 +66,11 @@ struct ProUpgradeView: View {
                 Button(action: {
                     subscriptionManager.upgradeToPro()
                     
-                    // Request Notification Permission on upgrade
-                    NotificationManager.shared.requestPermission()
+                    // Request Notification Permission on upgrade with a 3-second delay
+                    // so the user can see the Pro animation on the home screen first.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        NotificationManager.shared.requestPermission()
+                    }
                     
                     dismiss()
                 }) {
