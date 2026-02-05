@@ -131,6 +131,8 @@ struct DocumentFormView: View {
     let coffeeShops = ["Starbucks", "Pret A Manger", "Costa Coffee", "Philz Coffee", "Caffè Nero", "Tim Hortons", "Dunkin'", "McCafé"]
     let supermarkets = ["Waitrose", "Tesco", "Sainsbury's", "M&S Food", "Co-op", "Asda", "Morrisons", "Lidl", "Aldi", "Waitrose & Partners"]
 
+    let bdayLocations = ["Lucknam Park"]
+
     let carRentalCompanies = [
         "Hertz", "Avis", "Europcar", "Sixt", "Enterprise", "Budget", "National", "Alamo",
         "Dollar", "Thrifty", "Goldcar", "Centauro", "Virtuo", "Keddy", "Record Go", "Locauto"
@@ -533,6 +535,10 @@ struct DocumentFormView: View {
             case .petID:
                 _title = State(initialValue: "Pet ID")
                 _subtitle = State(initialValue: "REGISTRATION")
+            case .anneBirthdayCard:
+                _title = State(initialValue: "Anne's Bday Card")
+                _subtitle = State(initialValue: "SURPRISE")
+                _detailValue = State(initialValue: "Lucknam Park")
             default:
                 break
             }
@@ -825,6 +831,12 @@ struct DocumentFormView: View {
                     .textInputAutocapitalization(.words)
                 TextField("Registration Type", text: $subtitle)
                     .textInputAutocapitalization(.words)
+            case .anneBirthdayCard:
+                TextField("Card Title", text: $title)
+                    .textInputAutocapitalization(.words)
+                Picker("Location", selection: $detailValue) {
+                    ForEach(bdayLocations, id: \.self) { Text($0) }
+                }
             }
         }
     }
@@ -1295,6 +1307,9 @@ struct DocumentFormView: View {
         case .petID:
             finalSubtitle = "PET REGISTRATION"
             
+        case .anneBirthdayCard:
+            finalSubtitle = "SURPRISE"
+            
         default:
             break
         }
@@ -1389,6 +1404,7 @@ struct DocumentFormView: View {
         case .petVaccineRecord: return Color(red: 0.2, green: 0.4, blue: 0.7) // Same as vaccine
         case .petPassport: return Color(red: 0.5, green: 0.1, blue: 0.2) // Burgundy
         case .petID: return Color(red: 0.8, green: 0.4, blue: 0.0) // Orange
+        case .anneBirthdayCard: return Color(red: 0.8, green: 0.1, blue: 0.4) // Fun Pink/Raspberry
         }
     }
     
@@ -1415,6 +1431,7 @@ struct DocumentFormView: View {
         case .petVaccineRecord: return "syringe.fill"
         case .petPassport: return "pawprint.fill"
         case .petID: return "pawprint.fill"
+        case .anneBirthdayCard: return "gift.fill"
         }
     }
 }

@@ -189,7 +189,7 @@ struct TravelDocument: Identifiable, Codable, Equatable {
         case passport, visa, boardingPass, insurance, idCard, birthCertificate, marriageCertificate
         // NEW TYPES
         case driversLicense, studentID, prescription, vaccineRecord, medicalAlert, nationalInsurance
-        case rewardsCard, event, carRental, hotelKeyCard
+        case rewardsCard, event, carRental, hotelKeyCard, anneBirthdayCard
         // PET TYPES
         case petInsurance, petVaccineRecord, petPassport, petID
         
@@ -212,6 +212,7 @@ struct TravelDocument: Identifiable, Codable, Equatable {
             case .event: return "Event"
             case .carRental: return "Car Rental"
             case .hotelKeyCard: return "Hotel Key Card"
+            case .anneBirthdayCard: return "Anne's Bday Card"
             case .petInsurance: return "Pet Insurance"
             case .petVaccineRecord: return "Pet Vaccination"
             case .petPassport: return "Pet Passport"

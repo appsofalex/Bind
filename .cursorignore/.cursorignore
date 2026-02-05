@@ -1,0 +1,19 @@
+# Xcode Project & Workspace configurations (Massive XML/Plist files)
+*.xcodeproj
+*.xcworkspace
+project.pbxproj
+
+# Assets and Resources (The Agent does not need to read JSON describing icons)
+*.xcassets
+Assets.xcassets
+*.appiconset
+*.colorset
+Contents.json
+
+# Swift Package Manager Lockfiles
+Package.resolved
+
+# System & Build Files
+.DS_Store
+DerivedData
+build

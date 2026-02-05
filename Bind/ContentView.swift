@@ -351,6 +351,12 @@ struct TravelDocsWalletView: View {
                                         isSelected: isSelected,
                                         onTap: { toggleSelection(for: doc.id) }
                                     )
+                                } else if doc.type == .anneBirthdayCard {
+                                    AnneBirthdayCardAnimatedView(
+                                        document: doc,
+                                        isSelected: isSelected,
+                                        onTap: { toggleSelection(for: doc.id) }
+                                    )
                                 } else {
                                     // Standard cards for new types
                                     DocumentCardView(document: doc)
@@ -471,6 +477,7 @@ struct TravelDocsWalletView: View {
                                 Button(action: { startAdd(.marriageCertificate) }) { Label("Marriage Certificate", systemImage: "figure.and.child.holdinghands") }
                                 Button(action: { startAdd(.rewardsCard) }) { Label("Rewards Card", systemImage: "star.fill") }
                                 Button(action: { startAdd(.event) }) { Label("Event", systemImage: "ticket.fill") }
+                                Button(action: { startAdd(.anneBirthdayCard) }) { Label("Anne's Bday Card", systemImage: "gift.fill") }
                             }
 
                         } label: {
