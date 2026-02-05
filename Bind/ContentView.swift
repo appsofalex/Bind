@@ -289,6 +289,7 @@ struct TravelDocsWalletView: View {
                         // CHANGED: Group generic ID types together for the flip animation
                         let isIDCard = (doc.type == .idCard || doc.type == .driversLicense || doc.type == .studentID || doc.type == .nationalInsurance)
                         let isBoardingPass = (doc.type == .boardingPass)
+                        let isVisa = (doc.type == .visa)
                         let isRewardsCard = (doc.type == .rewardsCard)
                         let isCarRental = (doc.type == .carRental)
                         let isMedicalAlert = (doc.type == .medicalAlert)
@@ -299,6 +300,13 @@ struct TravelDocsWalletView: View {
                                 if isPassport {
                                     // Use the specialised flip card for Passport
                                     PassportFlipCard(
+                                        document: doc,
+                                        isSelected: isSelected,
+                                        onTap: { toggleSelection(for: doc.id) }
+                                    )
+                                } else if isVisa {
+                                    // Use the specialised flip card for Visa
+                                    VisaFlipCard(
                                         document: doc,
                                         isSelected: isSelected,
                                         onTap: { toggleSelection(for: doc.id) }

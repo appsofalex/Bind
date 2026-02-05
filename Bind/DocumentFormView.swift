@@ -83,6 +83,14 @@ struct DocumentFormView: View {
     @State private var dose: String = ""
     @State private var manufacturer: String = ""
     
+    // VISA SPECIFIC FIELDS
+    @State private var visaNumber: String = ""
+    @State private var passportNumber: String = ""
+    @State private var entries: String = "Single"
+    @State private var issuingAuthority: String = ""
+    @State private var placeOfIssue: String = ""
+    @State private var visaRemarks: String = ""
+    
     // Image Picker & Cropper State
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var imageToCrop: CroppableImage?
@@ -264,7 +272,7 @@ struct DocumentFormView: View {
     
     // Helper to determine if we show the photo upload section
     private var shouldShowPhotoUpload: Bool {
-        return [.passport, .driversLicense, .studentID, .idCard, .nationalInsurance, .birthCertificate, .marriageCertificate, .rewardsCard, .event, .carRental, .hotelKeyCard, .petPassport, .petID].contains(type)
+        return [.passport, .driversLicense, .studentID, .idCard, .nationalInsurance, .birthCertificate, .marriageCertificate, .rewardsCard, .event, .carRental, .hotelKeyCard, .petPassport, .petID, .visa].contains(type)
     }
     
     // Initialize default values based on type OR existing document
@@ -317,6 +325,13 @@ struct DocumentFormView: View {
         _dose = State(initialValue: "")
         _manufacturer = State(initialValue: "")
         
+        _visaNumber = State(initialValue: "")
+        _passportNumber = State(initialValue: "")
+        _entries = State(initialValue: "Single")
+        _issuingAuthority = State(initialValue: "")
+        _placeOfIssue = State(initialValue: "")
+        _visaRemarks = State(initialValue: "")
+        
         if let doc = document {
             // EDIT MODE
             self.type = doc.type
@@ -356,6 +371,13 @@ struct DocumentFormView: View {
             
             _dose = State(initialValue: doc.dose ?? "")
             _manufacturer = State(initialValue: doc.manufacturer ?? "")
+            
+            _visaNumber = State(initialValue: doc.visaNumber ?? "")
+            _passportNumber = State(initialValue: doc.passportNumber ?? "")
+            _entries = State(initialValue: doc.entries ?? "Single")
+            _issuingAuthority = State(initialValue: doc.issuingAuthority ?? "")
+            _placeOfIssue = State(initialValue: doc.placeOfIssue ?? "")
+            _visaRemarks = State(initialValue: doc.visaRemarks ?? "")
             
             _carModel = State(initialValue: doc.carModel ?? "")
             _pickupLocation = State(initialValue: doc.pickupLocation ?? "")
@@ -860,6 +882,46 @@ struct DocumentFormView: View {
                 TextField("Email", text: $emergencyContactEmail)
                     .textInputAutocapitalization(.never)
                     .keyboardType(.emailAddress)
+            case .visa:
+                TextField("Full Name", text: $holderName)
+                    .textInputAutocapitalization(.words)
+                TextField("Visa Number", text: $detailValue)
+                    .textInputAutocapitalization(.characters)
+                    .onChange(of: detailValue) { newValue in
+                        detailValue = newValue.uppercased()
+                        visaNumber = detailValue
+                    }
+                TextField("Passport Number", text: $passportNumber)
+                    .textInputAutocapitalization(.characters)
+                    .onChange(of: passportNumber) { newValue in
+                        passportNumber = newValue.uppercased()
+                    }
+                
+                Picker("Issuing Country", selection: $nationality) {
+                    ForEach(countries, id: \.self) { country in
+                        Text(country).tag(country)
+                    }
+                }
+                
+                Picker("Number of Entries", selection: $entries) {
+                    Text("Single").tag("Single")
+                    Text("Double").tag("Double")
+                    Text("Multiple").tag("Multiple")
+                }
+                
+                TextField("Issuing Authority", text: $issuingAuthority)
+                    .textInputAutocapitalization(.words)
+                
+                TextField("Place of Issue", text: $placeOfIssue)
+                    .textInputAutocapitalization(.words)
+                
+                DatePicker("Date of Birth", selection: $birthDate, displayedComponents: .date)
+                DatePicker("Issue Date", selection: $issueDate, displayedComponents: .date)
+                DatePicker("Expiry Date", selection: $expiryDate, displayedComponents: .date)
+                
+                TextField("Remarks / Annotations", text: $visaRemarks, axis: .vertical)
+                    .lineLimit(3)
+
             case .passport:
                 TextField("Full Name", text: $holderName)
                     .textInputAutocapitalization(.words)
@@ -1142,7 +1204,7 @@ struct DocumentFormView: View {
         case .studentID:
             return "Student number"
         case .visa:
-            return "Confirmation Code"
+            return "Visa Number"
         case .rewardsCard:
             return "Member Number"
         case .event:
@@ -1255,9 +1317,9 @@ struct DocumentFormView: View {
             holderName: finalHolder,
             detailValue: finalDetail,
             origin: type == .boardingPass ? origin : nil,
-            nationality: (type == .passport || type == .driversLicense || type == .idCard || type == .nationalInsurance) ? nationality : nil,
-            birthDate: (type == .passport || type == .driversLicense || type == .idCard || type == .nationalInsurance || type == .petPassport) ? birthDate : nil,
-            issueDate: (type == .passport || type == .insurance || type == .driversLicense || type == .idCard || type == .nationalInsurance || type == .petInsurance || type == .petVaccineRecord || type == .petPassport || type == .petID || type == .vaccineRecord) ? issueDate : nil,
+            nationality: (type == .passport || type == .driversLicense || type == .idCard || type == .nationalInsurance || type == .visa) ? nationality : nil,
+            birthDate: (type == .passport || type == .driversLicense || type == .idCard || type == .nationalInsurance || type == .petPassport || type == .visa) ? birthDate : nil,
+            issueDate: (type == .passport || type == .insurance || type == .driversLicense || type == .idCard || type == .nationalInsurance || type == .petInsurance || type == .petVaccineRecord || type == .petPassport || type == .petID || type == .vaccineRecord || type == .visa) ? issueDate : nil,
             expiryDate: (type == .passport || type == .insurance || type == .driversLicense || type == .visa || type == .studentID || type == .idCard || type == .nationalInsurance || type == .petInsurance || type == .petVaccineRecord || type == .petPassport || type == .petID) ? expiryDate : nil,
             gate: type == .boardingPass ? gate : nil,
             seat: type == .boardingPass ? seat : nil,
@@ -1275,8 +1337,16 @@ struct DocumentFormView: View {
             endorsements: type == .driversLicense ? endorsements : nil,
             height: type == .driversLicense ? height : nil,
             eyeColor: type == .driversLicense ? eyeColor : nil,
-            documentImageData: (type == .driversLicense || type == .passport || type == .idCard || type == .nationalInsurance || type == .studentID || type == .birthCertificate || type == .marriageCertificate || type == .rewardsCard || type == .event || type == .carRental || type == .hotelKeyCard || type == .petPassport || type == .petID) ? documentImage : nil,
-            dose: type == .vaccineRecord ? dose : nil, manufacturer: type == .vaccineRecord ? manufacturer : nil, carModel: type == .carRental ? carModel : nil,
+            documentImageData: (type == .driversLicense || type == .passport || type == .idCard || type == .nationalInsurance || type == .studentID || type == .birthCertificate || type == .marriageCertificate || type == .rewardsCard || type == .event || type == .carRental || type == .hotelKeyCard || type == .petPassport || type == .petID || type == .visa) ? documentImage : nil,
+            dose: type == .vaccineRecord ? dose : nil,
+            manufacturer: type == .vaccineRecord ? manufacturer : nil,
+            visaNumber: type == .visa ? visaNumber : nil,
+            passportNumber: type == .visa ? passportNumber : nil,
+            entries: type == .visa ? entries : nil,
+            issuingAuthority: type == .visa ? issuingAuthority : nil,
+            placeOfIssue: type == .visa ? placeOfIssue : nil,
+            visaRemarks: type == .visa ? visaRemarks : nil,
+            carModel: type == .carRental ? carModel : nil,
             pickupLocation: type == .carRental ? pickupLocation : nil,
             dropoffLocation: type == .carRental ? dropoffLocation : nil,
             pickupDate: type == .carRental ? pickupDate : nil,
