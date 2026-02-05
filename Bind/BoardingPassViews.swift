@@ -36,7 +36,7 @@ struct BoardingPassDetailView: View {
     }
     
     private func parseAirportInfo(from string: String?) -> (code: String, city: String) {
-        guard let string = string, !string.isEmpty else {
+        guard let string = string, !string.isEmpty, string != "TBD", string != "New Document" else {
             return ("TBD", "UNKNOWN")
         }
         

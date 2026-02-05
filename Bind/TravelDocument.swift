@@ -45,6 +45,14 @@ struct TravelDocument: Identifiable, Codable, Equatable {
     var dose: String?
     var manufacturer: String?
     
+    // NEW: Visa Specific Fields
+    var visaNumber: String?
+    var passportNumber: String?
+    var entries: String? // Single, Double, Multiple
+    var issuingAuthority: String?
+    var placeOfIssue: String?
+    var visaRemarks: String?
+    
     // NEW: Car Rental Specific Fields
     var carModel: String?
     var pickupLocation: String?
@@ -102,6 +110,12 @@ struct TravelDocument: Identifiable, Codable, Equatable {
          documentImageData: Data? = nil,
          dose: String? = nil,
          manufacturer: String? = nil,
+         visaNumber: String? = nil,
+         passportNumber: String? = nil,
+         entries: String? = nil,
+         issuingAuthority: String? = nil,
+         placeOfIssue: String? = nil,
+         visaRemarks: String? = nil,
          carModel: String? = nil,
          pickupLocation: String? = nil,
          dropoffLocation: String? = nil,
@@ -148,6 +162,12 @@ struct TravelDocument: Identifiable, Codable, Equatable {
         self.documentImageData = documentImageData
         self.dose = dose
         self.manufacturer = manufacturer
+        self.visaNumber = visaNumber
+        self.passportNumber = passportNumber
+        self.entries = entries
+        self.issuingAuthority = issuingAuthority
+        self.placeOfIssue = placeOfIssue
+        self.visaRemarks = visaRemarks
         self.carModel = carModel
         self.pickupLocation = pickupLocation
         self.dropoffLocation = dropoffLocation
@@ -184,7 +204,7 @@ struct TravelDocument: Identifiable, Codable, Equatable {
             case .medicalAlert: return "Medical Card"
             case .idCard: return "National ID"
             case .nationalInsurance: return "National Insurance"
-            case .visa: return "Tourist Visa"
+            case .visa: return "Visa"
             case .boardingPass: return "Boarding Pass"
             case .birthCertificate: return "Birth Certificate"
             case .marriageCertificate: return "Marriage Certificate"

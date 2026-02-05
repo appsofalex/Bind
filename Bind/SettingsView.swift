@@ -1,4 +1,5 @@
 import SwiftUI
+import LocalAuthentication
 
 struct SettingsView: View {
     @Binding var documents: [TravelDocument]
@@ -21,7 +22,16 @@ struct SettingsView: View {
             Form {
                 // MARK: - SECURITY
                 Section(header: Text("Security")) {
-                    Toggle(isOn: $isFaceIDEnabled) {
+                    Toggle(isOn: Binding(
+                        get: { isFaceIDEnabled },
+                        set: { newValue in
+                            if newValue {
+                                authenticateFaceID()
+                            } else {
+                                isFaceIDEnabled = false
+                            }
+                        }
+                    )) {
                         Label {
                             Text("Require Face ID")
                         } icon: {
@@ -194,6 +204,31 @@ struct SettingsView: View {
             }
         }
         .preferredColorScheme(appTheme == .dark ? .dark : .light)
+    }
+    
+    private func authenticateFaceID() {
+        let context = LAContext()
+        var error: NSError?
+        
+        // We use .deviceOwnerAuthenticationWithBiometrics to specifically test for FaceID/TouchID
+        if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
+            let reason = "Confirm Face ID for app security"
+            
+            context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason) { success, authenticationError in
+                DispatchQueue.main.async {
+                    if success {
+                        isFaceIDEnabled = true
+                    } else {
+                        // If authentication fails or is cancelled, keep the toggle off
+                        isFaceIDEnabled = false
+                    }
+                }
+            }
+        } else {
+            // Biometrics not available on this device
+            isFaceIDEnabled = false
+            // You might want to show an alert here in a real app
+        }
     }
     
     private func deleteAllData() {
