@@ -74,6 +74,14 @@ struct TravelDocument: Identifiable, Codable, Equatable {
     var petMicrochipNumber: String?
     var vetName: String?
     
+    // NEW: Hotel Key Card Specific Fields
+    var hotelAddress: String?
+    var hotelPhoneNumber: String?
+    var reservationNumber: String?
+    var wifiPassword: String?
+    var roomType: String?
+    var loyaltyNumber: String?
+
     // Internal storage for Codable colors
     private let primaryColorData: CodableColor
     private let secondaryColorData: CodableColor
@@ -133,6 +141,12 @@ struct TravelDocument: Identifiable, Codable, Equatable {
          dropoffLocation: String? = nil,
          pickupDate: Date? = nil,
          dropoffDate: Date? = nil,
+         hotelAddress: String? = nil,
+         hotelPhoneNumber: String? = nil,
+         reservationNumber: String? = nil,
+         wifiPassword: String? = nil,
+         roomType: String? = nil,
+         loyaltyNumber: String? = nil,
          petName: String? = nil,
          petSpecies: String? = nil,
          petBreed: String? = nil,
@@ -190,6 +204,12 @@ struct TravelDocument: Identifiable, Codable, Equatable {
         self.dropoffLocation = dropoffLocation
         self.pickupDate = pickupDate
         self.dropoffDate = dropoffDate
+        self.hotelAddress = hotelAddress
+        self.hotelPhoneNumber = hotelPhoneNumber
+        self.reservationNumber = reservationNumber
+        self.wifiPassword = wifiPassword
+        self.roomType = roomType
+        self.loyaltyNumber = loyaltyNumber
         self.petName = petName
         self.petSpecies = petSpecies
         self.petBreed = petBreed

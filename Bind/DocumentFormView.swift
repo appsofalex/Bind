@@ -90,6 +90,15 @@ struct DocumentFormView: View {
     @State private var dose: String = ""
     @State private var manufacturer: String = ""
     
+    // HOTEL KEY SPECIFIC FIELDS
+    @State private var selectedHotelBrand: String = ""
+    @State private var hotelAddress: String = ""
+    @State private var hotelPhoneNumber: String = ""
+    @State private var reservationNumber: String = ""
+    @State private var wifiPassword: String = ""
+    @State private var selectedRoomType: String = "Standard"
+    @State private var loyaltyNumber: String = ""
+    
     // VISA SPECIFIC FIELDS
     @State private var visaNumber: String = ""
     @State private var passportNumber: String = ""
@@ -160,6 +169,17 @@ struct DocumentFormView: View {
     ]
     
     let petSpeciesList = ["Dog", "Cat", "Bird", "Rabbit", "Hamster", "Reptile", "Other"]
+
+    let hotelBrands = [
+        "Marriott", "Hilton", "Hyatt", "IHG (InterContinental)", "Accor", "Wyndham", "Choice Hotels", "Best Western",
+        "Radisson", "Four Seasons", "Ritz-Carlton", "St. Regis", "Waldorf Astoria", "W Hotels", "Westin", "Sheraton",
+        "Holiday Inn", "Premier Inn", "Travelodge", "Ibis", "Mercure", "Novotel", "Shangri-La", "Mandarin Oriental",
+        "Fairmont", "Rosewood", "Aman", "Belmond", "Langham", "Pan Pacific", "Kimpton", "Omni Hotels",
+        "Loews", "MGM Resorts", "Caesars", "Wyndham Garden", "Ramada", "Days Inn", "Super 8", "Motel 6",
+        "CitizenM", "Mama Shelter", "Moxy", "Yotel", "Standard Hotels"
+    ]
+    
+    let roomTypes = ["Standard", "Deluxe", "Suite", "Executive", "Family", "Studio", "Penthouse", "Accessible", "Twin", "King", "Queen", "Club"]
 
     let countries = [
         "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan",
@@ -354,6 +374,14 @@ struct DocumentFormView: View {
         _dose = State(initialValue: "")
         _manufacturer = State(initialValue: "")
         
+        _selectedHotelBrand = State(initialValue: "")
+        _hotelAddress = State(initialValue: "")
+        _hotelPhoneNumber = State(initialValue: "")
+        _reservationNumber = State(initialValue: "")
+        _wifiPassword = State(initialValue: "")
+        _selectedRoomType = State(initialValue: "Standard")
+        _loyaltyNumber = State(initialValue: "")
+        
         _visaNumber = State(initialValue: "")
         _passportNumber = State(initialValue: "")
         _entries = State(initialValue: "Single")
@@ -413,8 +441,18 @@ struct DocumentFormView: View {
             _dropoffLocation = State(initialValue: doc.dropoffLocation ?? "")
             if let pd = doc.pickupDate { _pickupDate = State(initialValue: pd) }
             if let dd = doc.dropoffDate { _dropoffDate = State(initialValue: dd) }
+            
+            _hotelAddress = State(initialValue: doc.hotelAddress ?? "")
+            _hotelPhoneNumber = State(initialValue: doc.hotelPhoneNumber ?? "")
+            _reservationNumber = State(initialValue: doc.reservationNumber ?? "")
+            _wifiPassword = State(initialValue: doc.wifiPassword ?? "")
+            _selectedRoomType = State(initialValue: doc.roomType ?? "Standard")
+            _loyaltyNumber = State(initialValue: doc.loyaltyNumber ?? "")
+            
             if doc.type == .carRental {
                 _selectedCarBrand = State(initialValue: doc.title)
+            } else if doc.type == .hotelKeyCard {
+                _selectedHotelBrand = State(initialValue: doc.title)
             }
             
             _petName = State(initialValue: doc.petName ?? "")
@@ -557,20 +595,20 @@ struct DocumentFormView: View {
                 _nationality = State(initialValue: "United Kingdom")
                 
             case .petInsurance:
-                _title = State(initialValue: "Pet Plan")
-                _subtitle = State(initialValue: "PET INSURANCE")
+                _title = State(initialValue: "")
+                _subtitle = State(initialValue: "")
                 _issueDate = State(initialValue: Date())
                 _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60))
             case .petVaccineRecord:
-                _title = State(initialValue: "Veterinary Clinic")
-                _subtitle = State(initialValue: "VACCINATION")
+                _title = State(initialValue: "")
+                _subtitle = State(initialValue: "")
             case .petPassport:
                 _title = State(initialValue: "United Kingdom")
                 _subtitle = State(initialValue: "PET PASSPORT")
                 _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60 * 5))
             case .petID:
-                _title = State(initialValue: "Pet ID")
-                _subtitle = State(initialValue: "REGISTRATION")
+                _title = State(initialValue: "")
+                _subtitle = State(initialValue: "")
             case .anneBirthdayCard:
                 _title = State(initialValue: "Anne's Bday Card")
                 _subtitle = State(initialValue: "SURPRISE")
@@ -762,11 +800,34 @@ struct DocumentFormView: View {
                     }
                 }
             
-            case .studentID, .birthCertificate, .marriageCertificate, .event, .hotelKeyCard:
+            case .studentID, .birthCertificate, .marriageCertificate, .event:
                 TextField(type == .studentID ? "University name" : "Title (e.g. Company, City)", text: $title)
                     .textInputAutocapitalization(.words)
                 TextField("Subtitle (e.g. Card Type)", text: $subtitle)
                     .textInputAutocapitalization(type == .studentID ? .sentences : .characters)
+                
+            case .hotelKeyCard:
+                Picker("Hotel Brand", selection: $selectedHotelBrand) {
+                    Text("Select Brand").tag("")
+                    ForEach(hotelBrands, id: \.self) { brand in
+                        Text(brand).tag(brand)
+                    }
+                }
+                .onChange(of: selectedHotelBrand) { newValue in
+                    title = newValue
+                    subtitle = "HOTEL ACCESS"
+                }
+                
+                if selectedHotelBrand.isEmpty {
+                    TextField("Or enter custom name", text: $title)
+                        .textInputAutocapitalization(.words)
+                }
+                
+                Picker("Room Type", selection: $selectedRoomType) {
+                    ForEach(roomTypes, id: \.self) { type in
+                        Text(type).tag(type)
+                    }
+                }
                 
             case .prescription:
                 TextField("Medication Name", text: $title)
@@ -1083,6 +1144,25 @@ struct DocumentFormView: View {
                     .textInputAutocapitalization(.words)
                 DatePicker("Drop-off Date & Time", selection: $dropoffDate)
                 
+            case .hotelKeyCard:
+                TextField("Guest Name", text: $holderName)
+                    .textInputAutocapitalization(.words)
+                TextField("Room Number", text: $detailValue)
+                    .textInputAutocapitalization(.characters)
+                TextField("Reservation Number", text: $reservationNumber)
+                    .textInputAutocapitalization(.characters)
+                TextField("Loyalty / Member Number", text: $loyaltyNumber)
+                    .textInputAutocapitalization(.characters)
+                
+                DatePicker("Check-in Date", selection: $issueDate, displayedComponents: .date)
+                DatePicker("Check-out Date", selection: $expiryDate, displayedComponents: .date)
+                
+                TextField("Wi-Fi Password", text: $wifiPassword)
+                TextField("Hotel Phone", text: $hotelPhoneNumber)
+                    .keyboardType(.phonePad)
+                TextField("Hotel Address", text: $hotelAddress, axis: .vertical)
+                    .lineLimit(3)
+                
             case .prescription:
                 TextField("Patient Name", text: $holderName)
                     .textInputAutocapitalization(.words)
@@ -1379,7 +1459,7 @@ struct DocumentFormView: View {
         case .petPassport:
             finalSubtitle = "PET PASSPORT"
         case .petID:
-            finalSubtitle = "PET REGISTRATION"
+            if finalSubtitle.isEmpty { finalSubtitle = "PET REGISTRATION" }
             
         case .anneBirthdayCard:
             finalSubtitle = "SURPRISE"
@@ -1445,6 +1525,12 @@ struct DocumentFormView: View {
             dropoffLocation: type == .carRental ? dropoffLocation : nil,
             pickupDate: type == .carRental ? pickupDate : nil,
             dropoffDate: type == .carRental ? dropoffDate : nil,
+            hotelAddress: type == .hotelKeyCard ? hotelAddress : nil,
+            hotelPhoneNumber: type == .hotelKeyCard ? hotelPhoneNumber : nil,
+            reservationNumber: type == .hotelKeyCard ? reservationNumber : nil,
+            wifiPassword: type == .hotelKeyCard ? wifiPassword : nil,
+            roomType: type == .hotelKeyCard ? selectedRoomType : nil,
+            loyaltyNumber: type == .hotelKeyCard ? loyaltyNumber : nil,
             petName: isPetDocument ? petName : nil,
             petSpecies: isPetDocument ? petSpecies : nil,
             petBreed: isPetDocument ? petBreed : nil,

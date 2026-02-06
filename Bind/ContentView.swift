@@ -358,8 +358,20 @@ struct TravelDocsWalletView: View {
                                         isSelected: isSelected,
                                         onTap: { toggleSelection(for: doc.id) }
                                     )
+                                } else if doc.type == .hotelKeyCard {
+                                    HotelKeyAnimatedCard(
+                                        document: doc,
+                                        isSelected: isSelected,
+                                        onTap: { toggleSelection(for: doc.id) }
+                                    )
                                 } else if doc.type == .anneBirthdayCard {
                                     AnneBirthdayCardAnimatedView(
+                                        document: doc,
+                                        isSelected: isSelected,
+                                        onTap: { toggleSelection(for: doc.id) }
+                                    )
+                                } else if [.petInsurance, .petVaccineRecord, .petPassport, .petID].contains(doc.type) {
+                                    PetAnimatedCard(
                                         document: doc,
                                         isSelected: isSelected,
                                         onTap: { toggleSelection(for: doc.id) }
