@@ -79,6 +79,13 @@ struct DocumentFormView: View {
     @State private var petMicrochipNumber: String = ""
     @State private var vetName: String = ""
     
+    // PRESCRIPTION SPECIFIC FIELDS
+    @State private var frequency: String = "Once daily"
+    @State private var route: String = "Oral"
+    @State private var doctorName: String = ""
+    @State private var pharmacyName: String = ""
+    @State private var refills: String = "0"
+    
     // VACCINE SPECIFIC FIELDS
     @State private var dose: String = ""
     @State private var manufacturer: String = ""
@@ -122,6 +129,20 @@ struct DocumentFormView: View {
     
     let visaTypes = ["Tourist Visa", "Business Visa", "Student Visa", "Work Visa", "Transit Visa", "Investor Visa", "Spouse Visa", "Visitor Visa"]
     let insuranceTypes = ["Travel", "Health", "Auto", "Dental", "Life", "Home & Contents"]
+    
+    // PRESCRIPTION DATA
+    let prescriptionFrequencies = [
+        "Once daily", "Twice daily", "Three times daily", "Four times daily",
+        "Every 4 hours", "Every 6 hours", "Every 8 hours", "Every 12 hours",
+        "As needed (PRN)", "Before bed", "In the morning", "With food", "Weekly"
+    ]
+    
+    let prescriptionRoutes = [
+        "Oral", "Topical", "Inhalation", "Injection", "Ophthalmic (Eye)",
+        "Otic (Ear)", "Nasal", "Sublingual", "Rectal"
+    ]
+    
+    let refillOptions = ["0", "1", "2", "3", "4", "5", "6", "11", "12", "PRN"]
     
     // Static list for UK Driver's License classes
     let licenseClasses = ["Category B (Car)", "Category A (Motorcycle)", "Category C (Large Goods)", "Category D (Bus)", "Provisional"]
@@ -324,6 +345,12 @@ struct DocumentFormView: View {
         _petMicrochipNumber = State(initialValue: "")
         _vetName = State(initialValue: "")
         
+        _frequency = State(initialValue: "Once daily")
+        _route = State(initialValue: "Oral")
+        _doctorName = State(initialValue: "")
+        _pharmacyName = State(initialValue: "")
+        _refills = State(initialValue: "0")
+        
         _dose = State(initialValue: "")
         _manufacturer = State(initialValue: "")
         
@@ -395,6 +422,12 @@ struct DocumentFormView: View {
             _petBreed = State(initialValue: doc.petBreed ?? "")
             _petMicrochipNumber = State(initialValue: doc.petMicrochipNumber ?? "")
             _vetName = State(initialValue: doc.vetName ?? "")
+            
+            _frequency = State(initialValue: doc.frequency ?? "Once daily")
+            _route = State(initialValue: doc.route ?? "Oral")
+            _doctorName = State(initialValue: doc.doctorName ?? "")
+            _pharmacyName = State(initialValue: doc.pharmacyName ?? "")
+            _refills = State(initialValue: doc.refills ?? "0")
             
             if doc.type == .medicalAlert {
                 if let bloodTypeRange = doc.holderName.range(of: "TYPE: ") {
@@ -476,8 +509,11 @@ struct DocumentFormView: View {
                 _subtitle = State(initialValue: "Student ID")
                 _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60 * 4))
             case .prescription:
-                _title = State(initialValue: "Pharmacy")
-                _subtitle = State(initialValue: "PRESCRIPTION")
+                _title = State(initialValue: "")
+                _subtitle = State(initialValue: "")
+                _frequency = State(initialValue: "Once daily")
+                _route = State(initialValue: "Oral")
+                _refills = State(initialValue: "0")
             case .vaccineRecord:
                 _title = State(initialValue: "")
                 _subtitle = State(initialValue: "VACCINATION")
@@ -726,11 +762,29 @@ struct DocumentFormView: View {
                     }
                 }
             
-            case .studentID, .prescription, .birthCertificate, .marriageCertificate, .event, .hotelKeyCard:
+            case .studentID, .birthCertificate, .marriageCertificate, .event, .hotelKeyCard:
                 TextField(type == .studentID ? "University name" : "Title (e.g. Company, City)", text: $title)
                     .textInputAutocapitalization(.words)
                 TextField("Subtitle (e.g. Card Type)", text: $subtitle)
                     .textInputAutocapitalization(type == .studentID ? .sentences : .characters)
+                
+            case .prescription:
+                TextField("Medication Name", text: $title)
+                    .textInputAutocapitalization(.words)
+                TextField("Dosage (e.g. 500mg)", text: $subtitle)
+                    .textInputAutocapitalization(.words)
+                
+                Picker("Frequency", selection: $frequency) {
+                    ForEach(prescriptionFrequencies, id: \.self) { Text($0) }
+                }
+                
+                Picker("Route", selection: $route) {
+                    ForEach(prescriptionRoutes, id: \.self) { Text($0) }
+                }
+                
+                Picker("Refills", selection: $refills) {
+                    ForEach(refillOptions, id: \.self) { Text($0) }
+                }
                 
             case .carRental:
                 Picker("Rental Company", selection: $selectedCarBrand) {
@@ -1029,6 +1083,20 @@ struct DocumentFormView: View {
                     .textInputAutocapitalization(.words)
                 DatePicker("Drop-off Date & Time", selection: $dropoffDate)
                 
+            case .prescription:
+                TextField("Patient Name", text: $holderName)
+                    .textInputAutocapitalization(.words)
+                TextField("RX Number", text: $detailValue)
+                    .textInputAutocapitalization(.characters)
+                
+                TextField("Prescribing Doctor", text: $doctorName)
+                    .textInputAutocapitalization(.words)
+                TextField("Pharmacy Name", text: $pharmacyName)
+                    .textInputAutocapitalization(.words)
+                
+                DatePicker("Date Prescribed", selection: $issueDate, displayedComponents: .date)
+                DatePicker("Expiration Date", selection: $expiryDate, displayedComponents: .date)
+                
             default:
                 TextField("Your Name", text: $holderName)
                     .textInputAutocapitalization(.words)
@@ -1281,6 +1349,12 @@ struct DocumentFormView: View {
         case .nationalInsurance:
             finalSubtitle = "NI NUMBER"
 
+        case .studentID:
+            finalSubtitle = "STUDENT ID"
+            
+        case .prescription:
+            if finalSubtitle.isEmpty { finalSubtitle = "PRESCRIPTION" }
+            
         case .birthCertificate, .marriageCertificate:
             finalSubtitle = "OFFICIAL RECORD"
             
@@ -1334,8 +1408,8 @@ struct DocumentFormView: View {
             origin: type == .boardingPass ? origin : nil,
             nationality: (type == .passport || type == .driversLicense || type == .idCard || type == .nationalInsurance || type == .visa) ? nationality : nil,
             birthDate: (type == .passport || type == .driversLicense || type == .idCard || type == .nationalInsurance || type == .petPassport || type == .visa) ? birthDate : nil,
-            issueDate: (type == .passport || type == .insurance || type == .driversLicense || type == .idCard || type == .nationalInsurance || type == .petInsurance || type == .petVaccineRecord || type == .petPassport || type == .petID || type == .vaccineRecord || type == .visa) ? issueDate : nil,
-            expiryDate: (type == .passport || type == .insurance || type == .driversLicense || type == .visa || type == .studentID || type == .idCard || type == .nationalInsurance || type == .petInsurance || type == .petVaccineRecord || type == .petPassport || type == .petID) ? expiryDate : nil,
+            issueDate: (type == .passport || type == .insurance || type == .driversLicense || type == .idCard || type == .nationalInsurance || type == .petInsurance || type == .petVaccineRecord || type == .petPassport || type == .petID || type == .vaccineRecord || type == .visa || type == .prescription) ? issueDate : nil,
+            expiryDate: (type == .passport || type == .insurance || type == .driversLicense || type == .visa || type == .studentID || type == .idCard || type == .nationalInsurance || type == .petInsurance || type == .petVaccineRecord || type == .petPassport || type == .petID || type == .prescription) ? expiryDate : nil,
             gate: type == .boardingPass ? gate : nil,
             seat: type == .boardingPass ? seat : nil,
             flightClass: type == .boardingPass ? flightClass : nil,
@@ -1355,6 +1429,11 @@ struct DocumentFormView: View {
             documentImageData: (type == .driversLicense || type == .passport || type == .idCard || type == .nationalInsurance || type == .studentID || type == .birthCertificate || type == .marriageCertificate || type == .rewardsCard || type == .event || type == .carRental || type == .hotelKeyCard || type == .petPassport || type == .petID || type == .visa) ? documentImage : nil,
             dose: type == .vaccineRecord ? dose : nil,
             manufacturer: type == .vaccineRecord ? manufacturer : nil,
+            frequency: type == .prescription ? frequency : nil,
+            route: type == .prescription ? route : nil,
+            doctorName: type == .prescription ? doctorName : nil,
+            pharmacyName: type == .prescription ? pharmacyName : nil,
+            refills: type == .prescription ? refills : nil,
             visaNumber: type == .visa ? visaNumber : nil,
             passportNumber: type == .visa ? passportNumber : nil,
             entries: type == .visa ? entries : nil,

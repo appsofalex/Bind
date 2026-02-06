@@ -45,6 +45,13 @@ struct TravelDocument: Identifiable, Codable, Equatable {
     var dose: String?
     var manufacturer: String?
     
+    // NEW: Prescription Specific Fields
+    var frequency: String?
+    var route: String?
+    var doctorName: String?
+    var pharmacyName: String?
+    var refills: String?
+    
     // NEW: Visa Specific Fields
     var visaNumber: String?
     var passportNumber: String?
@@ -110,6 +117,11 @@ struct TravelDocument: Identifiable, Codable, Equatable {
          documentImageData: Data? = nil,
          dose: String? = nil,
          manufacturer: String? = nil,
+         frequency: String? = nil,
+         route: String? = nil,
+         doctorName: String? = nil,
+         pharmacyName: String? = nil,
+         refills: String? = nil,
          visaNumber: String? = nil,
          passportNumber: String? = nil,
          entries: String? = nil,
@@ -162,6 +174,11 @@ struct TravelDocument: Identifiable, Codable, Equatable {
         self.documentImageData = documentImageData
         self.dose = dose
         self.manufacturer = manufacturer
+        self.frequency = frequency
+        self.route = route
+        self.doctorName = doctorName
+        self.pharmacyName = pharmacyName
+        self.refills = refills
         self.visaNumber = visaNumber
         self.passportNumber = passportNumber
         self.entries = entries

@@ -325,6 +325,13 @@ struct TravelDocsWalletView: View {
                                         isSelected: isSelected,
                                         onTap: { toggleSelection(for: doc.id) }
                                     )
+                                } else if doc.type == .prescription {
+                                    // NEW: Flip card for Prescription
+                                    PrescriptionFlipCard(
+                                        document: doc,
+                                        isSelected: isSelected,
+                                        onTap: { toggleSelection(for: doc.id) }
+                                    )
                                 } else if isIDCard {
                                     // Use specialised flip card for ID
                                     IDFlipCard(

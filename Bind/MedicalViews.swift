@@ -57,104 +57,108 @@ struct MedicalCardDetailView: View {
                 .background(document.primaryColor)
                 
                 // Main Content
-                HStack(alignment: .top, spacing: 15) {
-                    // Left Column: Blood Type (Prominent)
-                    VStack(alignment: .center, spacing: 4) {
-                        Text("BLOOD TYPE")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .foregroundColor(.gray)
-                        
-                        ZStack {
-                            Circle()
-                                .stroke(document.primaryColor, lineWidth: 2.5)
-                                .frame(width: 60, height: 60)
+                VStack(spacing: 8) {
+                    HStack(alignment: .top, spacing: 15) {
+                        // Left Column: Blood Type (Prominent)
+                        VStack(alignment: .center, spacing: 4) {
+                            Text("BLOOD TYPE")
+                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                .foregroundColor(.gray)
                             
-                            Text(bloodType)
-                                .font(.system(size: 24, weight: .heavy, design: .rounded))
+                            ZStack {
+                                Circle()
+                                    .stroke(document.primaryColor, lineWidth: 2)
+                                    .frame(width: 55, height: 55)
+                                
+                                Text(bloodType)
+                                    .font(.system(size: 22, weight: .heavy, design: .rounded))
+                                    .foregroundColor(document.primaryColor)
+                            }
+                            
+                            Image(systemName: "drop.fill")
+                                .font(.caption)
+                                .foregroundColor(document.primaryColor.opacity(0.6))
+                        }
+                        .frame(width: 70)
+                        .padding(.top, 8)
+                        
+                        // Right Column: Emergency Contact
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("EMERGENCY CONTACT")
+                                .font(.system(size: 8, weight: .heavy, design: .monospaced))
                                 .foregroundColor(document.primaryColor)
+                                .padding(.bottom, -2)
+                            
+                            // Name
+                            VStack(alignment: .leading, spacing: 0) {
+                                Text("NAME")
+                                    .font(.system(size: 7, weight: .bold))
+                                    .foregroundColor(.gray)
+                                Text(document.emergencyContactName?.isEmpty == false ? document.emergencyContactName! : "Not Set")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(.black)
+                                    .lineLimit(1)
+                            }
+                            
+                            // Phone
+                            VStack(alignment: .leading, spacing: 0) {
+                                Text("PHONE")
+                                    .font(.system(size: 7, weight: .bold))
+                                    .foregroundColor(.gray)
+                                Text(document.emergencyPhoneNumber?.isEmpty == false ? document.emergencyPhoneNumber! : "Not Set")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(.black)
+                                    .lineLimit(1)
+                            }
+                            
+                            // Email
+                            VStack(alignment: .leading, spacing: 0) {
+                                Text("EMAIL")
+                                    .font(.system(size: 7, weight: .bold))
+                                    .foregroundColor(.gray)
+                                Text(document.emergencyContactEmail?.isEmpty == false ? document.emergencyContactEmail! : "Not Set")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundColor(.black)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.8)
+                            }
                         }
+                        .padding(.top, 8)
                         
-                        Image(systemName: "drop.fill")
-                            .font(.subheadline)
-                            .foregroundColor(document.primaryColor.opacity(0.6))
+                        Spacer()
                     }
-                    .frame(width: 80)
-                    .padding(.top, 10)
+                    .padding(.horizontal)
                     
-                    // Right Column: Emergency Contact
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("EMERGENCY CONTACT")
-                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                    // Allergies Section
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("ALLERGIES")
+                            .font(.system(size: 8, weight: .heavy, design: .monospaced))
                             .foregroundColor(document.primaryColor)
-                            .padding(.bottom, -2)
                         
-                        // Name
-                        VStack(alignment: .leading, spacing: 0) {
-                            Text("NAME")
-                                .font(.system(size: 7, weight: .bold))
-                                .foregroundColor(.gray)
-                            Text(document.emergencyContactName?.isEmpty == false ? document.emergencyContactName! : "Not Set")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(.black)
-                        }
-                        
-                        // Phone
-                        VStack(alignment: .leading, spacing: 0) {
-                            Text("PHONE")
-                                .font(.system(size: 7, weight: .bold))
-                                .foregroundColor(.gray)
-                            Text(document.emergencyPhoneNumber?.isEmpty == false ? document.emergencyPhoneNumber! : "Not Set")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(.black)
-                        }
-                        
-                        // Email
-                        VStack(alignment: .leading, spacing: 0) {
-                            Text("EMAIL")
-                                .font(.system(size: 7, weight: .bold))
-                                .foregroundColor(.gray)
-                            Text(document.emergencyContactEmail?.isEmpty == false ? document.emergencyContactEmail! : "Not Set")
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundColor(.black)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
-                        }
+                        Text(document.allergies?.isEmpty == false ? document.allergies! : "N/A")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.black)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(document.primaryColor.opacity(0.05))
+                            .cornerRadius(8)
+                            .lineLimit(2)
                     }
-                    .padding(.top, 10)
-                    
-                    Spacer()
+                    .padding(.horizontal)
                 }
-                .padding(.horizontal)
-                
-                // Allergies Section
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("ALLERGIES")
-                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                        .foregroundColor(document.primaryColor)
-                    
-                    Text(document.allergies?.isEmpty == false ? document.allergies! : "N/A")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.black)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(document.primaryColor.opacity(0.05))
-                        .cornerRadius(8)
-                }
-                .padding(.horizontal)
-                .padding(.top, 6)
                 
                 Spacer()
                 
                 // Bottom Strip
                 HStack {
                     Text("In case of emergency, please contact the above immediately.")
-                        .font(.system(size: 8, weight: .medium, design: .default))
+                        .font(.system(size: 7.5, weight: .medium, design: .default))
                         .foregroundColor(.white.opacity(0.9))
                     Spacer()
                 }
                 .padding(.horizontal, 15)
-                .padding(.vertical, 8)
+                .padding(.vertical, 6)
                 .background(document.primaryColor.opacity(0.8))
             }
         }
@@ -211,21 +215,23 @@ struct VaccinationCardDetailView: View {
                         .font(.caption)
                 }
                 .padding(.horizontal)
-                .padding(.vertical,14)
+                .padding(.vertical, 10)
                 .background(document.primaryColor)
                 
                 // MAIN CONTENT
-                VStack(alignment: .leading, spacing: 15) {
+                VStack(alignment: .leading, spacing: 12) {
                     
                     // ROW 1: Patient & Vaccine (Prominent)
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("PATIENT NAME")
-                                .font(.system(size: 8, weight: .bold))
+                                .font(.system(size: 7, weight: .bold))
                                 .foregroundColor(.gray)
                             Text(document.holderName)
-                                .font(.system(size: 16, weight: .bold))
+                                .font(.system(size: 15, weight: .bold))
                                 .foregroundColor(.black)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
                         }
                         
                         Spacer()
@@ -233,42 +239,44 @@ struct VaccinationCardDetailView: View {
                         // Manufacturer Badge
                         if let manufacturer = document.manufacturer, !manufacturer.isEmpty {
                             Text(manufacturer)
-                                .font(.system(size: 9, weight: .semibold))
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 3)
+                                .font(.system(size: 8, weight: .semibold))
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
                                 .background(document.primaryColor.opacity(0.1))
                                 .foregroundColor(document.primaryColor)
                                 .cornerRadius(4)
+                                .lineLimit(1)
                         }
                     }
-                    .padding(.top, 10)
+                    .padding(.top, 8)
                     
                     Divider()
-                        .background(Color.gray.opacity(0.2))
+                        .background(Color.gray.opacity(0.15))
                     
                     // ROW 2: Vaccine Details Grid - Using Grid for alignment
-                    Grid(alignment: .topLeading, horizontalSpacing: 20, verticalSpacing: 12) {
+                    Grid(alignment: .topLeading, horizontalSpacing: 20, verticalSpacing: 10) {
                         GridRow {
                             // Vaccine (Left)
                             VStack(alignment: .leading, spacing: 1) {
                                 Text("VACCINE")
-                                    .font(.system(size: 8, weight: .bold))
+                                    .font(.system(size: 7, weight: .bold))
                                     .foregroundColor(.gray)
                                 Text(vaccineName)
-                                    .font(.system(size: 14, weight: .heavy, design: .default))
+                                    .font(.system(size: 13, weight: .heavy, design: .default))
                                     .foregroundColor(document.primaryColor)
                                     .fixedSize(horizontal: false, vertical: true)
                                     .lineLimit(2)
+                                    .minimumScaleFactor(0.8)
                                     .multilineTextAlignment(.leading)
                             }
                             
                             // Date (Right)
                             VStack(alignment: .leading, spacing: 1) {
                                 Text("DATE ADMINISTERED")
-                                    .font(.system(size: 8, weight: .bold))
+                                    .font(.system(size: 7, weight: .bold))
                                     .foregroundColor(.gray)
                                 Text(document.issueDate?.formatted(date: .abbreviated, time: .omitted) ?? "N/A")
-                                    .font(.system(size: 13, weight: .medium))
+                                    .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(.black)
                             }
                         }
@@ -277,20 +285,20 @@ struct VaccinationCardDetailView: View {
                             // Dose (Left)
                             VStack(alignment: .leading, spacing: 1) {
                                 Text("DOSE")
-                                    .font(.system(size: 8, weight: .bold))
+                                    .font(.system(size: 7, weight: .bold))
                                     .foregroundColor(.gray)
                                 Text(doseInfo)
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(.system(size: 13, weight: .medium))
                                     .foregroundColor(.black)
                             }
                             
                             // Batch (Right)
                             VStack(alignment: .leading, spacing: 1) {
                                 Text("BATCH NO")
-                                    .font(.system(size: 8, weight: .bold))
+                                    .font(.system(size: 7, weight: .bold))
                                     .foregroundColor(.gray)
                                 Text(document.detailValue)
-                                    .font(.system(size: 13, weight: .medium, design: .monospaced))
+                                    .font(.system(size: 12, weight: .medium, design: .monospaced))
                                     .foregroundColor(.black)
                             }
                         }
@@ -303,8 +311,9 @@ struct VaccinationCardDetailView: View {
                                 .font(.system(size: 7, weight: .bold))
                                 .foregroundColor(.gray)
                             Text(document.title) // Provider Name
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(.system(size: 10, weight: .semibold))
                                 .foregroundColor(.black.opacity(0.8))
+                                .lineLimit(1)
                         }
                         
                         Spacer()
@@ -315,12 +324,12 @@ struct VaccinationCardDetailView: View {
                                     .font(.system(size: 7, weight: .bold))
                                     .foregroundColor(.red.opacity(0.7))
                                 Text(nextDue.formatted(date: .abbreviated, time: .omitted))
-                                    .font(.system(size: 11, weight: .bold))
+                                    .font(.system(size: 10, weight: .bold))
                                     .foregroundColor(.red.opacity(0.8))
                             }
                         }
                     }
-                    .padding(.bottom, 22) // Increased padding to lift content up slightly
+                    .padding(.bottom, 18) 
                 }
                 .padding(.horizontal, 20)
             }
@@ -331,6 +340,252 @@ struct VaccinationCardDetailView: View {
             RoundedRectangle(cornerRadius: 20)
                 .stroke(Color.black.opacity(0.1), lineWidth: 1)
         )
+    }
+}
+
+// MARK: - PRESCRIPTION CARD DETAIL VIEW
+struct PrescriptionCardDetailView: View {
+    let document: TravelDocument
+    
+    var body: some View {
+        ZStack {
+            // Pharmacy White Background
+            Color(white: 0.98)
+            
+            // Subtle watermark
+            GeometryReader { geo in
+                Image(systemName: "pills.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: geo.size.width * 0.5)
+                    .foregroundColor(document.primaryColor.opacity(0.04))
+                    .position(x: geo.size.width/2, y: geo.size.height/2)
+            }
+            
+            VStack(spacing: 0) {
+                // Header
+                HStack {
+                    Image(systemName: "pills.fill")
+                        .foregroundColor(.white)
+                        .font(.caption)
+                    Text("PRESCRIPTION RECORD")
+                        .font(.system(size: 11, weight: .heavy, design: .rounded))
+                        .foregroundColor(.white)
+                        .tracking(1.5)
+                    Spacer()
+                    Text("RX")
+                        .font(.system(size: 14, weight: .black, design: .serif))
+                        .foregroundColor(.white.opacity(0.8))
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 10)
+                .background(document.primaryColor)
+                
+                VStack(alignment: .leading, spacing: 10) {
+                    // ROW 1: Medication & Patient
+                    HStack(alignment: .top) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("MEDICATION")
+                                .font(.system(size: 7, weight: .bold))
+                                .foregroundColor(.gray)
+                            Text(document.title)
+                                .font(.system(size: 16, weight: .heavy))
+                                .foregroundColor(document.primaryColor)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
+                        }
+                        
+                        Spacer()
+                        
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text("PATIENT")
+                                .font(.system(size: 7, weight: .bold))
+                                .foregroundColor(.gray)
+                            Text(document.holderName)
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.black)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+                        }
+                    }
+                    .padding(.top, 8)
+                    
+                    Divider()
+                        .background(Color.gray.opacity(0.15))
+                    
+                    // ROW 2: Instructions Grid
+                    Grid(alignment: .topLeading, horizontalSpacing: 25, verticalSpacing: 8) {
+                        GridRow {
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text("DOSAGE")
+                                    .font(.system(size: 7, weight: .bold))
+                                    .foregroundColor(.gray)
+                                Text(document.subtitle)
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(.black)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.8)
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text("FREQUENCY")
+                                    .font(.system(size: 7, weight: .bold))
+                                    .foregroundColor(.gray)
+                                Text(document.frequency ?? "N/A")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(.black)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.8)
+                            }
+                        }
+                        
+                        GridRow {
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text("ROUTE")
+                                    .font(.system(size: 7, weight: .bold))
+                                    .foregroundColor(.gray)
+                                Text(document.route ?? "N/A")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(.black)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.8)
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text("REFILLS")
+                                    .font(.system(size: 7, weight: .bold))
+                                    .foregroundColor(.gray)
+                                Text(document.refills ?? "0")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(document.refills == "0" ? .red.opacity(0.7) : .black)
+                            }
+                        }
+                    }
+                    
+                    Divider()
+                        .background(Color.gray.opacity(0.1))
+                    
+                    // ROW 3: Provider Info
+                    HStack(alignment: .top) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            HStack(spacing: 4) {
+                                Text("DOCTOR:")
+                                    .font(.system(size: 7, weight: .bold))
+                                    .foregroundColor(.gray)
+                                Text(document.doctorName?.isEmpty == false ? document.doctorName! : "N/A")
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .foregroundColor(.black)
+                                    .lineLimit(1)
+                            }
+                            
+                            HStack(spacing: 4) {
+                                Text("PHARMACY:")
+                                    .font(.system(size: 7, weight: .bold))
+                                    .foregroundColor(.gray)
+                                Text(document.pharmacyName?.isEmpty == false ? document.pharmacyName! : "N/A")
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .foregroundColor(.black)
+                                    .lineLimit(1)
+                            }
+                        }
+                        
+                        Spacer()
+                        
+                        VStack(alignment: .trailing, spacing: 1) {
+                            Text("RX NO.")
+                                .font(.system(size: 7, weight: .bold))
+                                .foregroundColor(.gray)
+                            Text(document.detailValue)
+                                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                .foregroundColor(.black)
+                                .lineLimit(1)
+                        }
+                    }
+                    
+                    Spacer(minLength: 5)
+                    
+                    // Footer Dates
+                    HStack {
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text("DATE PRESCRIBED")
+                                .font(.system(size: 7, weight: .bold))
+                                .foregroundColor(.gray)
+                            Text(document.issueDate?.formatted(date: .abbreviated, time: .omitted) ?? "N/A")
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundColor(.black)
+                        }
+                        
+                        Spacer()
+                        
+                        if let expiry = document.expiryDate {
+                            VStack(alignment: .trailing, spacing: 0) {
+                                Text("EXPIRATION DATE")
+                                    .font(.system(size: 7, weight: .bold))
+                                    .foregroundColor(.gray)
+                                Text(expiry.formatted(date: .abbreviated, time: .omitted))
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundColor(.red.opacity(0.8))
+                            }
+                        }
+                    }
+                    .padding(.bottom, 15)
+                }
+                .padding(.horizontal, 20)
+            }
+        }
+        .frame(height: 240)
+        .cornerRadius(20)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(Color.black.opacity(0.1), lineWidth: 1)
+        )
+    }
+}
+
+// MARK: - PRESCRIPTION FLIP CARD
+struct PrescriptionFlipCard: View {
+    let document: TravelDocument
+    let isSelected: Bool
+    let onTap: () -> Void
+    
+    @State private var yRotation: Double = 0
+    @State private var isBackVisible = false
+    
+    var body: some View {
+        ZStack {
+            if isBackVisible {
+                PrescriptionCardDetailView(document: document)
+                    .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
+            } else {
+                DocumentCardView(document: document)
+            }
+        }
+        .frame(height: 240)
+        .rotation3DEffect(
+            .degrees(yRotation),
+            axis: (x: 0, y: 1, z: 0),
+            perspective: 0.8
+        )
+        .onTapGesture {
+            onTap()
+        }
+        .onChange(of: isSelected) { newValue in
+            if newValue {
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                    yRotation = 180
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    isBackVisible = true
+                }
+            } else {
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                    yRotation = 0
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    isBackVisible = false
+                }
+            }
+        }
     }
 }
 
