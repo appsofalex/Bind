@@ -16,6 +16,8 @@ struct Line: Shape {
 struct BoardingPassDetailView: View {
     let document: TravelDocument
     let animate: Bool // Triggers the plane flight
+    /// When true, content is shown immediately (no animation). Use for card snapshot/share.
+    var forSnapshot: Bool = false
     
     // Animation state for internal elements
     @State private var contentOpacity: Double = 0
@@ -110,8 +112,8 @@ struct BoardingPassDetailView: View {
                     }
                     .padding(.horizontal, 25)
                     .padding(.top, 25)
-                    .opacity(contentOpacity)
-                    .offset(y: contentOffset * 0.5)
+                    .opacity(forSnapshot ? 1 : contentOpacity)
+                    .offset(y: forSnapshot ? 0 : contentOffset * 0.5)
                     
                     // Animated Runway
                     ZStack {
@@ -143,7 +145,7 @@ struct BoardingPassDetailView: View {
                 
                 Divider()
                     .padding(.horizontal)
-                    .opacity(contentOpacity)
+                    .opacity(forSnapshot ? 1 : contentOpacity)
                 
                 // 3. Flight Info Grid
                 HStack(alignment: .top, spacing: 0) {
@@ -166,8 +168,8 @@ struct BoardingPassDetailView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .padding(25)
-                .opacity(contentOpacity)
-                .offset(y: contentOffset)
+                .opacity(forSnapshot ? 1 : contentOpacity)
+                .offset(y: forSnapshot ? 0 : contentOffset)
                 
                 Spacer()
                 
@@ -200,8 +202,8 @@ struct BoardingPassDetailView: View {
                         .foregroundColor(.gray.opacity(0.5)),
                     alignment: .top
                 )
-                .opacity(contentOpacity)
-                .offset(y: contentOffset * 0.5)
+                .opacity(forSnapshot ? 1 : contentOpacity)
+                .offset(y: forSnapshot ? 0 : contentOffset * 0.5)
             }
         }
         .cornerRadius(20)
@@ -210,6 +212,7 @@ struct BoardingPassDetailView: View {
                 .stroke(Color.black.opacity(0.1), lineWidth: 1)
         )
         .onChange(of: animate) { newValue in
+            guard !forSnapshot else { return }
             if newValue {
                 withAnimation(.spring(response: 0.8, dampingFraction: 0.8).delay(0.3)) {
                     contentOpacity = 1.0
@@ -218,6 +221,12 @@ struct BoardingPassDetailView: View {
             } else {
                 contentOpacity = 0
                 contentOffset = 20
+            }
+        }
+        .onAppear {
+            if forSnapshot {
+                contentOpacity = 1.0
+                contentOffset = 0
             }
         }
     }

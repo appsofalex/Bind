@@ -631,10 +631,10 @@ struct DocumentFormView: View {
                 _issueDate = State(initialValue: Date())
             case .birthCertificate:
                 _title = State(initialValue: "Birth Certificate")
-                _subtitle = State(initialValue: "Official Record")
+                _subtitle = State(initialValue: "Birth Certificate")
             case .marriageCertificate:
                 _title = State(initialValue: "Marriage Certificate")
-                _subtitle = State(initialValue: "Official Record")
+                _subtitle = State(initialValue: "Marriage Certificate")
             case .rewardsCard:
                 _title = State(initialValue: "Rewards Card")
                 _subtitle = State(initialValue: "Loyalty")

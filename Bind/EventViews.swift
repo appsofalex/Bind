@@ -4,6 +4,8 @@ import SwiftUI
 
 struct EventDetailView: View {
     let document: TravelDocument
+    /// When true, content is shown immediately (no animation). Use for card snapshot/share.
+    var forSnapshot: Bool = false
     
     // Animation state
     @State private var contentOpacity: Double = 0
@@ -122,8 +124,8 @@ struct EventDetailView: View {
                     }
                 }
                 .padding(25)
-                .opacity(contentOpacity)
-                .offset(y: contentOffset)
+                .opacity(forSnapshot ? 1 : contentOpacity)
+                .offset(y: forSnapshot ? 0 : contentOffset)
                 
                 Spacer()
                 
@@ -157,6 +159,7 @@ struct EventDetailView: View {
             }
         }
         .onAppear {
+            guard !forSnapshot else { return }
             withAnimation(.easeOut(duration: 0.6).delay(0.2)) {
                 contentOpacity = 1
                 contentOffset = 0

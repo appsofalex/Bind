@@ -204,6 +204,11 @@ struct TravelDocsWalletView: View {
     // EDIT STATE
     @State private var documentToEdit: TravelDocument? = nil
     
+    // SHARE STATE (zoomed card snapshot)
+    @State private var showShareSheet = false
+    @State private var shareImage: UIImage? = nil
+    @State private var shareFileURL: URL? = nil
+    
     // Scroll/Drag State
     @AppStorage("walletScrollOffset") private var baseScrollOffset: Double = 0
     @State private var dragOffset: CGFloat = 0
@@ -461,6 +466,18 @@ struct TravelDocsWalletView: View {
             // Sits on top of cards so it doesn't push them down
             VStack {
                 HStack {
+                    // Share button (top left when card is expanded)
+                    if selectedID != nil {
+                        Button(action: shareExpandedCard) {
+                            Image(systemName: "square.and.arrow.up.circle.fill")
+                                .font(.system(size: 32))
+                                .symbolRenderingMode(.hierarchical)
+                                .foregroundStyle(.white)
+                                .background(Color.black.opacity(0.5).clipShape(Circle()))
+                        }
+                        .transition(.scale.combined(with: .opacity))
+                    }
+                    
                     HStack(alignment: .center, spacing: 10) {
                         Text("Bind")
                             .font(.largeTitle)
@@ -693,6 +710,16 @@ struct TravelDocsWalletView: View {
                 }
             }
         }
+        // MARK: - SHARE SHEET (card snapshot)
+        .sheet(isPresented: $showShareSheet, onDismiss: {
+            shareImage = nil
+            if let url = shareFileURL {
+                try? FileManager.default.removeItem(at: url)
+            }
+            shareFileURL = nil
+        }) {
+            ShareSheet(fileURL: shareFileURL, image: shareImage)
+        }
         // MARK: - SETTINGS SHEET
         .sheet(isPresented: $showSettingsSheet) {
             SettingsView(documents: $documents)
@@ -857,6 +884,16 @@ struct TravelDocsWalletView: View {
         } else {
             selectedTypeToAdd = type
         }
+    }
+    
+    private func shareExpandedCard() {
+        guard let doc = documents.first(where: { $0.id == selectedID }) else { return }
+        let image = renderCardSnapshot(document: doc)
+        let fileURL = renderCardSnapshotToFile(document: doc)
+        guard image != nil || fileURL != nil else { return }
+        shareImage = image
+        shareFileURL = fileURL
+        showShareSheet = true
     }
     
     func toggleSelection(for id: UUID?) {
