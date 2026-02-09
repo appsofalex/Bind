@@ -42,7 +42,7 @@ struct DocumentCardView: View {
                     
                     Spacer()
                     
-                    Text(document.subtitle.uppercased())
+                    Text(document.subtitle.capitalized)
                         .font(.caption)
                         .fontWeight(.bold)
                         .tracking(2)
@@ -53,7 +53,7 @@ struct DocumentCardView: View {
                 
                 // Info
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(document.title)
+                    Text(document.displayTitle)
                         .font(.system(size: 32, weight: .heavy))
                         .foregroundColor(.white)
                         .lineLimit(1) // Prevents text overflow

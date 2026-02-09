@@ -6,6 +6,8 @@ struct PassportDetailView: View {
     // We bind to the parent view to close it
     @Binding var isPresented: Bool
     
+    @AppStorage("isHapticsEnabled") private var isHapticsEnabled = true
+    
     // Animation State
     @State private var unfoldState: Double = -90 // Starts folded backward
     @State private var contentOpacity: Double = 0
@@ -182,8 +184,9 @@ struct PassportDetailView: View {
         }
         
         // Haptic feedback for "opening"
-        let generator = UIImpactFeedbackGenerator(style: .heavy)
-        generator.impactOccurred()
+        if isHapticsEnabled {
+            HapticManager.shared.triggerImpact(style: .heavy)
+        }
     }
     
     func closeView() {

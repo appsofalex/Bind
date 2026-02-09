@@ -99,6 +99,15 @@ struct DocumentFormView: View {
     @State private var selectedRoomType: String = "Standard"
     @State private var loyaltyNumber: String = ""
     
+    // EVENT SPECIFIC FIELDS
+    @State private var selectedEventType: String = "Concert"
+    @State private var venueName: String = ""
+    @State private var venueLocation: String = ""
+    @State private var section: String = ""
+    @State private var row: String = ""
+    @State private var eventDate: Date = Date()
+    @State private var ticketType: String = "General Admission"
+    
     // VISA SPECIFIC FIELDS
     @State private var visaNumber: String = ""
     @State private var passportNumber: String = ""
@@ -106,6 +115,20 @@ struct DocumentFormView: View {
     @State private var issuingAuthority: String = ""
     @State private var placeOfIssue: String = ""
     @State private var visaRemarks: String = ""
+    
+    // BIRTH CERTIFICATE SPECIFIC FIELDS
+    @State private var placeOfBirth: String = ""
+    @State private var registrationDistrict: String = ""
+    @State private var fatherName: String = ""
+    @State private var motherName: String = ""
+    @State private var selectedGender: String = "Male"
+
+    // MARRIAGE CERTIFICATE SPECIFIC FIELDS
+    @State private var spouseName: String = ""
+    @State private var marriageDate: Date = Date()
+    @State private var marriagePlace: String = ""
+    @State private var officiantName: String = ""
+    @State private var witnesses: String = ""
     
     // Image Picker & Cropper State
     @State private var selectedPhotoItem: PhotosPickerItem?
@@ -136,6 +159,8 @@ struct DocumentFormView: View {
         "1st Dose", "2nd Dose", "3rd Dose", "4th Dose", "Booster", "Booster 1", "Booster 2", "Annual", "Single Dose"
     ]
     
+    let genderOptions = ["Male", "Female", "Other"]
+    
     let visaTypes = ["Tourist Visa", "Business Visa", "Student Visa", "Work Visa", "Transit Visa", "Investor Visa", "Spouse Visa", "Visitor Visa"]
     let insuranceTypes = ["Travel", "Health", "Auto", "Dental", "Life", "Home & Contents"]
     
@@ -161,8 +186,6 @@ struct DocumentFormView: View {
     let coffeeShops = ["Starbucks", "Pret A Manger", "Costa Coffee", "Philz Coffee", "Caffè Nero", "Tim Hortons", "Dunkin'", "McCafé"]
     let supermarkets = ["Waitrose", "Tesco", "Sainsbury's", "M&S Food", "Co-op", "Asda", "Morrisons", "Lidl", "Aldi", "Waitrose & Partners"]
 
-    let bdayLocations = ["Lucknam Park"]
-
     let carRentalCompanies = [
         "Hertz", "Avis", "Europcar", "Sixt", "Enterprise", "Budget", "National", "Alamo",
         "Dollar", "Thrifty", "Goldcar", "Centauro", "Virtuo", "Keddy", "Record Go", "Locauto"
@@ -180,6 +203,9 @@ struct DocumentFormView: View {
     ]
     
     let roomTypes = ["Standard", "Deluxe", "Suite", "Executive", "Family", "Studio", "Penthouse", "Accessible", "Twin", "King", "Queen", "Club"]
+
+    let eventTypes = ["Concert", "Sports", "Theatre", "Cinema", "Conference", "Festival", "Museum", "Other"]
+    let ticketTypeOptions = ["General Admission", "VIP", "Standard", "Early Bird", "Student", "Child", "Senior", "Member"]
 
     let countries = [
         "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan",
@@ -382,12 +408,32 @@ struct DocumentFormView: View {
         _selectedRoomType = State(initialValue: "Standard")
         _loyaltyNumber = State(initialValue: "")
         
+        _selectedEventType = State(initialValue: "Concert")
+        _venueName = State(initialValue: "")
+        _venueLocation = State(initialValue: "")
+        _section = State(initialValue: "")
+        _row = State(initialValue: "")
+        _eventDate = State(initialValue: Date())
+        _ticketType = State(initialValue: "General Admission")
+        
         _visaNumber = State(initialValue: "")
         _passportNumber = State(initialValue: "")
         _entries = State(initialValue: "Single")
         _issuingAuthority = State(initialValue: "")
         _placeOfIssue = State(initialValue: "")
         _visaRemarks = State(initialValue: "")
+        
+        _placeOfBirth = State(initialValue: "")
+        _registrationDistrict = State(initialValue: "")
+        _fatherName = State(initialValue: "")
+        _motherName = State(initialValue: "")
+        _selectedGender = State(initialValue: "Male")
+        
+        _spouseName = State(initialValue: "")
+        _marriageDate = State(initialValue: Date())
+        _marriagePlace = State(initialValue: "")
+        _officiantName = State(initialValue: "")
+        _witnesses = State(initialValue: "")
         
         if let doc = document {
             // EDIT MODE
@@ -436,6 +482,23 @@ struct DocumentFormView: View {
             _placeOfIssue = State(initialValue: doc.placeOfIssue ?? "")
             _visaRemarks = State(initialValue: doc.visaRemarks ?? "")
             
+            _placeOfBirth = State(initialValue: doc.placeOfBirth ?? "")
+            // Fallback for older documents where registration district was in title
+            if doc.type == .birthCertificate && (doc.registrationDistrict == nil || doc.registrationDistrict!.isEmpty) && doc.title != "Birth Certificate" {
+                 _registrationDistrict = State(initialValue: doc.title)
+            } else {
+                 _registrationDistrict = State(initialValue: doc.registrationDistrict ?? "")
+            }
+            _fatherName = State(initialValue: doc.fatherName ?? "")
+            _motherName = State(initialValue: doc.motherName ?? "")
+            _selectedGender = State(initialValue: doc.gender ?? "Male")
+            
+            _spouseName = State(initialValue: doc.spouseName ?? "")
+            if let md = doc.marriageDate { _marriageDate = State(initialValue: md) }
+            _marriagePlace = State(initialValue: doc.marriagePlace ?? "")
+            _officiantName = State(initialValue: doc.officiantName ?? "")
+            _witnesses = State(initialValue: doc.witnesses ?? "")
+            
             _carModel = State(initialValue: doc.carModel ?? "")
             _pickupLocation = State(initialValue: doc.pickupLocation ?? "")
             _dropoffLocation = State(initialValue: doc.dropoffLocation ?? "")
@@ -448,6 +511,14 @@ struct DocumentFormView: View {
             _wifiPassword = State(initialValue: doc.wifiPassword ?? "")
             _selectedRoomType = State(initialValue: doc.roomType ?? "Standard")
             _loyaltyNumber = State(initialValue: doc.loyaltyNumber ?? "")
+            
+            _selectedEventType = State(initialValue: doc.eventType ?? "Concert")
+            _venueName = State(initialValue: doc.venueName ?? "")
+            _venueLocation = State(initialValue: doc.venueLocation ?? "")
+            _section = State(initialValue: doc.section ?? "")
+            _row = State(initialValue: doc.row ?? "")
+            if let ed = doc.eventDate { _eventDate = State(initialValue: ed) }
+            _ticketType = State(initialValue: doc.ticketType ?? "General Admission")
             
             if doc.type == .carRental {
                 _selectedCarBrand = State(initialValue: doc.title)
@@ -488,11 +559,11 @@ struct DocumentFormView: View {
             } else if doc.type == .rewardsCard {
                 _selectedRewardBrand = State(initialValue: doc.title)
                 // Try to guess the type based on the brand or subtitle
-                if doc.subtitle.contains("COFFEE") {
+                if doc.subtitle.localizedCaseInsensitiveContains("COFFEE") {
                     _selectedRewardType = State(initialValue: "Coffee")
-                } else if doc.subtitle.contains("AIRLINE") || doc.subtitle.contains("FLYER") {
+                } else if doc.subtitle.localizedCaseInsensitiveContains("AIRLINE") || doc.subtitle.localizedCaseInsensitiveContains("FLYER") {
                     _selectedRewardType = State(initialValue: "Airline")
-                } else if doc.subtitle.contains("SUPERMARKET") || doc.subtitle.contains("GROCERY") {
+                } else if doc.subtitle.localizedCaseInsensitiveContains("SUPERMARKET") || doc.subtitle.localizedCaseInsensitiveContains("GROCERY") {
                     _selectedRewardType = State(initialValue: "Supermarket")
                 }
             }
@@ -513,17 +584,17 @@ struct DocumentFormView: View {
                 if let prefill = prefilledTitle, !prefill.isEmpty {
                     _title = State(initialValue: prefill)
                     if prefill == "Blood Type" {
-                        _subtitle = State(initialValue: "BLOOD TYPE")
-                        _holderName = State(initialValue: "TYPE: A+")
+                        _subtitle = State(initialValue: "Blood Type")
+                        _holderName = State(initialValue: "Type: A+")
                     } else if prefill == "Emergency Contact" {
-                        _subtitle = State(initialValue: "CONTACT")
+                        _subtitle = State(initialValue: "Contact")
                     } else {
-                        _subtitle = State(initialValue: "EMERGENCY INFO")
+                        _subtitle = State(initialValue: "Emergency Info")
                     }
                 } else {
                     _title = State(initialValue: "Medical Card")
-                    _subtitle = State(initialValue: "EMERGENCY INFO")
-                    _holderName = State(initialValue: "TYPE: A+")
+                    _subtitle = State(initialValue: "Emergency Info")
+                    _holderName = State(initialValue: "Type: A+")
                 }
             case .visa:
                 _title = State(initialValue: "United States")
@@ -532,7 +603,7 @@ struct DocumentFormView: View {
             case .insurance:
                 if let prefill = prefilledTitle, prefill == "NHS Number" {
                     _title = State(initialValue: "NHS")
-                    _subtitle = State(initialValue: "NHS NUMBER")
+                    _subtitle = State(initialValue: "NHS Number")
                 } else {
                     _subtitle = State(initialValue: "Health")
                 }
@@ -540,7 +611,7 @@ struct DocumentFormView: View {
                 _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60))
             case .driversLicense:
                 _title = State(initialValue: "United Kingdom")
-                _subtitle = State(initialValue: "DRIVER LICENSE")
+                _subtitle = State(initialValue: "Driver License")
                 _licenseClass = State(initialValue: "Category B (Car)")
                 _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60 * 5))
             case .studentID:
@@ -554,44 +625,46 @@ struct DocumentFormView: View {
                 _refills = State(initialValue: "0")
             case .vaccineRecord:
                 _title = State(initialValue: "")
-                _subtitle = State(initialValue: "VACCINATION")
+                _subtitle = State(initialValue: "Vaccination")
                 _dose = State(initialValue: "1st Dose")
                 _manufacturer = State(initialValue: "Pfizer (Comirnaty)")
                 _issueDate = State(initialValue: Date())
             case .birthCertificate:
                 _title = State(initialValue: "Birth Certificate")
-                _subtitle = State(initialValue: "OFFICIAL RECORD")
+                _subtitle = State(initialValue: "Official Record")
             case .marriageCertificate:
                 _title = State(initialValue: "Marriage Certificate")
-                _subtitle = State(initialValue: "OFFICIAL RECORD")
+                _subtitle = State(initialValue: "Official Record")
             case .rewardsCard:
                 _title = State(initialValue: "Rewards Card")
-                _subtitle = State(initialValue: "LOYALTY")
+                _subtitle = State(initialValue: "Loyalty")
             case .event:
-                _title = State(initialValue: "Event Ticket")
-                _subtitle = State(initialValue: "ADMISSION")
+                _title = State(initialValue: "")
+                _subtitle = State(initialValue: "Concert")
+                _selectedEventType = State(initialValue: "Concert")
+                _eventDate = State(initialValue: Date().addingTimeInterval(3600 * 24 * 7)) // 1 week later
             case .carRental:
                 _title = State(initialValue: "Car Rental")
-                _subtitle = State(initialValue: "RESERVATION")
+                _subtitle = State(initialValue: "Reservation")
             case .hotelKeyCard:
                 _title = State(initialValue: "Hotel Key")
-                _subtitle = State(initialValue: "GUEST ACCESS")
+                _subtitle = State(initialValue: "Guest Access")
             case .idCard:
                 // Pre-fill logic for National Insurance
                 if let prefill = prefilledTitle, (prefill == "National Insurance" || prefill == "SSN") {
                     _title = State(initialValue: "United Kingdom")
-                    _subtitle = State(initialValue: "NATIONAL INSURANCE")
+                    _subtitle = State(initialValue: "National Insurance")
                     _nationality = State(initialValue: "United Kingdom")
                 } else {
                     _title = State(initialValue: "United Kingdom")
-                    _subtitle = State(initialValue: "NATIONAL ID")
+                    _subtitle = State(initialValue: "National ID")
                     _nationality = State(initialValue: "United Kingdom")
                 }
                 
                 _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60 * 10))
             case .nationalInsurance:
                 _title = State(initialValue: "United Kingdom")
-                _subtitle = State(initialValue: "NI NUMBER")
+                _subtitle = State(initialValue: "NI Number")
                 _nationality = State(initialValue: "United Kingdom")
                 
             case .petInsurance:
@@ -604,15 +677,11 @@ struct DocumentFormView: View {
                 _subtitle = State(initialValue: "")
             case .petPassport:
                 _title = State(initialValue: "United Kingdom")
-                _subtitle = State(initialValue: "PET PASSPORT")
+                _subtitle = State(initialValue: "Pet Passport")
                 _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60 * 5))
             case .petID:
                 _title = State(initialValue: "")
                 _subtitle = State(initialValue: "")
-            case .anneBirthdayCard:
-                _title = State(initialValue: "Anne's Bday Card")
-                _subtitle = State(initialValue: "SURPRISE")
-                _detailValue = State(initialValue: "Lucknam Park")
             default:
                 break
             }
@@ -648,7 +717,7 @@ struct DocumentFormView: View {
             }
             // SCANNER SHEET
             .sheet(isPresented: $showScanner) {
-                ScannerView(scannedData: $scannedData, recognizedDataTypes: scannerDataTypes, mode: (type == .passport) ? .passport : .boardingPass)
+                ScannerView(scannedData: $scannedData, recognizedDataTypes: scannerDataTypes, mode: (type == .passport) ? .passport : (type == .boardingPass ? .boardingPass : .barcode))
             }
             .alert("Scanner Unavailable", isPresented: $showScannerUnavailableAlert) {
                 Button("OK", role: .cancel) { }
@@ -677,7 +746,7 @@ struct DocumentFormView: View {
     private var documentDetailsSection: some View {
         Section(header: Text("Card Details")) {
             // SCAN BUTTON
-            if type == .passport || type == .boardingPass {
+            if type == .passport || type == .boardingPass || type == .event {
                 Button(action: {
                     if ScannerView.isSupported {
                         showScanner = true
@@ -800,11 +869,55 @@ struct DocumentFormView: View {
                     }
                 }
             
-            case .studentID, .birthCertificate, .marriageCertificate, .event:
-                TextField(type == .studentID ? "University name" : "Title (e.g. Company, City)", text: $title)
+            case .birthCertificate:
+                TextField("Issuing Authority", text: $issuingAuthority)
                     .textInputAutocapitalization(.words)
-                TextField("Subtitle (e.g. Card Type)", text: $subtitle)
-                    .textInputAutocapitalization(type == .studentID ? .sentences : .characters)
+                TextField("Registration District", text: $registrationDistrict)
+                    .textInputAutocapitalization(.words)
+                TextField("Certificate Number", text: $detailValue)
+                    .textInputAutocapitalization(.characters)
+            
+            case .marriageCertificate:
+                TextField("Issuing Authority", text: $issuingAuthority)
+                    .textInputAutocapitalization(.words)
+                TextField("Place of Marriage", text: $marriagePlace)
+                    .textInputAutocapitalization(.words)
+                TextField("Marriage License/Cert Number", text: $detailValue)
+                    .textInputAutocapitalization(.characters)
+                
+            case .studentID:
+                EmptyView()
+                
+            case .event:
+                Picker("Event Type", selection: $selectedEventType) {
+                    ForEach(eventTypes, id: \.self) { Text($0).tag($0) }
+                }
+                .onChange(of: selectedEventType) { newValue in
+                    subtitle = newValue
+                }
+                
+                TextField("Event Name", text: $title)
+                    .textInputAutocapitalization(.words)
+                
+                TextField("Venue Name", text: $venueName)
+                    .textInputAutocapitalization(.words)
+                
+                TextField("Venue Location", text: $venueLocation)
+                    .textInputAutocapitalization(.words)
+                
+                DatePicker("Event Date", selection: $eventDate)
+                
+                Picker("Ticket Type", selection: $ticketType) {
+                    ForEach(ticketTypeOptions, id: \.self) { Text($0).tag($0) }
+                }
+                
+                HStack {
+                    TextField("Section", text: $section)
+                    Divider()
+                    TextField("Row", text: $row)
+                    Divider()
+                    TextField("Seat", text: $seat)
+                }
                 
             case .hotelKeyCard:
                 Picker("Hotel Brand", selection: $selectedHotelBrand) {
@@ -815,7 +928,7 @@ struct DocumentFormView: View {
                 }
                 .onChange(of: selectedHotelBrand) { newValue in
                     title = newValue
-                    subtitle = "HOTEL ACCESS"
+                    subtitle = "Hotel Access"
                 }
                 
                 if selectedHotelBrand.isEmpty {
@@ -856,7 +969,7 @@ struct DocumentFormView: View {
                 }
                 .onChange(of: selectedCarBrand) { newValue in
                     title = newValue
-                    subtitle = "CAR RENTAL"
+                    subtitle = "Car Rental"
                 }
                 
                 if selectedCarBrand.isEmpty {
@@ -887,7 +1000,7 @@ struct DocumentFormView: View {
                     }
                     .onChange(of: selectedRewardBrand) { newValue in
                         title = newValue
-                        subtitle = "COFFEE REWARDS"
+                        subtitle = "Coffee Rewards"
                     }
                 } else if selectedRewardType == "Airline" {
                     Picker("Airline", selection: $selectedRewardBrand) {
@@ -902,7 +1015,7 @@ struct DocumentFormView: View {
                     }
                     .onChange(of: selectedRewardBrand) { newValue in
                         title = newValue
-                        subtitle = "FREQUENT FLYER"
+                        subtitle = "Frequent Flyer"
                     }
                 } else if selectedRewardType == "Supermarket" {
                     Picker("Supermarket", selection: $selectedRewardBrand) {
@@ -913,7 +1026,7 @@ struct DocumentFormView: View {
                     }
                     .onChange(of: selectedRewardBrand) { newValue in
                         title = newValue
-                        subtitle = "SUPERMARKET REWARDS"
+                        subtitle = "Supermarket Rewards"
                     }
                 }
                 
@@ -946,12 +1059,6 @@ struct DocumentFormView: View {
                     .textInputAutocapitalization(.words)
                 TextField("Registration Type", text: $subtitle)
                     .textInputAutocapitalization(.words)
-            case .anneBirthdayCard:
-                TextField("Card Title", text: $title)
-                    .textInputAutocapitalization(.words)
-                Picker("Location", selection: $detailValue) {
-                    ForEach(bdayLocations, id: \.self) { Text($0) }
-                }
             }
         }
     }
@@ -1009,6 +1116,33 @@ struct DocumentFormView: View {
                 TextField("Email", text: $emergencyContactEmail)
                     .textInputAutocapitalization(.never)
                     .keyboardType(.emailAddress)
+            
+            case .birthCertificate:
+                TextField("Full Name", text: $holderName)
+                    .textInputAutocapitalization(.words)
+                Picker("Gender", selection: $selectedGender) {
+                    ForEach(genderOptions, id: \.self) { Text($0) }
+                }
+                DatePicker("Date of Birth", selection: $birthDate, displayedComponents: .date)
+                TextField("Place of Birth", text: $placeOfBirth)
+                    .textInputAutocapitalization(.words)
+                TextField("Father's Full Name", text: $fatherName)
+                    .textInputAutocapitalization(.words)
+                TextField("Mother's Full Name", text: $motherName)
+                    .textInputAutocapitalization(.words)
+                DatePicker("Registration Date", selection: $issueDate, displayedComponents: .date)
+
+            case .marriageCertificate:
+                TextField("Spouse 1 Full Name", text: $holderName)
+                    .textInputAutocapitalization(.words)
+                TextField("Spouse 2 Full Name", text: $spouseName)
+                    .textInputAutocapitalization(.words)
+                DatePicker("Date of Marriage", selection: $marriageDate, displayedComponents: [.date])
+                TextField("Officiant Name", text: $officiantName)
+                    .textInputAutocapitalization(.words)
+                TextField("Witnesses", text: $witnesses)
+                    .textInputAutocapitalization(.words)
+                
             case .visa:
                 TextField("Full Name", text: $holderName)
                     .textInputAutocapitalization(.words)
@@ -1267,8 +1401,8 @@ struct DocumentFormView: View {
         switch type {
         case .passport:
             return [.text(textContentType: nil)]
-        case .boardingPass:
-            return [.barcode(symbologies: [.qr, .aztec, .pdf417])]
+        case .boardingPass, .event:
+            return [.barcode(symbologies: [.qr, .aztec, .pdf417, .code128, .code39, .ean8, .ean13, .upce])]
         default:
             return []
         }
@@ -1356,6 +1490,18 @@ struct DocumentFormView: View {
                     flightClass = "Economy"
                 }
             }
+        case .generic(let payload):
+            // Auto-recognition for general tickets
+            detailValue = payload
+            
+            // Simple heuristics for ticket data
+            // If it's a long alphanumeric string, it's likely a confirmation code
+            // If we are in .event mode, we can try to pre-fill
+            if type == .event {
+                // If payload contains typical ticket patterns, we can extract them
+                // For now, let's just put the whole payload in Ticket Number
+                detailValue = payload
+            }
         }
     }
     
@@ -1404,78 +1550,80 @@ struct DocumentFormView: View {
             let bloodTypePart = "TYPE: \(selectedBloodType)"
             finalHolder = bloodTypePart
             finalTitle = "Medical Card"
-            finalSubtitle = "BLOOD TYPE"
+            finalSubtitle = "Blood Type"
             
         case .vaccineRecord:
             if finalTitle.isEmpty { finalTitle = "Vaccination" }
             if !dose.isEmpty {
-                 finalSubtitle = "\(selectedVaccine.uppercased()) - \(dose.uppercased())"
+                 finalSubtitle = "\(selectedVaccine) - \(dose)"
             } else {
-                 finalSubtitle = selectedVaccine.uppercased()
+                 finalSubtitle = selectedVaccine
             }
             
         case .boardingPass:
             finalAirline = selectedAirline
             
         case .insurance:
-            finalSubtitle = subtitle.uppercased() + " INSURANCE"
+            finalSubtitle = subtitle + " Insurance"
             
         case .driversLicense:
-            finalSubtitle = "DRIVER LICENSE"
+            finalSubtitle = "Driver License"
 
         case .idCard:
-            finalSubtitle = "NATIONAL ID"
+            finalSubtitle = "National ID"
 
         case .nationalInsurance:
-            finalSubtitle = "NI NUMBER"
+            finalSubtitle = "NI Number"
 
         case .studentID:
-            finalSubtitle = "STUDENT ID"
+            finalSubtitle = "Student ID"
             
         case .prescription:
-            if finalSubtitle.isEmpty { finalSubtitle = "PRESCRIPTION" }
+            if finalSubtitle.isEmpty { finalSubtitle = "Prescription" }
             
-        case .birthCertificate, .marriageCertificate:
-            finalSubtitle = "OFFICIAL RECORD"
+        case .birthCertificate:
+            finalTitle = "Birth Certificate"
+            finalSubtitle = "Official Record"
+            
+        case .marriageCertificate:
+            finalTitle = "Marriage Certificate"
+            finalSubtitle = "Official Record"
             
         case .rewardsCard:
             if finalSubtitle.isEmpty || finalSubtitle == "LOYALTY" {
-                finalSubtitle = "LOYALTY CARD"
+                finalSubtitle = "Loyalty Card"
             }
             
         case .event:
-            finalSubtitle = "ADMISSION TICKET"
+            finalSubtitle = "Admission Ticket"
             
         case .carRental:
-            finalSubtitle = "RENTAL AGREEMENT"
+            finalSubtitle = "Rental Agreement"
             
         case .hotelKeyCard:
-            finalSubtitle = "HOTEL ACCESS"
+            finalSubtitle = "Hotel Access"
             
         case .petInsurance:
-            if finalSubtitle.isEmpty { finalSubtitle = "PET INSURANCE" }
+            if finalSubtitle.isEmpty { finalSubtitle = "Pet Insurance" }
         case .petVaccineRecord:
-            if finalSubtitle.isEmpty { finalSubtitle = "VACCINATION" }
+            if finalSubtitle.isEmpty { finalSubtitle = "Vaccination" }
         case .petPassport:
-            finalSubtitle = "PET PASSPORT"
+            finalSubtitle = "Pet Passport"
         case .petID:
-            if finalSubtitle.isEmpty { finalSubtitle = "PET REGISTRATION" }
-            
-        case .anneBirthdayCard:
-            finalSubtitle = "SURPRISE"
+            if finalSubtitle.isEmpty { finalSubtitle = "Pet Registration" }
             
         default:
             break
         }
         
         if finalTitle.isEmpty { finalTitle = "New Document" }
-        if finalSubtitle.isEmpty { finalSubtitle = type.displayName.uppercased() }
+        if finalSubtitle.isEmpty { finalSubtitle = type.displayName }
         
         // PET NAME HANDLING
         if isPetDocument {
-            finalHolder = petName.isEmpty ? "PET NAME" : petName.uppercased()
+            finalHolder = petName.isEmpty ? "Pet Name" : petName
         } else if finalHolder.isEmpty {
-             finalHolder = "CARD HOLDER"
+             finalHolder = "Card Holder"
         }
         
         let newDoc = TravelDocument(
@@ -1488,10 +1636,10 @@ struct DocumentFormView: View {
             origin: type == .boardingPass ? origin : nil,
             nationality: (type == .passport || type == .driversLicense || type == .idCard || type == .nationalInsurance || type == .visa) ? nationality : nil,
             birthDate: (type == .passport || type == .driversLicense || type == .idCard || type == .nationalInsurance || type == .petPassport || type == .visa) ? birthDate : nil,
-            issueDate: (type == .passport || type == .insurance || type == .driversLicense || type == .idCard || type == .nationalInsurance || type == .petInsurance || type == .petVaccineRecord || type == .petPassport || type == .petID || type == .vaccineRecord || type == .visa || type == .prescription) ? issueDate : nil,
+            issueDate: (type == .passport || type == .insurance || type == .driversLicense || type == .idCard || type == .nationalInsurance || type == .petInsurance || type == .petVaccineRecord || type == .petPassport || type == .petID || type == .vaccineRecord || type == .visa || type == .prescription || type == .birthCertificate) ? issueDate : nil,
             expiryDate: (type == .passport || type == .insurance || type == .driversLicense || type == .visa || type == .studentID || type == .idCard || type == .nationalInsurance || type == .petInsurance || type == .petVaccineRecord || type == .petPassport || type == .petID || type == .prescription) ? expiryDate : nil,
             gate: type == .boardingPass ? gate : nil,
-            seat: type == .boardingPass ? seat : nil,
+            seat: (type == .boardingPass || type == .event) ? seat : nil,
             flightClass: type == .boardingPass ? flightClass : nil,
             flightDate: type == .boardingPass ? flightDate : nil,
             boardingTime: type == .boardingPass ? boardingTime : nil,
@@ -1517,7 +1665,7 @@ struct DocumentFormView: View {
             visaNumber: type == .visa ? visaNumber : nil,
             passportNumber: type == .visa ? passportNumber : nil,
             entries: type == .visa ? entries : nil,
-            issuingAuthority: type == .visa ? issuingAuthority : nil,
+            issuingAuthority: (type == .visa || type == .birthCertificate || type == .marriageCertificate) ? issuingAuthority : nil,
             placeOfIssue: type == .visa ? placeOfIssue : nil,
             visaRemarks: type == .visa ? visaRemarks : nil,
             carModel: type == .carRental ? carModel : nil,
@@ -1531,11 +1679,28 @@ struct DocumentFormView: View {
             wifiPassword: type == .hotelKeyCard ? wifiPassword : nil,
             roomType: type == .hotelKeyCard ? selectedRoomType : nil,
             loyaltyNumber: type == .hotelKeyCard ? loyaltyNumber : nil,
+            eventType: type == .event ? selectedEventType : nil,
+            venueName: type == .event ? venueName : nil,
+            venueLocation: type == .event ? venueLocation : nil,
+            section: type == .event ? section : nil,
+            row: type == .event ? row : nil,
+            eventDate: type == .event ? eventDate : nil,
+            ticketType: type == .event ? ticketType : nil,
             petName: isPetDocument ? petName : nil,
             petSpecies: isPetDocument ? petSpecies : nil,
             petBreed: isPetDocument ? petBreed : nil,
             petMicrochipNumber: isPetDocument ? petMicrochipNumber : nil,
             vetName: isPetDocument ? vetName : nil,
+            placeOfBirth: type == .birthCertificate ? placeOfBirth : nil,
+            registrationDistrict: type == .birthCertificate ? registrationDistrict : nil,
+            fatherName: type == .birthCertificate ? fatherName : nil,
+            motherName: type == .birthCertificate ? motherName : nil,
+            gender: type == .birthCertificate ? selectedGender : nil,
+            spouseName: type == .marriageCertificate ? spouseName : nil,
+            marriageDate: type == .marriageCertificate ? marriageDate : nil,
+            marriagePlace: type == .marriageCertificate ? marriagePlace : nil,
+            officiantName: type == .marriageCertificate ? officiantName : nil,
+            witnesses: type == .marriageCertificate ? witnesses : nil,
             primaryColor: getColor(for: type),
             secondaryColor: .white,
             iconName: getIcon(for: type),
@@ -1569,7 +1734,6 @@ struct DocumentFormView: View {
         case .petVaccineRecord: return Color(red: 0.2, green: 0.4, blue: 0.7) // Same as vaccine
         case .petPassport: return Color(red: 0.5, green: 0.1, blue: 0.2) // Burgundy
         case .petID: return Color(red: 0.8, green: 0.4, blue: 0.0) // Orange
-        case .anneBirthdayCard: return Color(red: 0.8, green: 0.1, blue: 0.4) // Fun Pink/Raspberry
         }
     }
     
@@ -1596,7 +1760,6 @@ struct DocumentFormView: View {
         case .petVaccineRecord: return "syringe.fill"
         case .petPassport: return "pawprint.fill"
         case .petID: return "pawprint.fill"
-        case .anneBirthdayCard: return "gift.fill"
         }
     }
 }

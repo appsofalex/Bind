@@ -12,6 +12,7 @@ struct ScannerView: UIViewControllerRepresentable {
     enum ScanMode {
         case passport
         case boardingPass
+        case barcode
     }
     
     let mode: ScanMode
@@ -108,9 +109,12 @@ struct ScannerView: UIViewControllerRepresentable {
         if mode == .passport {
             label.text = "Rotate phone to landscape & align the bottom 2 lines of passport"
             exampleLabel.text = "P<GBRDOE<<JOHN<<<<<<<<<<<<<<<<<<<<\n1234567897GBR9001018M2801019<<<<<<"
-        } else {
-            label.text = "Align the barcode to scan"
+        } else if mode == .boardingPass {
+            label.text = "Align the boarding pass barcode to scan"
             // Hide example label for boarding pass as it's confusing (barcodes are shapes not text lines)
+            exampleLabel.isHidden = true
+        } else {
+            label.text = "Align any ticket barcode or QR code"
             exampleLabel.isHidden = true
         }
         
@@ -331,9 +335,14 @@ struct ScannerView: UIViewControllerRepresentable {
                 } else {
                     // Reset if lost (optional, but good for feedback)
                     DispatchQueue.main.async {
-                        let text = (self.mode == .passport) ? 
-                            "Rotate phone to landscape & align the bottom 2 lines of passport" : 
-                            "Align the barcode to scan"
+                        let text: String
+                        if self.mode == .passport {
+                            text = "Rotate phone to landscape & align the bottom 2 lines of passport"
+                        } else if self.mode == .boardingPass {
+                            text = "Align the boarding pass barcode to scan"
+                        } else {
+                            text = "Align any ticket barcode or QR code"
+                        }
                         
                         if self.instructionLabel?.text != text {
                             self.instructionLabel?.text = text
@@ -345,14 +354,15 @@ struct ScannerView: UIViewControllerRepresentable {
                 
             case .barcode(let barcode):
                 // Attempt to parse Boarding Pass
-                if let payload = barcode.payloadStringValue,
-                   let boardingPassData = DocumentParser.parseBoardingPass(payload) {
-                    parent.scannedData = .boardingPass(boardingPassData)
-                    parent.dismiss()
-                } else {
-                     // Partial Match / Wrong Barcode logic could go here
-                     // For now, maybe just feedback if it's a barcode but not a valid boarding pass?
-                     // Or just keep scanning silently.
+                if let payload = barcode.payloadStringValue {
+                   if let boardingPassData = DocumentParser.parseBoardingPass(payload) {
+                       parent.scannedData = .boardingPass(boardingPassData)
+                       parent.dismiss()
+                   } else {
+                       // It's a barcode but not a boarding pass, treat as generic
+                       parent.scannedData = .generic(payload)
+                       parent.dismiss()
+                   }
                 }
             default:
                 break
@@ -366,6 +376,7 @@ struct ScannerView: UIViewControllerRepresentable {
 enum ScanResult: Equatable {
     case passport(PassportData)
     case boardingPass(BoardingPassData)
+    case generic(String)
 }
 
 struct PassportData: Equatable {

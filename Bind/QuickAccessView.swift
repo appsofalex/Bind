@@ -112,6 +112,8 @@ struct QuickAccessView: View {
     @Environment(\.colorScheme) var colorScheme
     @StateObject private var subscriptionManager = SubscriptionManager.shared
     
+    @AppStorage("isHapticsEnabled") private var isHapticsEnabled = true
+    
     // Add Sheet State
     @State private var showAddSheet = false
     @State private var selectedAddType: TravelDocument.DocumentType? = nil
@@ -278,8 +280,10 @@ struct QuickAccessView: View {
     
     func copyToClipboard(_ text: String, label: String) {
         UIPasteboard.general.string = text
-        let generator = UINotificationFeedbackGenerator()
-        generator.notificationOccurred(.success)
+        
+        if isHapticsEnabled {
+            HapticManager.shared.triggerNotification(type: .success)
+        }
         
         withAnimation {
             copiedItem = label

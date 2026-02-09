@@ -63,6 +63,7 @@ struct EmptyWalletView: View {
 // MARK: - PRO BADGE VIEW
 struct ProBadgeView: View {
     @ObservedObject var subscriptionManager = SubscriptionManager.shared
+    @AppStorage("isHapticsEnabled") private var isHapticsEnabled = true
     @State private var gradientProgress: CGFloat = 0
     @State private var glowScale: CGFloat = 0.0
     @State private var isAnimating = false
@@ -150,8 +151,9 @@ struct ProBadgeView: View {
             // 2. Card "hatches" / reveals PRO
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                 // Haptic for the "pop"
-                let generator = UIImpactFeedbackGenerator(style: .heavy)
-                generator.impactOccurred()
+                if isHapticsEnabled {
+                    HapticManager.shared.triggerImpact(style: .heavy)
+                }
                 
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
                     cardScale = 1.5
@@ -332,6 +334,18 @@ struct TravelDocsWalletView: View {
                                         isSelected: isSelected,
                                         onTap: { toggleSelection(for: doc.id) }
                                     )
+                                } else if doc.type == .birthCertificate {
+                                    BirthCertificateFlipCard(
+                                        document: doc,
+                                        isSelected: isSelected,
+                                        onTap: { toggleSelection(for: doc.id) }
+                                    )
+                                } else if doc.type == .marriageCertificate {
+                                    MarriageCertificateFlipCard(
+                                        document: doc,
+                                        isSelected: isSelected,
+                                        onTap: { toggleSelection(for: doc.id) }
+                                    )
                                 } else if isIDCard {
                                     // Use specialised flip card for ID
                                     IDFlipCard(
@@ -364,8 +378,8 @@ struct TravelDocsWalletView: View {
                                         isSelected: isSelected,
                                         onTap: { toggleSelection(for: doc.id) }
                                     )
-                                } else if doc.type == .anneBirthdayCard {
-                                    AnneBirthdayCardAnimatedView(
+                                } else if doc.type == .event {
+                                    EventAnimatedCard(
                                         document: doc,
                                         isSelected: isSelected,
                                         onTap: { toggleSelection(for: doc.id) }
@@ -496,7 +510,6 @@ struct TravelDocsWalletView: View {
                                 Button(action: { startAdd(.marriageCertificate) }) { Label("Marriage Certificate", systemImage: "figure.and.child.holdinghands") }
                                 Button(action: { startAdd(.rewardsCard) }) { Label("Rewards Card", systemImage: "star.fill") }
                                 Button(action: { startAdd(.event) }) { Label("Event", systemImage: "ticket.fill") }
-                                Button(action: { startAdd(.anneBirthdayCard) }) { Label("Anne's Bday Card", systemImage: "gift.fill") }
                             }
 
                         } label: {
@@ -765,9 +778,9 @@ struct TravelDocsWalletView: View {
                                 .frame(width: 30)
                             
                             VStack(alignment: .leading) {
-                                Text(doc.title)
+                                Text(doc.displayTitle)
                                     .font(.headline)
-                                Text(doc.subtitle)
+                                Text(doc.subtitle.capitalized)
                                     .font(.caption)
                                     .foregroundColor(.gray)
                             }
@@ -848,8 +861,7 @@ struct TravelDocsWalletView: View {
     
     func toggleSelection(for id: UUID?) {
         if isHapticsEnabled {
-            let generator = UIImpactFeedbackGenerator(style: .medium)
-            generator.impactOccurred()
+            HapticManager.shared.triggerSelection()
         }
         
         withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {

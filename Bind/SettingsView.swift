@@ -55,7 +55,15 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.menu)
                     
-                    Toggle(isOn: $isHapticsEnabled) {
+                    Toggle(isOn: Binding(
+                        get: { isHapticsEnabled },
+                        set: { newValue in
+                            isHapticsEnabled = newValue
+                            if newValue {
+                                HapticManager.shared.triggerSelection()
+                            }
+                        }
+                    )) {
                         Label {
                             Text("Haptic Feedback")
                         } icon: {

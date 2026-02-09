@@ -82,6 +82,29 @@ struct TravelDocument: Identifiable, Codable, Equatable {
     var roomType: String?
     var loyaltyNumber: String?
 
+    // NEW: Event Specific Fields
+    var eventType: String?
+    var venueName: String?
+    var venueLocation: String?
+    var section: String?
+    var row: String?
+    var eventDate: Date?
+    var ticketType: String?
+
+    // NEW: Birth Certificate Specific Fields
+    var placeOfBirth: String?
+    var registrationDistrict: String?
+    var fatherName: String?
+    var motherName: String?
+    var gender: String?
+
+    // NEW: Marriage Certificate Specific Fields
+    var spouseName: String?
+    var marriageDate: Date?
+    var marriagePlace: String?
+    var officiantName: String?
+    var witnesses: String?
+
     // Internal storage for Codable colors
     private let primaryColorData: CodableColor
     private let secondaryColorData: CodableColor
@@ -93,6 +116,12 @@ struct TravelDocument: Identifiable, Codable, Equatable {
     // Public computed properties for View usage
     var primaryColor: Color { primaryColorData.color }
     var secondaryColor: Color { secondaryColorData.color }
+    
+    var displayTitle: String {
+        if type == .birthCertificate { return "Birth Certificate" }
+        if type == .marriageCertificate { return "Marriage Certificate" }
+        return title
+    }
     
     // Custom Initializer to handle Color -> Codable conversion transparently
     init(id: UUID = UUID(),
@@ -147,11 +176,28 @@ struct TravelDocument: Identifiable, Codable, Equatable {
          wifiPassword: String? = nil,
          roomType: String? = nil,
          loyaltyNumber: String? = nil,
+         eventType: String? = nil,
+         venueName: String? = nil,
+         venueLocation: String? = nil,
+         section: String? = nil,
+         row: String? = nil,
+         eventDate: Date? = nil,
+         ticketType: String? = nil,
          petName: String? = nil,
          petSpecies: String? = nil,
          petBreed: String? = nil,
          petMicrochipNumber: String? = nil,
          vetName: String? = nil,
+         placeOfBirth: String? = nil,
+         registrationDistrict: String? = nil,
+         fatherName: String? = nil,
+         motherName: String? = nil,
+         gender: String? = nil,
+         spouseName: String? = nil,
+         marriageDate: Date? = nil,
+         marriagePlace: String? = nil,
+         officiantName: String? = nil,
+         witnesses: String? = nil,
          primaryColor: Color,
          secondaryColor: Color,
          iconName: String,
@@ -210,11 +256,28 @@ struct TravelDocument: Identifiable, Codable, Equatable {
         self.wifiPassword = wifiPassword
         self.roomType = roomType
         self.loyaltyNumber = loyaltyNumber
+        self.eventType = eventType
+        self.venueName = venueName
+        self.venueLocation = venueLocation
+        self.section = section
+        self.row = row
+        self.eventDate = eventDate
+        self.ticketType = ticketType
         self.petName = petName
         self.petSpecies = petSpecies
         self.petBreed = petBreed
         self.petMicrochipNumber = petMicrochipNumber
         self.vetName = vetName
+        self.placeOfBirth = placeOfBirth
+        self.registrationDistrict = registrationDistrict
+        self.fatherName = fatherName
+        self.motherName = motherName
+        self.gender = gender
+        self.spouseName = spouseName
+        self.marriageDate = marriageDate
+        self.marriagePlace = marriagePlace
+        self.officiantName = officiantName
+        self.witnesses = witnesses
         self.primaryColorData = CodableColor(color: primaryColor)
         self.secondaryColorData = CodableColor(color: secondaryColor)
         self.iconName = iconName
@@ -226,7 +289,7 @@ struct TravelDocument: Identifiable, Codable, Equatable {
         case passport, visa, boardingPass, insurance, idCard, birthCertificate, marriageCertificate
         // NEW TYPES
         case driversLicense, studentID, prescription, vaccineRecord, medicalAlert, nationalInsurance
-        case rewardsCard, event, carRental, hotelKeyCard, anneBirthdayCard
+        case rewardsCard, event, carRental, hotelKeyCard
         // PET TYPES
         case petInsurance, petVaccineRecord, petPassport, petID
         
@@ -249,7 +312,6 @@ struct TravelDocument: Identifiable, Codable, Equatable {
             case .event: return "Event"
             case .carRental: return "Car Rental"
             case .hotelKeyCard: return "Hotel Key Card"
-            case .anneBirthdayCard: return "Anne's Bday Card"
             case .petInsurance: return "Pet Insurance"
             case .petVaccineRecord: return "Pet Vaccination"
             case .petPassport: return "Pet Passport"
