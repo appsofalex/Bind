@@ -209,6 +209,18 @@ struct TravelDocsWalletView: View {
     @State private var shareImage: UIImage? = nil
     @State private var shareFileURL: URL? = nil
     
+    // TUTORIAL STATE (first-time prompts)
+    @AppStorage("hasSeenFirstCardTutorial") private var hasSeenFirstCardTutorial = false
+    @AppStorage("hasSeenSixthCardTutorial") private var hasSeenSixthCardTutorial = false
+    @AppStorage("hasSeenAllCardsTutorial") private var hasSeenAllCardsTutorial = false
+    @AppStorage("hasSeenSettingsTutorial") private var hasSeenSettingsTutorial = false
+    @State private var showFirstCardTutorial = false
+    @State private var showSixthCardTutorial = false
+    @State private var showSettingsTutorial = false
+    @State private var showAllCardsListTutorial = false
+    @State private var allCardsButtonFrame: CGRect = .zero
+    @State private var settingsButtonFrame: CGRect = .zero
+    
     // Scroll/Drag State
     @AppStorage("walletScrollOffset") private var baseScrollOffset: Double = 0
     @State private var dragOffset: CGFloat = 0
@@ -615,6 +627,7 @@ struct TravelDocsWalletView: View {
                                     .foregroundColor(.primary)
                                     .shadow(radius: 5)
                                 }
+                                .reportTutorialFrame(tag: 1)
                                 
                                 Spacer()
                                 
@@ -630,6 +643,7 @@ struct TravelDocsWalletView: View {
                                         .clipShape(Circle())
                                         .shadow(radius: 5)
                                 }
+                                .reportTutorialFrame(tag: 2)
                                 
                                 Spacer()
                             }
@@ -647,6 +661,7 @@ struct TravelDocsWalletView: View {
                                         .clipShape(Circle())
                                         .shadow(radius: 5)
                                 }
+                                .reportTutorialFrame(tag: 2)
                                 .padding(.trailing, 20)
                             }
                         }
@@ -675,10 +690,81 @@ struct TravelDocsWalletView: View {
                 .transition(.opacity)
                 .zIndex(200)
             }
+            
+            // MARK: - TUTORIAL BUBBLES (first-time prompts)
+            if showFirstCardTutorial {
+                TutorialBubbleOverlay(
+                    message: "This is your card stack. Up to 6 cards show here—swipe to browse.",
+                    targetFrame: .zero,
+                    pointerEdge: .bottom,
+                    onDismiss: {
+                        hasSeenFirstCardTutorial = true
+                        showFirstCardTutorial = false
+                        if documents.count >= 2 && !hasSeenSettingsTutorial {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                showSettingsTutorial = true
+                            }
+                        }
+                    }
+                )
+                .zIndex(300)
+            }
+            if showSixthCardTutorial {
+                TutorialBubbleOverlay(
+                    message: "As you add more cards, they'll all appear in the \"All Cards\" menu.",
+                    targetFrame: allCardsButtonFrame,
+                    pointerEdge: .top,
+                    onDismiss: {
+                        hasSeenSixthCardTutorial = true
+                        showSixthCardTutorial = false
+                    }
+                )
+                .zIndex(300)
+            }
+            if showSettingsTutorial {
+                TutorialBubbleOverlay(
+                    message: "Tap the gear for settings and other useful options.",
+                    targetFrame: settingsButtonFrame,
+                    pointerEdge: .leading,
+                    onDismiss: {
+                        hasSeenSettingsTutorial = true
+                        showSettingsTutorial = false
+                    }
+                )
+                .zIndex(300)
+            }
+        }
+        .coordinateSpace(name: "tutorialSpace")
+        .onPreferenceChange(TutorialTargetFrameKey.self) { dict in
+            if let r = dict[1] { allCardsButtonFrame = r }
+            if let r = dict[2] { settingsButtonFrame = r }
         }
         // AUTOMATIC SAVING: Whenever documents array changes, save to disk
         .onChange(of: documents) { newValue in
             TravelDocumentStore.shared.save(newValue)
+        }
+        // TUTORIAL TRIGGERS
+        .onChange(of: documents.count) { count in
+            if count == 1 && !hasSeenFirstCardTutorial {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                    showFirstCardTutorial = true
+                }
+            }
+            if count >= 6 && !hasSeenSixthCardTutorial {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    showSixthCardTutorial = true
+                }
+            }
+            if count >= 2 && hasSeenFirstCardTutorial && !hasSeenSettingsTutorial {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                    showSettingsTutorial = true
+                }
+            }
+        }
+        .onChange(of: showAllCardsSheet) { isOpen in
+            if isOpen && !hasSeenAllCardsTutorial {
+                showAllCardsListTutorial = true
+            }
         }
         // ADD SHEET: Triggers when the user selects an item from the Menu
         .sheet(item: $selectedTypeToAdd) { type in
@@ -795,52 +881,65 @@ struct TravelDocsWalletView: View {
         }
         // MARK: - NEW: ALL CARDS SHEET WITH TOGGLES
         .sheet(isPresented: $showAllCardsSheet) {
-            NavigationView {
-                List {
-                    ForEach(documents) { doc in
-                        HStack(spacing: 15) {
-                            Image(systemName: doc.iconName)
-                                .font(.title2)
-                                .foregroundColor(doc.primaryColor)
-                                .frame(width: 30)
-                            
-                            VStack(alignment: .leading) {
-                                Text(doc.displayTitle)
-                                    .font(.headline)
-                                Text(doc.subtitle.capitalized)
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                            }
-                            Spacer()
-                            
-                            // Native Switch
-                            Toggle("", isOn: Binding(
-                                get: { doc.isActive },
-                                set: { newValue in
-                                    if let index = documents.firstIndex(where: { $0.id == doc.id }) {
-                                        documents[index].isActive = newValue
-                                    }
+            ZStack {
+                NavigationView {
+                    List {
+                        ForEach(documents) { doc in
+                            HStack(spacing: 15) {
+                                Image(systemName: doc.iconName)
+                                    .font(.title2)
+                                    .foregroundColor(doc.primaryColor)
+                                    .frame(width: 30)
+                                
+                                VStack(alignment: .leading) {
+                                    Text(doc.displayTitle)
+                                        .font(.headline)
+                                    Text(doc.subtitle.capitalized)
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
                                 }
-                            ))
-                                .labelsHidden()
-                                .tint(.green)
-                                // Disable turning ON if we are already at 6
-                                .disabled(!doc.isActive && activeDocuments.count >= maxCardsOnScreen)
+                                Spacer()
+                                
+                                // Native Switch
+                                Toggle("", isOn: Binding(
+                                    get: { doc.isActive },
+                                    set: { newValue in
+                                        if let index = documents.firstIndex(where: { $0.id == doc.id }) {
+                                            documents[index].isActive = newValue
+                                        }
+                                    }
+                                ))
+                                    .labelsHidden()
+                                    .tint(.green)
+                                    // Disable turning ON if we are already at 6
+                                    .disabled(!doc.isActive && activeDocuments.count >= maxCardsOnScreen)
+                            }
+                            .padding(.vertical, 4)
                         }
-                        .padding(.vertical, 4)
+                        .onDelete { indexSet in
+                            documents.remove(atOffsets: indexSet)
+                        }
+                        .onMove { indices, newOffset in
+                            documents.move(fromOffsets: indices, toOffset: newOffset)
+                        }
                     }
-                    .onDelete { indexSet in
-                        documents.remove(atOffsets: indexSet)
-                    }
-                    .onMove { indices, newOffset in
-                        documents.move(fromOffsets: indices, toOffset: newOffset)
-                    }
+                    .navigationTitle(subscriptionManager.isPro ? "All Cards" : "All Cards (\(activeDocuments.count)/\(maxCardsOnScreen))")
+                    .navigationBarItems(
+                        leading: EditButton(),
+                        trailing: Button("Done") { showAllCardsSheet = false }
+                    )
                 }
-                .navigationTitle(subscriptionManager.isPro ? "All Cards" : "All Cards (\(activeDocuments.count)/\(maxCardsOnScreen))")
-                .navigationBarItems(
-                    leading: EditButton(),
-                    trailing: Button("Done") { showAllCardsSheet = false }
-                )
+                if showAllCardsListTutorial {
+                    TutorialBubbleOverlay(
+                        message: "Switch cards on or off to show them in the main stack. You can quick view any card here too.",
+                        targetFrame: .zero,
+                        pointerEdge: .bottom,
+                        onDismiss: {
+                            hasSeenAllCardsTutorial = true
+                            showAllCardsListTutorial = false
+                        }
+                    )
+                }
             }
         }
         // MARK: - UPGRADE SHEET (Direct Access)
