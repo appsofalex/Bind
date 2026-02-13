@@ -225,6 +225,12 @@ struct TravelDocsWalletView: View {
     @AppStorage("walletScrollOffset") private var baseScrollOffset: Double = 0
     @State private var dragOffset: CGFloat = 0
     
+    // Reorder State (Apple Wallet-style long-press and drag)
+    @State private var reorderingDocumentID: UUID? = nil
+    @State private var reorderDragOffset: CGFloat = 0
+    @State private var proposedReorderIndex: Int? = nil
+    @State private var reorderStartIndex: Int = 0
+    
     // Configuration
     private let cardSpacing: CGFloat = 65
     @StateObject private var subscriptionManager = SubscriptionManager.shared
@@ -304,6 +310,7 @@ struct TravelDocsWalletView: View {
                         
                         // 1. CALCULATE DYNAMIC POSITION
                         let targetPos = getCircularPosition(for: index)
+                        let isReordering = (reorderingDocumentID == doc.id)
                         let isPassport = (doc.type == .passport)
                         // CHANGED: Group generic ID types together for the flip animation
                         let isIDCard = (doc.type == .idCard || doc.type == .driversLicense || doc.type == .studentID || doc.type == .nationalInsurance)
@@ -317,35 +324,30 @@ struct TravelDocsWalletView: View {
                         PositionSmoother(target: targetPos, totalHeight: totalScrollHeight) { currentPos in
                             Group {
                                 if isPassport {
-                                    // Use the specialised flip card for Passport
                                     PassportFlipCard(
                                         document: doc,
                                         isSelected: isSelected,
                                         onTap: { toggleSelection(for: doc.id) }
                                     )
                                 } else if isVisa {
-                                    // Use the specialised flip card for Visa
                                     VisaFlipCard(
                                         document: doc,
                                         isSelected: isSelected,
                                         onTap: { toggleSelection(for: doc.id) }
                                     )
                                 } else if isMedicalAlert {
-                                    // Use specialised flip card for Medical Alert
                                     MedicalFlipCard(
                                         document: doc,
                                         isSelected: isSelected,
                                         onTap: { toggleSelection(for: doc.id) }
                                     )
                                 } else if doc.type == .vaccineRecord {
-                                    // NEW: Flip card for Vaccination
                                     VaccinationFlipCard(
                                         document: doc,
                                         isSelected: isSelected,
                                         onTap: { toggleSelection(for: doc.id) }
                                     )
                                 } else if doc.type == .prescription {
-                                    // NEW: Flip card for Prescription
                                     PrescriptionFlipCard(
                                         document: doc,
                                         isSelected: isSelected,
@@ -364,14 +366,12 @@ struct TravelDocsWalletView: View {
                                         onTap: { toggleSelection(for: doc.id) }
                                     )
                                 } else if isIDCard {
-                                    // Use specialised flip card for ID
                                     IDFlipCard(
                                         document: doc,
                                         isSelected: isSelected,
                                         onTap: { toggleSelection(for: doc.id) }
                                     )
                                 } else if isBoardingPass {
-                                    // Use specialised animation for Boarding Pass
                                     BoardingPassAnimatedCard(
                                         document: doc,
                                         isSelected: isSelected,
@@ -408,12 +408,61 @@ struct TravelDocsWalletView: View {
                                         onTap: { toggleSelection(for: doc.id) }
                                     )
                                 } else {
-                                    // Standard cards for new types
                                     DocumentCardView(document: doc)
                                         .onTapGesture { toggleSelection(for: doc.id) }
                                 }
                             }
                             .frame(width: geo.size.width - 40)
+                            
+                            // MARK: - Apple Wallet long-press-then-drag reorder gesture (per card)
+                            .gesture(
+                                LongPressGesture(minimumDuration: 0.4)
+                                    .sequenced(before: DragGesture(minimumDistance: 0))
+                                    .onChanged { value in
+                                        guard activeDocuments.count > 1, selectedID == nil else { return }
+                                        switch value {
+                                        case .first(true):
+                                            break
+                                        case .second(true, let drag):
+                                            // --- First recognition: lift the card ---
+                                            if reorderingDocumentID == nil {
+                                                reorderStartIndex = index
+                                                proposedReorderIndex = index
+                                                reorderDragOffset = 0
+                                                withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
+                                                    reorderingDocumentID = doc.id
+                                                }
+                                                if isHapticsEnabled {
+                                                    HapticManager.shared.triggerImpact(style: .medium)
+                                                }
+                                            }
+                                            // --- Track finger ---
+                                            if let drag = drag {
+                                                // Force-kill ALL animations on the drag offset
+                                                var t = Transaction(animation: .none)
+                                                t.disablesAnimations = true
+                                                withTransaction(t) {
+                                                    reorderDragOffset = drag.translation.height
+                                                }
+                                                let delta = Int(round(drag.translation.height / cardSpacing))
+                                                let newProposed = min(max(reorderStartIndex + delta, 0), activeDocuments.count - 1)
+                                                if newProposed != proposedReorderIndex {
+                                                    withAnimation(.interpolatingSpring(stiffness: 400, damping: 30)) {
+                                                        proposedReorderIndex = newProposed
+                                                    }
+                                                    if isHapticsEnabled {
+                                                        HapticManager.shared.triggerImpact(style: .light)
+                                                    }
+                                                }
+                                            }
+                                        default:
+                                            break
+                                        }
+                                    }
+                                    .onEnded { _ in
+                                        commitReorderIfNeeded()
+                                    }
+                            )
                             
                             // 2. POSITIONING & DEPTH
                             .scaleEffect(getScale(for: currentPos, docID: doc.id))
@@ -422,12 +471,13 @@ struct TravelDocsWalletView: View {
                                 axis: (x: 1, y: 0, z: 0)
                             )
                             .offset(y: getOffset(for: currentPos, docID: doc.id))
+                            // Dragged card: finger tracking (never animated)
+                            // Other cards: neighbour shift (animated via withAnimation in gesture)
+                            .offset(y: isReordering ? reorderDragOffset - 8 : reorderShift(for: index))
+                            .shadow(color: .black.opacity(isReordering ? 0.12 : 0), radius: isReordering ? 8 : 0, y: isReordering ? 3 : 0)
                             
                             // 3. STACK ORDER (Z-Index)
-                            .zIndex(getZIndex(for: currentPos, docID: doc.id))
-                            
-                            // Animation value
-                            .animation(.spring(response: 0.5, dampingFraction: 0.75), value: selectedID)
+                            .zIndex(getZIndex(for: currentPos, docID: doc.id, isReordering: isReordering))
                             
                             // DELETE ANIMATION (Fly off to right)
                             .transition(
@@ -446,11 +496,11 @@ struct TravelDocsWalletView: View {
                 .gesture(
                     DragGesture()
                         .onChanged { value in
-                            guard selectedID == nil else { return }
+                            guard selectedID == nil, reorderingDocumentID == nil else { return }
                             dragOffset = value.translation.height
                         }
                         .onEnded { value in
-                            guard selectedID == nil else { return }
+                            guard selectedID == nil, reorderingDocumentID == nil else { return }
                             
                             let totalDrag = CGFloat(baseScrollOffset) + value.translation.height
                             
@@ -472,9 +522,14 @@ struct TravelDocsWalletView: View {
                             }
                         }
                 )
+                .onTapGesture {
+                    if reorderingDocumentID != nil {
+                        clearReorderState()
+                    }
+                }
             }
             
-            // MARK: - 2. PERSISTENT HEADER (Overlay)
+            // PERSISTENT HEADER (Overlay)
             // Sits on top of cards so it doesn't push them down
             VStack {
                 HStack {
@@ -694,7 +749,7 @@ struct TravelDocsWalletView: View {
             // MARK: - TUTORIAL BUBBLES (first-time prompts)
             if showFirstCardTutorial {
                 TutorialBubbleOverlay(
-                    message: "This is your card stack. Up to 6 cards show here—swipe to browse.",
+                    message: "This is your card stack. Up to 6 cards show here - add more to see them stack!",
                     targetFrame: .zero,
                     pointerEdge: .bottom,
                     onDismiss: {
@@ -723,9 +778,10 @@ struct TravelDocsWalletView: View {
             }
             if showSettingsTutorial {
                 TutorialBubbleOverlay(
-                    message: "Tap the gear for settings and other useful options.",
+                    message: "Tap the cog for settings and other useful options.",
                     targetFrame: settingsButtonFrame,
                     pointerEdge: .leading,
+                    pointerTipOffsetX: 20,
                     onDismiss: {
                         hasSeenSettingsTutorial = true
                         showSettingsTutorial = false
@@ -931,9 +987,11 @@ struct TravelDocsWalletView: View {
                 }
                 if showAllCardsListTutorial {
                     TutorialBubbleOverlay(
-                        message: "Switch cards on or off to show them in the main stack. You can quick view any card here too.",
+                        message: "Switch cards on or off to show them in the card stack. You can quick view any card here by tapping it.",
                         targetFrame: .zero,
                         pointerEdge: .bottom,
+                        preferredPointerEdge: .top,
+                        listItemCount: documents.count,
                         onDismiss: {
                             hasSeenAllCardsTutorial = true
                             showAllCardsListTutorial = false
@@ -996,6 +1054,10 @@ struct TravelDocsWalletView: View {
     }
     
     func toggleSelection(for id: UUID?) {
+        if reorderingDocumentID != nil {
+            clearReorderState()
+            return
+        }
         if isHapticsEnabled {
             HapticManager.shared.triggerSelection()
         }
@@ -1060,11 +1122,78 @@ struct TravelDocsWalletView: View {
         return -10 * (1 - progress)
     }
     
-    func getZIndex(for position: CGFloat, docID: UUID) -> Double {
+    func getZIndex(for position: CGFloat, docID: UUID, isReordering: Bool = false) -> Double {
         if let selected = selectedID, selected == docID {
             return Double(totalScrollHeight) + 100 // Ensure selected card is always on top
         }
+        // During reorder the dragged card sits just above its neighbours — not floating
+        if isReordering {
+            return Double(position) + 5
+        }
         return Double(position)
+    }
+    
+    /// Returns the Y shift a non-dragged card needs so neighbours slide out of the way.
+    /// Cards between the start and proposed indices shift by one card-spacing in the opposite direction.
+    func reorderShift(for index: Int) -> CGFloat {
+        guard reorderingDocumentID != nil,
+              let proposed = proposedReorderIndex else { return 0 }
+        let from = reorderStartIndex
+        if from == proposed { return 0 }
+        if from < proposed {
+            // Dragging down → cards between (from+1)…proposed shift UP
+            if index > from && index <= proposed {
+                return -cardSpacing
+            }
+        } else {
+            // Dragging up → cards between proposed…(from-1) shift DOWN
+            if index >= proposed && index < from {
+                return cardSpacing
+            }
+        }
+        return 0
+    }
+    
+    /// Commits reorder: moves the reordering document in `documents` so active order matches proposed index, then clears reorder state.
+    func commitReorderIfNeeded() {
+        guard let reorderingID = reorderingDocumentID,
+              activeDocuments.count > 1,
+              let fromIndex = activeDocuments.firstIndex(where: { $0.id == reorderingID }) else {
+            clearReorderState()
+            return
+        }
+        let rawTo = proposedReorderIndex ?? fromIndex
+        let toIndex = min(max(rawTo, 0), activeDocuments.count - 1)
+        
+        if fromIndex != toIndex {
+            var currentOrder = activeDocuments.map(\.id)
+            let movingID = currentOrder.remove(at: fromIndex)
+            currentOrder.insert(movingID, at: toIndex)
+            let inactive = documents.filter { !$0.isActive }
+            let newActive = currentOrder.compactMap { id in documents.first(where: { $0.id == id }) }
+            
+            // Animate everything together: the reorder + clearing offsets.
+            withAnimation(.interpolatingSpring(stiffness: 400, damping: 30)) {
+                documents = newActive + inactive
+                reorderDragOffset = 0
+                proposedReorderIndex = nil
+                reorderingDocumentID = nil
+            }
+        } else {
+            clearReorderState()
+        }
+        
+        if isHapticsEnabled {
+            HapticManager.shared.triggerImpact(style: .light)
+        }
+    }
+    
+    func clearReorderState() {
+        withAnimation(.interpolatingSpring(stiffness: 400, damping: 30)) {
+            reorderDragOffset = 0
+            proposedReorderIndex = nil
+            reorderingDocumentID = nil
+        }
     }
 }
 

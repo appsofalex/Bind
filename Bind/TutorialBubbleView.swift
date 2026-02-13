@@ -30,6 +30,8 @@ extension View {
 // MARK: - Speech bubble shape with pointer
 struct SpeechBubbleShape: Shape {
     var pointerEdge: Edge
+    /// When set, the pointer tip is drawn at this x (in shape local coords) so it can align with a target. Nil = center.
+    var pointerTipX: CGFloat? = nil
     var cornerRadius: CGFloat = 16
     var pointerSize: CGFloat = 12
     var pointerInset: CGFloat = 24
@@ -42,12 +44,12 @@ struct SpeechBubbleShape: Shape {
         switch pointerEdge {
         case .top:
             bodyRect = CGRect(x: rect.minX, y: rect.minY + pointerSize, width: rect.width, height: rect.height - pointerSize)
-            let cx = rect.midX
+            let cx = pointerTipX ?? rect.midX
             let tipX = min(max(cx, rect.minX + pointerInset), rect.maxX - pointerInset)
             tipRect = CGRect(x: tipX - pointerSize, y: rect.minY, width: pointerSize * 2, height: pointerSize)
         case .bottom:
             bodyRect = CGRect(x: rect.minX, y: rect.minY, width: rect.width, height: rect.height - pointerSize)
-            let cx = rect.midX
+            let cx = pointerTipX ?? rect.midX
             let tipX = min(max(cx, rect.minX + pointerInset), rect.maxX - pointerInset)
             tipRect = CGRect(x: tipX - pointerSize, y: rect.maxY - pointerSize, width: pointerSize * 2, height: pointerSize)
         case .leading:
@@ -94,21 +96,29 @@ struct TutorialBubbleOverlay: View {
     let message: String
     var targetFrame: CGRect = .zero
     var pointerEdge: Edge = .bottom
+    /// When no target: 0 = top, 0.5 = center, 1 = bottom. Default 0.28 for card stack; use ~0.45 for sheet.
+    var preferredVerticalFraction: Double = 0.28
+    /// When no target: which edge the spike is on. Default .bottom (spike points down). Use .top for spike on top pointing up.
+    var preferredPointerEdge: Edge = .bottom
+    /// When set (e.g. All Cards list), position bubble just below that many list rows so it sits under the content.
+    var listItemCount: Int? = nil
+    /// Optional nudge for the pointer tip (e.g. +10 to shift spike right, -10 to shift left).
+    var pointerTipOffsetX: CGFloat = 0
     let onDismiss: () -> Void
 
-    // Controls how strongly the background is dimmed.
-    // Starts at 0 and animates up for a subtle fade-in.
+    // Background dim
     @State private var overlayOpacity: Double = 0.0
-    // Fun entrance animation for the speech bubble itself
-    @State private var bubbleScale: CGFloat = 0.8
+    // Light pop-in animation
+    @State private var bubbleScale: CGFloat = 0.85
     @State private var bubbleOpacity: Double = 0.0
-    // Prevent dismissal for the first couple of seconds
+    // Lock tap-to-dismiss for first couple of seconds
     @State private var canDismiss: Bool = false
 
     private let bubblePadding: CGFloat = 20
     private let maxBubbleWidth: CGFloat = 280
     private let pointerSize: CGFloat = 12
-    private let gapFromTarget: CGFloat = 8
+    private let gapFromTarget: CGFloat = 12
+    private let bubbleMinHeight: CGFloat = 72
 
     var body: some View {
         GeometryReader { geo in
@@ -131,25 +141,20 @@ struct TutorialBubbleOverlay: View {
                 }
             }
             .onAppear {
-                // Smoothly fade in the dim background over a couple of seconds.
-                withAnimation(.easeInOut(duration: 2.0)) {
+                withAnimation(.easeInOut(duration: 1.8)) {
                     overlayOpacity = 1.0
                 }
-
-                // Fun bubble pop-in: fade + gentle bounce
-                bubbleScale = 0.8
+                bubbleScale = 0.85
                 bubbleOpacity = 0.0
-                withAnimation(.easeOut(duration: 0.35)) {
+                withAnimation(.easeOut(duration: 0.28)) {
                     bubbleOpacity = 1.0
-                    bubbleScale = 1.05
+                    bubbleScale = 1.02
                 }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                    withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.72)) {
                         bubbleScale = 1.0
                     }
                 }
-
-                // Lock interaction for ~2.5 seconds before allowing dismiss.
                 canDismiss = false
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
                     canDismiss = true
@@ -161,17 +166,24 @@ struct TutorialBubbleOverlay: View {
     @ViewBuilder
     private func bubbleView(safeSize: CGSize, targetMid: CGPoint) -> some View {
         let (bubbleRect, edge): (CGRect, Edge) = positionedBubble(safeSize: safeSize, targetMid: targetMid)
+        let pointerTipXLocal: CGFloat? = (targetFrame.size.width > 0 && (edge == .bottom || edge == .top))
+            ? (targetMid.x - bubbleRect.minX + pointerTipOffsetX)
+            : nil
+        let textVerticalOffset: CGFloat = edge == .bottom ? -pointerSize / 2 : (edge == .top ? pointerSize / 2 : 0)
+
         Text(message)
             .font(.subheadline)
             .fontWeight(.medium)
             .foregroundColor(.primary)
             .multilineTextAlignment(.center)
+            .frame(maxWidth: min(maxBubbleWidth, bubbleRect.width), alignment: .center)
+            .fixedSize(horizontal: false, vertical: true)
             .padding(bubblePadding)
-            .frame(width: min(maxBubbleWidth, bubbleRect.width), alignment: .center)
+            .offset(y: textVerticalOffset)
             .background(
-                SpeechBubbleShape(pointerEdge: edge, cornerRadius: 16, pointerSize: pointerSize, pointerInset: 24)
+                SpeechBubbleShape(pointerEdge: edge, pointerTipX: pointerTipXLocal, cornerRadius: 16, pointerSize: pointerSize, pointerInset: 24)
                     .fill(Color(.secondarySystemBackground))
-                    .shadow(color: .black.opacity(0.15), radius: 12, x: 0, y: 4)
+                    .shadow(color: .black.opacity(0.12), radius: 10, x: 0, y: 3)
             )
             .scaleEffect(bubbleScale)
             .opacity(bubbleOpacity)
@@ -181,40 +193,61 @@ struct TutorialBubbleOverlay: View {
     private func positionedBubble(safeSize: CGSize, targetMid: CGPoint) -> (CGRect, Edge) {
         let hasTarget = targetFrame.size.width > 0 && targetFrame.size.height > 0
         let edge: Edge
-        let bubbleW = min(maxBubbleWidth, safeSize.width - 40)
-        let bubbleH: CGFloat = 80
+        let bubbleW = min(maxBubbleWidth, safeSize.width - 48)
+        let bubbleH: CGFloat = max(bubbleMinHeight, 88)
 
         if !hasTarget {
-            edge = .bottom
+            edge = preferredPointerEdge
             let x = (safeSize.width - bubbleW) / 2
-            let y = safeSize.height * 0.35 - bubbleH / 2
-            return (CGRect(x: x, y: y, width: bubbleW, height: bubbleH), edge)
+            let y: CGFloat
+            if let count = listItemCount, count > 0 {
+                let listTop: CGFloat = 100
+                let listRowHeight: CGFloat = 52
+                let listContentBottom = listTop + CGFloat(count) * listRowHeight
+                let gap = gapFromTarget + pointerSize
+                y = listContentBottom + gap + bubbleH / 2
+                let maxY = safeSize.height - bubbleH / 2 - 24
+                let clampedY = min(y, maxY)
+                return (CGRect(x: x, y: clampedY, width: bubbleW, height: bubbleH), edge)
+            } else {
+                y = safeSize.height * preferredVerticalFraction - bubbleH / 2
+                return (CGRect(x: x, y: y, width: bubbleW, height: bubbleH), edge)
+            }
         }
 
         let gap = gapFromTarget + pointerSize
+        let inBottomBar = targetMid.y > safeSize.height * 0.72
+
+        if inBottomBar {
+            edge = .bottom
+            let aboveY = targetMid.y - bubbleH - gap
+            let y = max(24, aboveY)
+            let x = max(24, min(targetMid.x - bubbleW / 2, safeSize.width - bubbleW - 24))
+            return (CGRect(x: x, y: y, width: bubbleW, height: bubbleH), edge)
+        }
+
         let aboveY = targetMid.y - bubbleH - gap
         let belowY = targetMid.y + gap
         let leftX = targetMid.x - bubbleW - gap
         let rightX = targetMid.x + gap
 
-        if aboveY >= 20 {
+        if aboveY >= 24 {
             edge = .bottom
-            let x = max(20, min(targetMid.x - bubbleW / 2, safeSize.width - bubbleW - 20))
-            let y = aboveY
-            return (CGRect(x: x, y: y, width: bubbleW, height: bubbleH), edge)
+            let x = max(24, min(targetMid.x - bubbleW / 2, safeSize.width - bubbleW - 24))
+            return (CGRect(x: x, y: aboveY, width: bubbleW, height: bubbleH), edge)
         }
         if belowY + bubbleH <= safeSize.height - 40 {
             edge = .top
-            let x = max(20, min(targetMid.x - bubbleW / 2, safeSize.width - bubbleW - 20))
+            let x = max(24, min(targetMid.x - bubbleW / 2, safeSize.width - bubbleW - 24))
             return (CGRect(x: x, y: belowY, width: bubbleW, height: bubbleH), edge)
         }
-        if rightX + bubbleW <= safeSize.width - 20 {
+        if rightX + bubbleW <= safeSize.width - 24 {
             edge = .leading
-            let y = max(20, min(targetMid.y - bubbleH / 2, safeSize.height - bubbleH - 40))
+            let y = max(24, min(targetMid.y - bubbleH / 2, safeSize.height - bubbleH - 40))
             return (CGRect(x: rightX, y: y, width: bubbleW, height: bubbleH), edge)
         }
         edge = .trailing
-        let y = max(20, min(targetMid.y - bubbleH / 2, safeSize.height - bubbleH - 40))
+        let y = max(24, min(targetMid.y - bubbleH / 2, safeSize.height - bubbleH - 40))
         return (CGRect(x: leftX, y: y, width: bubbleW, height: bubbleH), edge)
     }
 }
