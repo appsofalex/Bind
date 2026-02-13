@@ -227,19 +227,19 @@ struct TravelDocsWalletView: View {
     @AppStorage("walletScrollOffset") private var baseScrollOffset: Double = 0
     @State private var dragOffset: CGFloat = 0
     
-    // Reorder State (Apple Wallet-style long-press and drag)
-    @State private var reorderingDocumentID: UUID? = nil
-    @State private var reorderDragOffset: CGFloat = 0
-    @State private var proposedReorderIndex: Int? = nil
-    @State private var reorderStartIndex: Int = 0
+    // Reorder stack sheet (long-press on card opens exposé-style reorder)
+    @State private var showReorderStackSheet = false
+    @State private var longPressedDocumentID: UUID? = nil
+    @State private var reorderStackInitialOrder: [UUID] = []
     
     // Configuration
     private let cardSpacing: CGFloat = 65
+    private let maxCardsOnStack: Int = 6
     @StateObject private var subscriptionManager = SubscriptionManager.shared
     
     @Environment(\.colorScheme) var colorScheme
     
-    // MARK: - NEW: ONLY SHOW ACTIVE CARDS (Max 6 handled by toggles)
+    // MARK: - Stack: only active cards, max 6 on stack (overflow bumped to All Cards, switch off)
     var activeDocuments: [TravelDocument] {
         documents.filter { $0.isActive }
     }
@@ -308,7 +308,6 @@ struct TravelDocsWalletView: View {
                         
                         // 1. CALCULATE DYNAMIC POSITION
                         let targetPos = getCircularPosition(for: index)
-                        let isReordering = (reorderingDocumentID == doc.id)
                         let isPassport = (doc.type == .passport)
                         // CHANGED: Group generic ID types together for the flip animation
                         let isIDCard = (doc.type == .idCard || doc.type == .driversLicense || doc.type == .studentID || doc.type == .nationalInsurance)
@@ -411,56 +410,15 @@ struct TravelDocsWalletView: View {
                                 }
                             }
                             .frame(width: geo.size.width - 40)
-                            
-                            // MARK: - Apple Wallet long-press-then-drag reorder gesture (per card)
-                            .gesture(
-                                LongPressGesture(minimumDuration: 0.4)
-                                    .sequenced(before: DragGesture(minimumDistance: 0))
-                                    .onChanged { value in
-                                        guard activeDocuments.count > 1, selectedID == nil else { return }
-                                        switch value {
-                                        case .first(true):
-                                            break
-                                        case .second(true, let drag):
-                                            // --- First recognition: lift the card ---
-                                            if reorderingDocumentID == nil {
-                                                reorderStartIndex = index
-                                                proposedReorderIndex = index
-                                                reorderDragOffset = 0
-                                                withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
-                                                    reorderingDocumentID = doc.id
-                                                }
-                                                if isHapticsEnabled {
-                                                    HapticManager.shared.triggerImpact(style: .medium)
-                                                }
-                                            }
-                                            // --- Track finger ---
-                                            if let drag = drag {
-                                                // Force-kill ALL animations on the drag offset
-                                                var t = Transaction(animation: .none)
-                                                t.disablesAnimations = true
-                                                withTransaction(t) {
-                                                    reorderDragOffset = drag.translation.height
-                                                }
-                                                let delta = Int(round(drag.translation.height / cardSpacing))
-                                                let newProposed = min(max(reorderStartIndex + delta, 0), activeDocuments.count - 1)
-                                                if newProposed != proposedReorderIndex {
-                                                    withAnimation(.interpolatingSpring(stiffness: 400, damping: 30)) {
-                                                        proposedReorderIndex = newProposed
-                                                    }
-                                                    if isHapticsEnabled {
-                                                        HapticManager.shared.triggerImpact(style: .light)
-                                                    }
-                                                }
-                                            }
-                                        default:
-                                            break
-                                        }
-                                    }
-                                    .onEnded { _ in
-                                        commitReorderIfNeeded()
-                                    }
-                            )
+                            .onLongPressGesture(minimumDuration: 0.5) {
+                                guard activeDocuments.count > 1, selectedID == nil else { return }
+                                if isHapticsEnabled {
+                                    HapticManager.shared.triggerImpact(style: .medium)
+                                }
+                                longPressedDocumentID = doc.id
+                                reorderStackInitialOrder = visualOrderForReorderSheet()
+                                showReorderStackSheet = true
+                            }
                             
                             // 2. POSITIONING & DEPTH
                             .scaleEffect(getScale(for: currentPos, docID: doc.id))
@@ -469,20 +427,15 @@ struct TravelDocsWalletView: View {
                                 axis: (x: 1, y: 0, z: 0)
                             )
                             .offset(y: getOffset(for: currentPos, docID: doc.id))
-                            // Dragged card: finger tracking (never animated)
-                            // Other cards: neighbour shift (animated via withAnimation in gesture)
-                            .offset(y: isReordering ? reorderDragOffset - 8 : reorderShift(for: index))
                             .shadow(
-                                color: isReordering
-                                    ? .black.opacity(0.12)
-                                    : (colorScheme == .dark ? .clear : .black.opacity(0.3)),
-                                radius: isReordering ? 8 : (colorScheme == .dark ? 0 : 15),
+                                color: colorScheme == .dark ? .clear : .black.opacity(0.3),
+                                radius: colorScheme == .dark ? 0 : 15,
                                 x: 0,
-                                y: isReordering ? 3 : (colorScheme == .dark ? 0 : 10)
+                                y: colorScheme == .dark ? 0 : 10
                             )
                             
                             // 3. STACK ORDER (Z-Index)
-                            .zIndex(getZIndex(for: currentPos, docID: doc.id, isReordering: isReordering))
+                            .zIndex(getZIndex(for: currentPos, docID: doc.id))
                             
                             // DELETE ANIMATION (Fly off to right)
                             .transition(
@@ -501,11 +454,11 @@ struct TravelDocsWalletView: View {
                 .gesture(
                     DragGesture()
                         .onChanged { value in
-                            guard selectedID == nil, reorderingDocumentID == nil else { return }
+                            guard selectedID == nil else { return }
                             dragOffset = value.translation.height
                         }
                         .onEnded { value in
-                            guard selectedID == nil, reorderingDocumentID == nil else { return }
+                            guard selectedID == nil else { return }
                             
                             let totalDrag = CGFloat(baseScrollOffset) + value.translation.height
                             
@@ -527,11 +480,6 @@ struct TravelDocsWalletView: View {
                             }
                         }
                 )
-                .onTapGesture {
-                    if reorderingDocumentID != nil {
-                        clearReorderState()
-                    }
-                }
             }
             
             // PERSISTENT HEADER (Overlay)
@@ -836,6 +784,7 @@ struct TravelDocsWalletView: View {
             DocumentFormView(type: type) { newDoc in
                 withAnimation {
                     documents.append(newDoc)
+                    bumpLeastRecentActiveIfOverLimit()
                     baseScrollOffset = 0
                     dragOffset = 0
                 }
@@ -867,6 +816,17 @@ struct TravelDocsWalletView: View {
         // MARK: - QUICK ACCESS SHEET
         .sheet(isPresented: $showQuickAccessSheet) {
             QuickAccessView(documents: $documents)
+        }
+        // MARK: - REORDER STACK SHEET (exposé-style grid)
+        .sheet(isPresented: $showReorderStackSheet) {
+            ReorderStackView(
+                documents: $documents,
+                highlightedDocumentID: longPressedDocumentID,
+                initialOrder: reorderStackInitialOrder,
+                onDismiss: { showReorderStackSheet = false }
+            )
+            .presentationDetents([.large])
+            .presentationCornerRadius(24)
         }
         // MARK: - ALL CARDS SHEET WITH TOGGLES
         .sheet(isPresented: $showAllCardsSheet) {
@@ -901,13 +861,18 @@ struct TravelDocsWalletView: View {
                                             }
                                             .buttonStyle(.plain)
                                             
-                                            // Native Switch
+                                            // Native Switch (max 6 on stack; turning 7th on bumps least recent off)
                                             Toggle("", isOn: Binding(
                                                 get: { doc.isActive },
                                                 set: { newValue in
-                                                    if let index = documents.firstIndex(where: { $0.id == doc.id }) {
-                                                        documents[index].isActive = newValue
+                                                    guard let index = documents.firstIndex(where: { $0.id == doc.id }) else { return }
+                                                    if newValue {
+                                                        let activeCount = documents.filter(\.isActive).count
+                                                        if activeCount >= maxCardsOnStack {
+                                                            bumpLeastRecentActiveIfOverLimit()
+                                                        }
                                                     }
+                                                    documents[index].isActive = newValue
                                                 }
                                             ))
                                                 .labelsHidden()
@@ -1000,6 +965,16 @@ struct TravelDocsWalletView: View {
     
     // MARK: - LOGIC
     
+    /// Keeps at most 6 cards on the main stack. If more are active, the least recent (first in list order) is turned off and only appears in All Cards with switch off.
+    private func bumpLeastRecentActiveIfOverLimit() {
+        let activeIndices = documents.enumerated()
+            .filter(\.element.isActive)
+            .map(\.offset)
+        guard activeIndices.count >= maxCardsOnStack else { return }
+        let leastRecentIndex = activeIndices.min()!
+        documents[leastRecentIndex].isActive = false
+    }
+    
     func deleteDocument(_ doc: TravelDocument) {
             
             
@@ -1032,10 +1007,6 @@ struct TravelDocsWalletView: View {
     }
     
     func toggleSelection(for id: UUID?) {
-        if reorderingDocumentID != nil {
-            clearReorderState()
-            return
-        }
         if isHapticsEnabled {
             HapticManager.shared.triggerSelection()
         }
@@ -1100,77 +1071,167 @@ struct TravelDocsWalletView: View {
         return -10 * (1 - progress)
     }
     
-    func getZIndex(for position: CGFloat, docID: UUID, isReordering: Bool = false) -> Double {
+    func getZIndex(for position: CGFloat, docID: UUID) -> Double {
         if let selected = selectedID, selected == docID {
             return Double(totalScrollHeight) + 100 // Ensure selected card is always on top
-        }
-        // During reorder the dragged card sits just above its neighbours — not floating
-        if isReordering {
-            return Double(position) + 5
         }
         return Double(position)
     }
     
-    /// Returns the Y shift a non-dragged card needs so neighbours slide out of the way.
-    /// Cards between the start and proposed indices shift by one card-spacing in the opposite direction.
-    func reorderShift(for index: Int) -> CGFloat {
-        guard reorderingDocumentID != nil,
-              let proposed = proposedReorderIndex else { return 0 }
-        let from = reorderStartIndex
-        if from == proposed { return 0 }
-        if from < proposed {
-            // Dragging down → cards between (from+1)…proposed shift UP
-            if index > from && index <= proposed {
-                return -cardSpacing
-            }
-        } else {
-            // Dragging up → cards between proposed…(from-1) shift DOWN
-            if index >= proposed && index < from {
-                return cardSpacing
-            }
-        }
-        return 0
+    /// Order of active card ids as they appear on the stack (top to bottom) for the reorder sheet.
+    private func visualOrderForReorderSheet() -> [UUID] {
+        guard !activeDocuments.isEmpty else { return [] }
+        let indices = activeDocuments.indices.sorted { getCircularPosition(for: $0) < getCircularPosition(for: $1) }
+        return indices.map { activeDocuments[$0].id }
+    }
+}
+
+// MARK: - Reorder Stack (horizontal strips + shake, long-press on card opens this sheet)
+private struct ReorderStackView: View {
+    @Binding var documents: [TravelDocument]
+    var highlightedDocumentID: UUID?
+    /// Order as shown on the homescreen stack (top to bottom) so the list mirrors it.
+    var initialOrder: [UUID]
+    var onDismiss: () -> Void
+    
+    private var activeDocuments: [TravelDocument] {
+        documents.filter { $0.isActive }
     }
     
-    /// Commits reorder: moves the reordering document in `documents` so active order matches proposed index, then clears reorder state.
-    func commitReorderIfNeeded() {
-        guard let reorderingID = reorderingDocumentID,
-              activeDocuments.count > 1,
-              let fromIndex = activeDocuments.firstIndex(where: { $0.id == reorderingID }) else {
-            clearReorderState()
+    @State private var orderedIDs: [UUID] = []
+    @State private var contentAppeared = false
+    @Environment(\.colorScheme) var colorScheme
+    
+    var body: some View {
+        GeometryReader { geo in
+            let rowCount = max(orderedIDs.count, 1)
+            let listAreaHeight = geo.size.height - 168
+            let rowHeight = min(86, max(56, (listAreaHeight - CGFloat(rowCount - 1) * 8) / CGFloat(rowCount)))
+            
+            ZStack {
+                (colorScheme == .dark ? Color(red: 0.11, green: 0.11, blue: 0.12) : Color(red: 0.96, green: 0.96, blue: 0.97))
+                    .ignoresSafeArea()
+                
+                VStack(spacing: 0) {
+                    Text("Stack order")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.primary)
+                        .padding(.top, 20)
+                        .padding(.bottom, 8)
+                    
+                    Text("Drag to reorder")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .padding(.bottom, 16)
+                    
+                    List {
+                        ForEach(orderedIDs, id: \.self) { id in
+                            if let doc = documents.first(where: { $0.id == id }) {
+                                ReorderStripRow(
+                                    doc: doc,
+                                    isHighlighted: id == highlightedDocumentID,
+                                    minHeight: rowHeight
+                                )
+                                .listRowInsets(EdgeInsets(top: 5, leading: 16, bottom: 5, trailing: 16))
+                                .listRowSeparator(.hidden)
+                                .listRowBackground(Color.clear)
+                            }
+                        }
+                        .onMove { fromOffsets, toOffset in
+                            orderedIDs.move(fromOffsets: fromOffsets, toOffset: toOffset)
+                        }
+                    }
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
+                    .environment(\.editMode, .constant(.active))
+                    .opacity(contentAppeared ? 1 : 0)
+                    .scaleEffect(contentAppeared ? 1 : 0.98)
+                    
+                    Button(action: applyAndDismiss) {
+                        Text("Done")
+                            .fontWeight(.semibold)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(.ultraThinMaterial)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .foregroundStyle(.primary)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 34)
+                }
+            }
+        }
+        .onAppear {
+            // Mirror the visible stack order (top-to-bottom) from the homescreen
+            if !initialOrder.isEmpty && Set(initialOrder) == Set(activeDocuments.map(\.id)) {
+                orderedIDs = initialOrder
+            } else {
+                orderedIDs = activeDocuments.map(\.id)
+            }
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
+                contentAppeared = true
+            }
+        }
+    }
+    
+    private func applyAndDismiss() {
+        // Only update the stack order if the user actually reordered (don’t touch order on “Done” with no changes)
+        guard orderedIDs != initialOrder else {
+            onDismiss()
             return
         }
-        let rawTo = proposedReorderIndex ?? fromIndex
-        let toIndex = min(max(rawTo, 0), activeDocuments.count - 1)
-        
-        if fromIndex != toIndex {
-            var currentOrder = activeDocuments.map(\.id)
-            let movingID = currentOrder.remove(at: fromIndex)
-            currentOrder.insert(movingID, at: toIndex)
-            let inactive = documents.filter { !$0.isActive }
-            let newActive = currentOrder.compactMap { id in documents.first(where: { $0.id == id }) }
-            
-            // Animate everything together: the reorder + clearing offsets.
-            withAnimation(.interpolatingSpring(stiffness: 400, damping: 30)) {
-                documents = newActive + inactive
-                reorderDragOffset = 0
-                proposedReorderIndex = nil
-                reorderingDocumentID = nil
-            }
-        } else {
-            clearReorderState()
+        let inactive = documents.filter { !$0.isActive }
+        let newActive = orderedIDs.compactMap { id in documents.first(where: { $0.id == id }) }
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+            documents = newActive + inactive
         }
-        
-        if isHapticsEnabled {
-            HapticManager.shared.triggerImpact(style: .light)
-        }
+        onDismiss()
+    }
+}
+
+// Horizontal strip row with card colour + jiggle (iOS home screen–style edit shake)
+private struct ReorderStripRow: View {
+    let doc: TravelDocument
+    let isHighlighted: Bool
+    var minHeight: CGFloat = 56
+    
+    // Phase offset so rows don’t all shake in sync (derived from doc id)
+    private var phase: Double {
+        Double(doc.id.hashValue % 100) / 100.0 * .pi * 2
     }
     
-    func clearReorderState() {
-        withAnimation(.interpolatingSpring(stiffness: 400, damping: 30)) {
-            reorderDragOffset = 0
-            proposedReorderIndex = nil
-            reorderingDocumentID = nil
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1 / 30)) { context in
+            let t = context.date.timeIntervalSinceReferenceDate
+            let jiggleAmount = sin(t * 20 + phase) * 0.65
+            
+            HStack(spacing: 14) {
+                Image(systemName: doc.iconName)
+                    .font(.system(size: 22))
+                    .foregroundStyle(.white.opacity(0.95))
+                    .frame(width: 32, alignment: .center)
+                
+                Text(doc.type.displayName)
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, minHeight: minHeight, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(doc.primaryColor.opacity(0.92))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(isHighlighted ? Color.accentColor : Color.clear, lineWidth: 2)
+                    )
+            )
+            .rotationEffect(.degrees(jiggleAmount))
+            .offset(x: jiggleAmount / 2, y: -jiggleAmount / 2)
         }
     }
 }
