@@ -319,6 +319,20 @@ struct TravelDocument: Identifiable, Codable, Equatable {
             default: return rawValue.capitalized
             }
         }
+
+        /// Category for grouping in All Cards list (matches add-card menu sections)
+        var category: String {
+            switch self {
+            case .passport, .boardingPass, .carRental, .hotelKeyCard, .visa: return "Travel"
+            case .driversLicense, .studentID, .idCard, .nationalInsurance: return "Identity"
+            case .prescription, .vaccineRecord, .medicalAlert, .insurance: return "Health"
+            case .petInsurance, .petVaccineRecord, .petPassport, .petID: return "Pets"
+            case .birthCertificate, .marriageCertificate, .rewardsCard, .event: return "Other"
+            }
+        }
+
+        /// Order of categories for display (matches add-card menu)
+        static let categoryOrder = ["Travel", "Identity", "Health", "Pets", "Other"]
     }
 }
 

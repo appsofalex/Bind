@@ -17,6 +17,7 @@ struct DocumentFormView: View {
     let prefilledTitle: String? // Optional prefill title
 
     @Environment(\.dismiss) var dismiss
+    @StateObject private var subscriptionManager = SubscriptionManager.shared
     
     // Form Fields
     @State private var title: String
@@ -129,6 +130,10 @@ struct DocumentFormView: View {
     @State private var marriagePlace: String = ""
     @State private var officiantName: String = ""
     @State private var witnesses: String = ""
+    
+    // PRO: Custom card colours (used when subscriptionManager.isPro)
+    @State private var customPrimaryColor: Color = .blue
+    @State private var customSecondaryColor: Color = .white
     
     // Image Picker & Cropper State
     @State private var selectedPhotoItem: PhotosPickerItem?
@@ -568,6 +573,9 @@ struct DocumentFormView: View {
                 }
             }
             
+            _customPrimaryColor = State(initialValue: doc.primaryColor)
+            _customSecondaryColor = State(initialValue: doc.secondaryColor)
+            
         } else {
             // ADD MODE
             let targetType = type ?? .passport
@@ -685,6 +693,36 @@ struct DocumentFormView: View {
             default:
                 break
             }
+            
+            _customPrimaryColor = State(initialValue: Self.defaultPrimaryColor(for: targetType))
+            _customSecondaryColor = State(initialValue: .white)
+        }
+    }
+    
+    /// Default primary colour per document type (used for new cards and when not Pro).
+    private static func defaultPrimaryColor(for type: TravelDocument.DocumentType) -> Color {
+        switch type {
+        case .driversLicense: return Color(red: 0.2, green: 0.3, blue: 0.45)
+        case .studentID: return Color(red: 0.5, green: 0.1, blue: 0.1)
+        case .prescription: return Color(red: 0.0, green: 0.6, blue: 0.45)
+        case .vaccineRecord: return Color(red: 0.2, green: 0.4, blue: 0.7)
+        case .medicalAlert: return Color(red: 0.85, green: 0.2, blue: 0.2)
+        case .birthCertificate: return Color(red: 0.4, green: 0.3, blue: 0.2)
+        case .marriageCertificate: return Color(red: 0.7, green: 0.5, blue: 0.2)
+        case .rewardsCard: return Color(red: 0.95, green: 0.75, blue: 0.1)
+        case .event: return Color(red: 0.0, green: 0.7, blue: 0.8)
+        case .carRental: return Color(red: 0.1, green: 0.4, blue: 0.2)
+        case .hotelKeyCard: return Color(red: 0.15, green: 0.15, blue: 0.2)
+        case .passport: return Color(red: 0.05, green: 0.05, blue: 0.25)
+        case .boardingPass: return Color(red: 1.0, green: 0.31, blue: 0.0)
+        case .visa: return Color(red: 0.85, green: 0.2, blue: 0.3)
+        case .insurance: return Color(red: 0.0, green: 0.5, blue: 0.5)
+        case .idCard: return Color(red: 0.45, green: 0.2, blue: 0.6)
+        case .nationalInsurance: return Color(red: 0.2, green: 0.6, blue: 0.3)
+        case .petInsurance: return Color(red: 0.2, green: 0.6, blue: 0.3)
+        case .petVaccineRecord: return Color(red: 0.2, green: 0.4, blue: 0.7)
+        case .petPassport: return Color(red: 0.5, green: 0.1, blue: 0.2)
+        case .petID: return Color(red: 0.8, green: 0.4, blue: 0.0)
         }
     }
     
@@ -692,6 +730,9 @@ struct DocumentFormView: View {
         NavigationView {
             Form {
                 documentDetailsSection
+                if subscriptionManager.isPro {
+                    cardColourSection
+                }
                 personalInfoSection
                 
                 if shouldShowPhotoUpload {
@@ -742,6 +783,12 @@ struct DocumentFormView: View {
     }
     
     // MARK: - View Components
+    
+    private var cardColourSection: some View {
+        Section(header: Text("Card colour")) {
+            ColorPicker("Primary colour", selection: $customPrimaryColor, supportsOpacity: false)
+        }
+    }
     
     private var documentDetailsSection: some View {
         Section(header: Text("Card Details")) {
@@ -1701,8 +1748,8 @@ struct DocumentFormView: View {
             marriagePlace: type == .marriageCertificate ? marriagePlace : nil,
             officiantName: type == .marriageCertificate ? officiantName : nil,
             witnesses: type == .marriageCertificate ? witnesses : nil,
-            primaryColor: getColor(for: type),
-            secondaryColor: .white,
+            primaryColor: subscriptionManager.isPro ? customPrimaryColor : getColor(for: type),
+            secondaryColor: subscriptionManager.isPro ? customSecondaryColor : .white,
             iconName: getIcon(for: type),
             airline: finalAirline,
             isActive: true

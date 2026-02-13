@@ -266,14 +266,15 @@ struct BoardingPassAnimatedCard: View {
     let document: TravelDocument
     let isSelected: Bool
     let onTap: () -> Void
-    
+    @Environment(\.colorScheme) var colorScheme
+
     // Animation States
     @State private var showDetail = false
     @State private var planeMoved = false
-    
+
     // Matched Geometry for smooth container transition
     @Namespace private var animation
-    
+
     var body: some View {
         ZStack {
             if showDetail {
@@ -287,7 +288,7 @@ struct BoardingPassAnimatedCard: View {
             }
         }
         .frame(height: isSelected ? 440 : 240) // Expand vertically
-        
+
         // --- REFINED TAKE OFF TILT EFFECT ---
         .rotation3DEffect(
             .degrees(isSelected ? -8 : 0),
@@ -296,11 +297,12 @@ struct BoardingPassAnimatedCard: View {
         )
         // Adjust vertical offset when selected to give a "lift" feel
         .offset(y: isSelected ? -10 : 0)
+        // In light mode, shadow comes from ContentView for uniform look; in dark mode use our own
         .shadow(
-            color: Color.black.opacity(isSelected ? 0.4 : 0.3),
-            radius: isSelected ? 30 : 15,
+            color: colorScheme == .dark ? Color.black.opacity(isSelected ? 0.4 : 0.3) : .clear,
+            radius: colorScheme == .dark ? (isSelected ? 30 : 15) : 0,
             x: 0,
-            y: isSelected ? 20 : 10
+            y: colorScheme == .dark ? (isSelected ? 20 : 10) : 0
         )
         .onTapGesture {
             onTap()

@@ -3,7 +3,8 @@ import SwiftUI
 // MARK: - 2. THE CARD VIEW (Front Cover used in Wallet Stack)
 struct DocumentCardView: View {
     let document: TravelDocument
-    
+    @Environment(\.colorScheme) var colorScheme
+
     var body: some View {
         ZStack(alignment: .topLeading) {
             
@@ -91,7 +92,12 @@ struct DocumentCardView: View {
         }
         .frame(height: 240) // Fixed height for the card look
         .clipShape(RoundedRectangle(cornerRadius: 20))
-        .shadow(color: Color.black.opacity(0.3), radius: 15, x: 0, y: 10)
+        .shadow(
+            color: colorScheme == .dark ? Color.black.opacity(0.3) : .clear,
+            radius: colorScheme == .dark ? 15 : 0,
+            x: 0,
+            y: colorScheme == .dark ? 10 : 0
+        )
         .overlay(
             RoundedRectangle(cornerRadius: 20)
                 .stroke(Color.white.opacity(0.15), lineWidth: 1)

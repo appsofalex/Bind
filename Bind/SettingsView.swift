@@ -113,6 +113,19 @@ struct SettingsView: View {
                             }
                         }
                         
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Card Colours")
+                                    .foregroundColor(.primary)
+                                Text("Edit any card to set its colour")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        } icon: {
+                            Image(systemName: "paintpalette.fill")
+                                .foregroundColor(.gray)
+                        }
+                        
                         // Testing/Demo Button
                         Button("Demote to Free Plan (Test)") {
                             subscriptionManager.downgradeToFree()
@@ -128,7 +141,7 @@ struct SettingsView: View {
                                     .font(.headline)
                             }
                             
-                            Text("Unlock unlimited cards, cloud sync, and quick access personalization.")
+                            Text("Unlock customisable card colours, cloud sync, and quick access personalization.")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             

@@ -194,8 +194,7 @@ struct TravelDocsWalletView: View {
     @State private var showAllCardsSheet = false
     @State private var showSettingsSheet = false
     @State private var showQuickAccessSheet = false
-    @State private var showLimitReachedSheet = false // New state for limit reached
-    @State private var showUpgradeSheet = false // New state for direct upgrade sheet
+    @State private var showUpgradeSheet = false // Direct upgrade sheet (e.g. from Settings)
     @State private var selectedTypeToAdd: TravelDocument.DocumentType? = nil
     
     // PREFERENCES
@@ -203,6 +202,9 @@ struct TravelDocsWalletView: View {
     
     // EDIT STATE
     @State private var documentToEdit: TravelDocument? = nil
+    
+    // ALL CARDS PREVIEW (card opened from list, returns to list on exit)
+    @State private var allCardsPreviewDocument: TravelDocument? = nil
     
     // SHARE STATE (zoomed card snapshot)
     @State private var showShareSheet = false
@@ -234,10 +236,6 @@ struct TravelDocsWalletView: View {
     // Configuration
     private let cardSpacing: CGFloat = 65
     @StateObject private var subscriptionManager = SubscriptionManager.shared
-    
-    private var maxCardsOnScreen: Int {
-        6
-    }
     
     @Environment(\.colorScheme) var colorScheme
     
@@ -474,7 +472,14 @@ struct TravelDocsWalletView: View {
                             // Dragged card: finger tracking (never animated)
                             // Other cards: neighbour shift (animated via withAnimation in gesture)
                             .offset(y: isReordering ? reorderDragOffset - 8 : reorderShift(for: index))
-                            .shadow(color: .black.opacity(isReordering ? 0.12 : 0), radius: isReordering ? 8 : 0, y: isReordering ? 3 : 0)
+                            .shadow(
+                                color: isReordering
+                                    ? .black.opacity(0.12)
+                                    : (colorScheme == .dark ? .clear : .black.opacity(0.3)),
+                                radius: isReordering ? 8 : (colorScheme == .dark ? 0 : 15),
+                                x: 0,
+                                y: isReordering ? 3 : (colorScheme == .dark ? 0 : 10)
+                            )
                             
                             // 3. STACK ORDER (Z-Index)
                             .zIndex(getZIndex(for: currentPos, docID: doc.id, isReordering: isReordering))
@@ -737,8 +742,8 @@ struct TravelDocsWalletView: View {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 50))
                             .symbolRenderingMode(.hierarchical)
-                            .foregroundColor(.white)
-                            .shadow(radius: 10)
+                            .foregroundStyle(.white)
+                            .background(Color.black.opacity(0.5).clipShape(Circle()))
                     }
                     .padding(.bottom, 50)
                 }
@@ -798,6 +803,10 @@ struct TravelDocsWalletView: View {
         // AUTOMATIC SAVING: Whenever documents array changes, save to disk
         .onChange(of: documents) { newValue in
             TravelDocumentStore.shared.save(newValue)
+            if let preview = allCardsPreviewDocument,
+               let updated = newValue.first(where: { $0.id == preview.id }) {
+                allCardsPreviewDocument = updated
+            }
         }
         // TUTORIAL TRIGGERS
         .onChange(of: documents.count) { count in
@@ -826,18 +835,7 @@ struct TravelDocsWalletView: View {
         .sheet(item: $selectedTypeToAdd) { type in
             DocumentFormView(type: type) { newDoc in
                 withAnimation {
-                    // 1. If we are at max capacity (6), deactivate the last active card to make room
-                    if activeDocuments.count >= maxCardsOnScreen {
-                        // Find the index of the last active card
-                        if let lastActiveIndex = documents.lastIndex(where: { $0.isActive }) {
-                            documents[lastActiveIndex].isActive = false
-                        }
-                    }
-                    
-                    // 2. Add new card at the end so it appears at the front of the stack
                     documents.append(newDoc)
-                    
-                    // 3. Reset scroll so the top (0th item) is front-and-center
                     baseScrollOffset = 0
                     dragOffset = 0
                 }
@@ -870,120 +868,102 @@ struct TravelDocsWalletView: View {
         .sheet(isPresented: $showQuickAccessSheet) {
             QuickAccessView(documents: $documents)
         }
-        // MARK: - LIMIT REACHED SHEET
-        .sheet(isPresented: $showLimitReachedSheet) {
-            VStack(spacing: 25) {
-                Spacer()
-                
-                Image(systemName: "rectangle.stack.fill")
-                    .font(.system(size: 60))
-                    .foregroundColor(.orange)
-                
-                VStack(spacing: 10) {
-                    Text("Free Limit Reached")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                    
-                    Text("You've hit the limit of 6 active cards on the free plan.")
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                }
-                
-                VStack(spacing: 15) {
-                    Button(action: {
-                        showLimitReachedSheet = false
-                        // Small delay to allow sheet to close before opening upgrade view
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                            showUpgradeSheet = true // Direct to Pro Upgrade View
-                        }
-                    }) {
-                        Text("Upgrade to Pro")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .background(Color.blue)
-                            .clipShape(Capsule())
-                    }
-                    
-                    Button(action: {
-                        showLimitReachedSheet = false
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                            showAllCardsSheet = true
-                        }
-                    }) {
-                        Text("Manage Cards")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .background(Color.secondary.opacity(0.15))
-                            .clipShape(Capsule())
-                    }
-                    
-                    Button("Cancel") {
-                        showLimitReachedSheet = false
-                    }
-                    .foregroundColor(.secondary)
-                    .padding(.top, 5)
-                }
-                .padding(.horizontal, 30)
-                
-                Spacer()
-            }
-            .presentationDetents([.medium])
-        }
-        // MARK: - NEW: ALL CARDS SHEET WITH TOGGLES
+        // MARK: - ALL CARDS SHEET WITH TOGGLES
         .sheet(isPresented: $showAllCardsSheet) {
             ZStack {
                 NavigationView {
                     List {
-                        ForEach(documents) { doc in
-                            HStack(spacing: 15) {
-                                Image(systemName: doc.iconName)
-                                    .font(.title2)
-                                    .foregroundColor(doc.primaryColor)
-                                    .frame(width: 30)
-                                
-                                VStack(alignment: .leading) {
-                                    Text(doc.displayTitle)
-                                        .font(.headline)
-                                    Text(doc.subtitle.capitalized)
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
-                                }
-                                Spacer()
-                                
-                                // Native Switch
-                                Toggle("", isOn: Binding(
-                                    get: { doc.isActive },
-                                    set: { newValue in
-                                        if let index = documents.firstIndex(where: { $0.id == doc.id }) {
-                                            documents[index].isActive = newValue
+                        ForEach(TravelDocument.DocumentType.categoryOrder, id: \.self) { category in
+                            let docsInCategory = documents.filter { $0.type.category == category }
+                            if !docsInCategory.isEmpty {
+                                Section(header: Text(category)
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.secondary)) {
+                                    ForEach(docsInCategory) { doc in
+                                        HStack(spacing: 15) {
+                                            Button(action: { allCardsPreviewDocument = doc }) {
+                                                HStack(spacing: 15) {
+                                                    Image(systemName: doc.iconName)
+                                                        .font(.title2)
+                                                        .foregroundColor(doc.primaryColor)
+                                                        .frame(width: 30)
+                                                    VStack(alignment: .leading) {
+                                                        Text(doc.displayTitle)
+                                                            .font(.headline)
+                                                        Text(doc.subtitle.capitalized)
+                                                            .font(.caption)
+                                                            .foregroundColor(.gray)
+                                                    }
+                                                }
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                                .contentShape(Rectangle())
+                                            }
+                                            .buttonStyle(.plain)
+                                            
+                                            // Native Switch
+                                            Toggle("", isOn: Binding(
+                                                get: { doc.isActive },
+                                                set: { newValue in
+                                                    if let index = documents.firstIndex(where: { $0.id == doc.id }) {
+                                                        documents[index].isActive = newValue
+                                                    }
+                                                }
+                                            ))
+                                                .labelsHidden()
+                                                .tint(.green)
+                                        }
+                                        .padding(.vertical, 4)
+                                    }
+                                    .onDelete { indexSet in
+                                        for i in indexSet.sorted(by: >) {
+                                            let doc = docsInCategory[i]
+                                            if let idx = documents.firstIndex(where: { $0.id == doc.id }) {
+                                                documents.remove(at: idx)
+                                            }
                                         }
                                     }
-                                ))
-                                    .labelsHidden()
-                                    .tint(.green)
-                                    // Disable turning ON if we are already at 6
-                                    .disabled(!doc.isActive && activeDocuments.count >= maxCardsOnScreen)
+                                    .onMove { fromOffsets, toOffset in
+                                        let sectionDocs = docsInCategory
+                                        guard let from = fromOffsets.first, from < sectionDocs.count else { return }
+                                        let docToMove = sectionDocs[from]
+                                        guard let fromGlobal = documents.firstIndex(where: { $0.id == docToMove.id }) else { return }
+                                        let toGlobal: Int
+                                        if toOffset >= sectionDocs.count {
+                                            let lastInSection = sectionDocs[sectionDocs.count - 1]
+                                            guard let lastGlobal = documents.firstIndex(where: { $0.id == lastInSection.id }) else { return }
+                                            toGlobal = lastGlobal + 1
+                                        } else {
+                                            let destDoc = sectionDocs[toOffset]
+                                            guard let d = documents.firstIndex(where: { $0.id == destDoc.id }) else { return }
+                                            toGlobal = d
+                                        }
+                                        documents.move(fromOffsets: IndexSet(integer: fromGlobal), toOffset: toGlobal)
+                                    }
+                                }
                             }
-                            .padding(.vertical, 4)
-                        }
-                        .onDelete { indexSet in
-                            documents.remove(atOffsets: indexSet)
-                        }
-                        .onMove { indices, newOffset in
-                            documents.move(fromOffsets: indices, toOffset: newOffset)
                         }
                     }
-                    .navigationTitle(subscriptionManager.isPro ? "All Cards" : "All Cards (\(activeDocuments.count)/\(maxCardsOnScreen))")
+                    .navigationTitle("All Cards")
                     .navigationBarItems(
                         leading: EditButton(),
                         trailing: Button("Done") { showAllCardsSheet = false }
                     )
+                }
+                // MARK: - Card preview overlay (tap row to open, exit returns to list)
+                if let doc = allCardsPreviewDocument {
+                    AllCardsPreviewOverlay(
+                        document: doc,
+                        onDismiss: { withAnimation(.easeOut(duration: 0.2)) { allCardsPreviewDocument = nil } },
+                        onEdit: { documentToEdit = doc },
+                        onDelete: {
+                            deleteDocument(doc)
+                            allCardsPreviewDocument = nil
+                        },
+                        onShare: { shareDocument(doc) }
+                    )
+                    .transition(.opacity)
+                    .zIndex(100)
                 }
                 if showAllCardsListTutorial {
                     TutorialBubbleOverlay(
@@ -1010,7 +990,6 @@ struct TravelDocsWalletView: View {
                 showAllCardsSheet = false
                 showSettingsSheet = false
                 showQuickAccessSheet = false
-                showLimitReachedSheet = false
                 showUpgradeSheet = false
                 selectedTypeToAdd = nil
                 documentToEdit = nil
@@ -1035,16 +1014,15 @@ struct TravelDocsWalletView: View {
     
     func startAdd(_ type: TravelDocument.DocumentType) {
         // Changed Check: Count total documents instead of just active ones
-        if !subscriptionManager.isPro && documents.count >= maxCardsOnScreen {
-            // Trigger limit reached sheet instead of proceeding
-            showLimitReachedSheet = true
-        } else {
-            selectedTypeToAdd = type
-        }
+        selectedTypeToAdd = type
     }
     
     private func shareExpandedCard() {
         guard let doc = documents.first(where: { $0.id == selectedID }) else { return }
+        shareDocument(doc)
+    }
+    
+    private func shareDocument(_ doc: TravelDocument) {
         let image = renderCardSnapshot(document: doc)
         let fileURL = renderCardSnapshotToFile(document: doc)
         guard image != nil || fileURL != nil else { return }
@@ -1193,6 +1171,153 @@ struct TravelDocsWalletView: View {
             reorderDragOffset = 0
             proposedReorderIndex = nil
             reorderingDocumentID = nil
+        }
+    }
+}
+
+// MARK: - All Cards Preview Overlay (opens card from list with full controls, returns to list on exit)
+private struct AllCardsPreviewOverlay: View {
+    let document: TravelDocument
+    let onDismiss: () -> Void
+    let onEdit: () -> Void
+    let onDelete: () -> Void
+    let onShare: () -> Void
+    
+    @State private var isCardExpanded = false
+    @State private var isDismissing = false
+    @Environment(\.colorScheme) var colorScheme
+    
+    private func dismissCard() {
+        guard !isDismissing else { return }
+        isDismissing = true
+        withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+            isCardExpanded = false
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            onDismiss()
+        }
+    }
+    
+    @ViewBuilder
+    private func cardView(isSelected: Bool) -> some View {
+        let isPassport = (document.type == .passport)
+        let isIDCard = (document.type == .idCard || document.type == .driversLicense || document.type == .studentID || document.type == .nationalInsurance)
+        let isBoardingPass = (document.type == .boardingPass)
+        let isVisa = (document.type == .visa)
+        let isRewardsCard = (document.type == .rewardsCard)
+        let isCarRental = (document.type == .carRental)
+        let isMedicalAlert = (document.type == .medicalAlert)
+        
+        Group {
+            if isPassport {
+                PassportFlipCard(document: document, isSelected: isSelected, onTap: dismissCard)
+            } else if isVisa {
+                VisaFlipCard(document: document, isSelected: isSelected, onTap: dismissCard)
+            } else if isMedicalAlert {
+                MedicalFlipCard(document: document, isSelected: isSelected, onTap: dismissCard)
+            } else if document.type == .vaccineRecord {
+                VaccinationFlipCard(document: document, isSelected: isSelected, onTap: dismissCard)
+            } else if document.type == .prescription {
+                PrescriptionFlipCard(document: document, isSelected: isSelected, onTap: dismissCard)
+            } else if document.type == .birthCertificate {
+                BirthCertificateFlipCard(document: document, isSelected: isSelected, onTap: dismissCard)
+            } else if document.type == .marriageCertificate {
+                MarriageCertificateFlipCard(document: document, isSelected: isSelected, onTap: dismissCard)
+            } else if isIDCard {
+                IDFlipCard(document: document, isSelected: isSelected, onTap: dismissCard)
+            } else if isBoardingPass {
+                BoardingPassAnimatedCard(document: document, isSelected: isSelected, onTap: dismissCard)
+            } else if isRewardsCard {
+                RewardsAnimatedCard(document: document, isSelected: isSelected, onTap: dismissCard)
+            } else if isCarRental {
+                CarRentalAnimatedCard(document: document, isSelected: isSelected, onTap: dismissCard)
+            } else if document.type == .hotelKeyCard {
+                HotelKeyAnimatedCard(document: document, isSelected: isSelected, onTap: dismissCard)
+            } else if document.type == .event {
+                EventAnimatedCard(document: document, isSelected: isSelected, onTap: dismissCard)
+            } else if [.petInsurance, .petVaccineRecord, .petPassport, .petID].contains(document.type) {
+                PetAnimatedCard(document: document, isSelected: isSelected, onTap: dismissCard)
+            } else {
+                DocumentCardView(document: document)
+                    .onTapGesture { dismissCard() }
+            }
+        }
+    }
+    
+    private var overlayBackground: some View {
+        Group {
+            if colorScheme == .dark {
+                Color(red: 0.11, green: 0.11, blue: 0.12)
+            } else {
+                Color(red: 0.96, green: 0.96, blue: 0.97)
+            }
+        }
+    }
+    
+    var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                overlayBackground
+                    .ignoresSafeArea()
+                
+                cardView(isSelected: isCardExpanded)
+                    .frame(width: geo.size.width - 40)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .scaleEffect(isCardExpanded ? 1.0 : 0.85)
+                    .shadow(
+                        color: colorScheme == .dark ? .clear : .black.opacity(0.3),
+                        radius: colorScheme == .dark ? 0 : 15,
+                        x: 0,
+                        y: colorScheme == .dark ? 0 : 10
+                    )
+                
+                VStack {
+                    HStack {
+                        Button(action: onShare) {
+                            Image(systemName: "square.and.arrow.up.circle.fill")
+                                .font(.system(size: 32))
+                                .symbolRenderingMode(.hierarchical)
+                                .foregroundStyle(.white)
+                                .background(Color.black.opacity(0.5).clipShape(Circle()))
+                        }
+                        Spacer()
+                        Menu {
+                            Button { onEdit() } label: {
+                                Label("Edit Card", systemImage: "pencil")
+                            }
+                            Button(role: .destructive) { onDelete() } label: {
+                                Label("Remove Card", systemImage: "trash")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle.fill")
+                                .font(.system(size: 32))
+                                .symbolRenderingMode(.hierarchical)
+                                .foregroundStyle(.white)
+                                .background(Color.black.opacity(0.5).clipShape(Circle()))
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 50)
+                    Spacer()
+                }
+                
+                VStack {
+                    Spacer()
+                    Button(action: dismissCard) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 50))
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(.white)
+                            .background(Color.black.opacity(0.5).clipShape(Circle()))
+                    }
+                    .padding(.bottom, 50)
+                }
+            }
+            .onAppear {
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                    isCardExpanded = true
+                }
+            }
         }
     }
 }
