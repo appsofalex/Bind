@@ -446,6 +446,9 @@ struct IDFlipCard: View {
     let document: TravelDocument
     let isSelected: Bool
     let onTap: () -> Void
+    /// When set (e.g. from main card stack), overrides title/subtitle on the front card (e.g. "NI Number", "Student ID").
+    var titleOverride: String? = nil
+    var subtitleOverride: String? = nil
     
     @State private var yRotation: Double = 0
     @State private var isBackVisible = false
@@ -471,7 +474,11 @@ struct IDFlipCard: View {
             }
             // FRONT (Cover)
             else {
-                DocumentCardView(document: document)
+                DocumentCardView(
+                    document: document,
+                    titleOverride: titleOverride,
+                    subtitleOverride: subtitleOverride
+                )
             }
         }
         .frame(height: 240) // Standard height, no expansion

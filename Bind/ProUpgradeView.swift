@@ -5,12 +5,13 @@ struct ProUpgradeView: View {
     @Environment(\.colorScheme) var colorScheme
     @StateObject private var subscriptionManager = SubscriptionManager.shared
     
-    // Feature list
-    let features = [
+    /// Shared Pro feature list for upgrade screen and benefits sheet.
+    static let features: [(icon: String, title: String, description: String)] = [
         ("paintpalette.fill", "Customisable Card Colours", "Choose your own colours for each card. Personalise your wallet to match your style."),
         ("icloud.fill", "Cloud Sync", "Seamlessly sync your documents across all your Apple devices via iCloud."),
         ("bolt.fill", "Quick Access Personalization", "Customize your Quick Access view to keep your most vital info just a tap away."),
-        ("bell.badge.fill", "Smart Expiry Alerts", "Get notified before your passports or visas expire. Never get caught out at the border.")
+        ("bell.badge.fill", "Smart Expiry Alerts", "Get notified before your passports or visas expire. Never get caught out at the border."),
+        ("square.grid.2x2.fill", "Customisable Card Icons", "Choose from a selection of icons to make each card your own.")
     ]
     
     var body: some View {
@@ -18,7 +19,7 @@ struct ProUpgradeView: View {
             Color(UIColor.systemBackground)
                 .ignoresSafeArea()
             
-            VStack(spacing: 30) {
+            VStack(spacing: 20) {
                 // Header
                 VStack(spacing: 15) {
                     Image(systemName: "creditcard.fill")
@@ -39,17 +40,17 @@ struct ProUpgradeView: View {
                 
                 // Features List
                 VStack(alignment: .leading, spacing: 25) {
-                    ForEach(features, id: \.1) { icon, title, desc in
+                    ForEach(Array(Self.features.enumerated()), id: \.offset) { _, feature in
                         HStack(alignment: .top, spacing: 15) {
-                            Image(systemName: icon)
+                            Image(systemName: feature.icon)
                                 .font(.system(size: 24))
                                 .foregroundColor(.blue)
                                 .frame(width: 30)
                             
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(title)
+                                Text(feature.title)
                                     .font(.headline)
-                                Text(desc)
+                                Text(feature.description)
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                                     .fixedSize(horizontal: false, vertical: true)
@@ -58,9 +59,8 @@ struct ProUpgradeView: View {
                     }
                 }
                 .padding(.horizontal, 30)
-                .padding(.top, 20)
-                
-                Spacer()
+                .padding(.top, 16)
+                .padding(.bottom, 16)
                 
                 // Purchase Button
                 Button(action: {

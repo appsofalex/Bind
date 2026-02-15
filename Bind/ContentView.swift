@@ -60,7 +60,7 @@ struct EmptyWalletView: View {
     }
 }
 
-// MARK: - PRO BADGE VIEW
+// PRO BADGE VIEW
 struct ProBadgeView: View {
     @ObservedObject var subscriptionManager = SubscriptionManager.shared
     @AppStorage("isHapticsEnabled") private var isHapticsEnabled = true
@@ -76,7 +76,7 @@ struct ProBadgeView: View {
     
     var body: some View {
         ZStack {
-            // The "Hatching" Card
+            // "Hatching" Card
             if isAnimating {
                 Image(systemName: "creditcard.fill")
                     .font(.system(size: 20))
@@ -366,7 +366,9 @@ struct TravelDocsWalletView: View {
                                     IDFlipCard(
                                         document: doc,
                                         isSelected: isSelected,
-                                        onTap: { toggleSelection(for: doc.id) }
+                                        onTap: { toggleSelection(for: doc.id) },
+                                        titleOverride: doc.type == .nationalInsurance ? "NI Number" : (doc.type == .studentID ? "Student ID" : nil),
+                                        subtitleOverride: doc.type == .nationalInsurance ? "NI Number" : (doc.type == .studentID ? "Student ID" : nil)
                                     )
                                 } else if isBoardingPass {
                                     BoardingPassAnimatedCard(

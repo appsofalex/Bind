@@ -3,7 +3,14 @@ import SwiftUI
 // MARK: - 2. THE CARD VIEW (Front Cover used in Wallet Stack)
 struct DocumentCardView: View {
     let document: TravelDocument
+    /// When set (e.g. from main card stack only), used instead of document.displayTitle for the main title.
+    var titleOverride: String? = nil
+    /// When set (e.g. from main card stack only), used instead of document.subtitle in the header.
+    var subtitleOverride: String? = nil
     @Environment(\.colorScheme) var colorScheme
+
+    private var displayedTitle: String { titleOverride ?? document.displayTitle }
+    private var displayedSubtitle: String { subtitleOverride ?? document.subtitle }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -43,7 +50,7 @@ struct DocumentCardView: View {
                     
                     Spacer()
                     
-                    Text(document.subtitle.capitalized)
+                    Text(subtitleOverride != nil ? displayedSubtitle : displayedSubtitle.capitalized)
                         .font(.caption)
                         .fontWeight(.bold)
                         .tracking(2)
@@ -54,7 +61,7 @@ struct DocumentCardView: View {
                 
                 // Info
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(document.displayTitle)
+                    Text(displayedTitle)
                         .font(.system(size: 32, weight: .heavy))
                         .foregroundColor(.white)
                         .lineLimit(1) // Prevents text overflow

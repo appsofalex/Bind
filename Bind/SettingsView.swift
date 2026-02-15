@@ -76,61 +76,21 @@ struct SettingsView: View {
                 // MARK: - BIND PRO
                 Section {
                     if subscriptionManager.isPro {
-                        HStack {
-                            Image(systemName: "creditcard.fill")
-                                .foregroundColor(.gray)
-                                .font(.title2)
-                            VStack(alignment: .leading) {
-                                Text("Bind Pro Active")
-                                    .font(.headline)
-                                Text("Thank you for your support!")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .padding(.vertical, 4)
-                        
-                        Toggle(isOn: Binding(
-                            get: { NotificationManager.shared.isAuthorized },
-                            set: { newValue in
-                                if newValue {
-                                    NotificationManager.shared.requestPermission()
-                                    // Reschedule if enabling
-                                    NotificationManager.shared.scheduleExpiryNotifications(for: documents)
-                                } else {
-                                    // Open settings to disable manually since we can't toggle auth status programmatically
-                                    if let url = URL(string: UIApplication.openSettingsURLString) {
-                                        UIApplication.shared.open(url)
-                                    }
+                        NavigationLink(destination: BindProSubscriptionView(documents: documents)) {
+                            HStack {
+                                Image(systemName: "creditcard.fill")
+                                    .foregroundColor(.gray)
+                                    .font(.title2)
+                                VStack(alignment: .leading) {
+                                    Text("Bind Pro Active")
+                                        .font(.headline)
+                                    Text("Thank you for your support!")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
                                 }
                             }
-                        )) {
-                            Label {
-                                Text("Enable Expiry Alerts")
-                            } icon: {
-                                Image(systemName: "bell.badge.fill")
-                                    .foregroundColor(.red)
-                            }
+                            .padding(.vertical, 4)
                         }
-                        
-                        Label {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Card Colours")
-                                    .foregroundColor(.primary)
-                                Text("Edit any card to set its colour")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        } icon: {
-                            Image(systemName: "paintpalette.fill")
-                                .foregroundColor(.gray)
-                        }
-                        
-                        // Testing/Demo Button
-                        Button("Demote to Free Plan (Test)") {
-                            subscriptionManager.downgradeToFree()
-                        }
-                        .foregroundColor(.red)
                     } else {
                         VStack(alignment: .leading, spacing: 10) {
                             HStack {
