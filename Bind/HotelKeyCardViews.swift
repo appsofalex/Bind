@@ -68,6 +68,13 @@ struct HotelKeyBackView: View {
     
     var body: some View {
         ZStack {
+            if let imageData = document.documentImageData, let uiImage = UIImage(data: imageData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(height: 450)
+                    .clipped()
+            } else {
             // Background
             Color(red: 0.1, green: 0.1, blue: 0.12) // Dark elegant background
             
@@ -170,6 +177,7 @@ struct HotelKeyBackView: View {
                 .padding(.top, 5)
             }
             .padding(25)
+            }
         }
         .cornerRadius(20)
         .overlay(

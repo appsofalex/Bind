@@ -6,6 +6,13 @@ struct BirthCertificateDetailView: View {
     
     var body: some View {
         ZStack {
+            if let imageData = document.documentImageData, let uiImage = UIImage(data: imageData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(height: 240)
+                    .clipped()
+            } else {
             // Antique Paper Background
             Color(red: 0.98, green: 0.97, blue: 0.92)
             
@@ -148,6 +155,7 @@ struct BirthCertificateDetailView: View {
                 
                 Spacer()
             }
+            }
         }
         .frame(height: 240)
         .cornerRadius(20)
@@ -164,6 +172,13 @@ struct MarriageCertificateDetailView: View {
     
     var body: some View {
         ZStack {
+            if let imageData = document.documentImageData, let uiImage = UIImage(data: imageData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(height: 240)
+                    .clipped()
+            } else {
             // Elegant Cream Background
             Color(red: 0.99, green: 0.98, blue: 0.95)
             
@@ -284,6 +299,7 @@ struct MarriageCertificateDetailView: View {
                 }
                 .padding(.horizontal, 30)
                 .padding(.vertical, 15)
+            }
             }
         }
         .frame(height: 240)

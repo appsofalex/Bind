@@ -100,6 +100,13 @@ struct CoffeeRewardsView: View {
             if isBackVisible {
                 // DETAILED VIEW (Back)
                 ZStack {
+                    if let imageData = document.documentImageData, let uiImage = UIImage(data: imageData) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(height: 400)
+                            .clipped()
+                    } else {
                     Color(red: 0.98, green: 0.96, blue: 0.93) // Cream paper
                     
                     VStack(spacing: 20) {
@@ -185,6 +192,7 @@ struct CoffeeRewardsView: View {
                             .foregroundColor(.black.opacity(0.8))
                             .padding(.bottom, 20)
                     }
+                    }
                 }
                 .cornerRadius(20)
                 // Correct flip orientation for the back
@@ -261,6 +269,13 @@ struct AirlineRewardsView: View {
             if isBackVisible {
                 // BACK
                 ZStack {
+                    if let imageData = document.documentImageData, let uiImage = UIImage(data: imageData) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(height: 400)
+                            .clipped()
+                    } else {
                     // Sky Background
                     LinearGradient(
                         colors: [Color(red: 0.8, green: 0.9, blue: 1.0), .white],
@@ -369,6 +384,7 @@ struct AirlineRewardsView: View {
                             .opacity(planeOpacity)
                             .position(x: geo.size.width / 2, y: geo.size.height / 2)
                     }
+                    }
                 }
                 .cornerRadius(20)
                 .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
@@ -448,6 +464,13 @@ struct SupermarketRewardsView: View {
             if isBackVisible {
                 // BACK
                 ZStack {
+                    if let imageData = document.documentImageData, let uiImage = UIImage(data: imageData) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(height: 400)
+                            .clipped()
+                    } else {
                     Color.white
                     
                     // Background Pattern (subtle grid)
@@ -527,11 +550,12 @@ struct SupermarketRewardsView: View {
                             
                             Text(document.detailValue)
                                 .font(.system(.caption, design: .monospaced))
-                                .tracking(2)
-                                .foregroundColor(brandColor)
-                        }
-                        .padding(.bottom, 30)
+                        .tracking(2)
+                        .foregroundColor(brandColor)
                     }
+                    .padding(.bottom, 30)
+                }
+                }
                 }
                 .cornerRadius(20)
                 .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))

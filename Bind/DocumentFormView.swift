@@ -153,6 +153,9 @@ struct DocumentFormView: View {
     @State private var showScannerUnavailableAlert = false
     @State private var hasAppliedInitialScan = false
     
+    // CAMERA STATE (Take Photo)
+    @State private var showCamera = false
+    
     // MARK: - DATA COLLECTIONS
     let bloodTypes = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"]
     let vaccines = [
@@ -766,16 +769,9 @@ struct DocumentFormView: View {
     var body: some View {
         NavigationView {
             Form {
+                quickAddSection
                 documentDetailsSection
                 personalInfoSection
-                
-                if shouldShowPhotoUpload {
-                    Section {
-                        documentPhotoUploadArea
-                    } header: {
-                        documentPhotoUploadDivider
-                    }
-                }
                 
                 if subscriptionManager.isPro {
                     Section {
@@ -803,6 +799,20 @@ struct DocumentFormView: View {
                 ImageCropperView(image: item.image) { croppedImage in
                     documentImage = croppedImage.jpegData(compressionQuality: 0.8)
                 }
+            }
+            .sheet(isPresented: $showCamera) {
+                CameraCaptureWithOverlayView(
+                    onImageCaptured: { image in
+                        showCamera = false
+                        // Present cropper after camera sheet dismisses
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                            imageToCrop = CroppableImage(image: image)
+                        }
+                    },
+                    onCancel: {
+                        showCamera = false
+                    }
+                )
             }
             // SCANNER SHEET
             .sheet(isPresented: $showScanner) {
@@ -838,9 +848,44 @@ struct DocumentFormView: View {
     
     // MARK: - View Components
     
-    private var documentDetailsSection: some View {
-        Section(header: Text("Card Details")) {
-            // SCAN BUTTON
+    // MARK: - Quick-add Section (Scan, Take Photo, Choose Photo)
+    @ViewBuilder
+    private var quickAddSection: some View {
+        Section(header: Text("Quick-add")) {
+            // Photo preview when image exists
+            if shouldShowPhotoUpload, let imageData = documentImage, let uiImage = UIImage(data: imageData) {
+                ZStack(alignment: .topTrailing) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxHeight: 200)
+                        .frame(maxWidth: .infinity)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .onTapGesture { }
+                    
+                    Button {
+                        withAnimation(.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.3)) { documentImage = nil }
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(.black)
+                            .padding(8)
+                            .background(Circle().fill(.white))
+                            .shadow(color: .black.opacity(0.15), radius: 3, x: 0, y: 1)
+                    }
+                    .padding(10)
+                    .buttonStyle(.borderless)
+                }
+                .padding(12)
+                .listRowBackground(
+                    RoundedRectangle(cornerRadius: 26)
+                        .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                        .padding(.bottom, 2)
+                )
+                .listRowSeparator(.hidden)
+            }
+            
+            // Scan (Passport / Boarding Pass / Event only)
             if type == .passport || type == .boardingPass || type == .event {
                 Button(action: {
                     if ScannerView.isSupported {
@@ -857,6 +902,36 @@ struct DocumentFormView: View {
                 }
             }
             
+            // Take Photo
+            if shouldShowPhotoUpload {
+                Button(action: {
+                    showCamera = true
+                }) {
+                    HStack {
+                        Image(systemName: "camera.fill")
+                        Text("Take Photo")
+                    }
+                    .foregroundColor(.blue)
+                }
+                
+                // Choose Photo
+                PhotosPicker(
+                    selection: $selectedPhotoItem,
+                    matching: .images,
+                    photoLibrary: .shared()
+                ) {
+                    HStack {
+                        Image(systemName: "photo.on.rectangle")
+                        Text(documentImage == nil ? "Choose Photo" : "Change Photo")
+                    }
+                    .foregroundColor(.blue)
+                }
+            }
+        }
+    }
+    
+    private var documentDetailsSection: some View {
+        Section(header: Text("Card Details")) {
             switch type {
             case .medicalAlert:
                 Picker("Blood Type", selection: $selectedBloodType) {
@@ -1418,79 +1493,6 @@ struct DocumentFormView: View {
         }
     }
 
-    // PHOTO UPLOAD COMPONENTS
-    private var documentPhotoUploadDivider: some View {
-        HStack {
-            VStack { Divider() }
-            Text("OR")
-                .font(.caption.bold())
-                .foregroundColor(.gray)
-            VStack { Divider() }
-        }
-        .frame(maxWidth: .infinity)
-        
-        .textCase(nil)
-        
-        .padding(.top, -6)
-        .padding(.bottom, 5)
-    }
-
-    @ViewBuilder
-    private var documentPhotoUploadArea: some View {
-        if let imageData = documentImage, let uiImage = UIImage(data: imageData) {
-            ZStack(alignment: .topTrailing) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(maxHeight: 200)
-                    .frame(maxWidth: .infinity)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .onTapGesture { }
-                
-                Button {
-                    withAnimation(.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.3)) { documentImage = nil }
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.black)
-                        .padding(8)
-                        .background(Circle().fill(.white))
-                        .shadow(color: .black.opacity(0.15), radius: 3, x: 0, y: 1)
-                }
-                .padding(10)
-                // 👇 2. Vital for Forms: Ensures this button works independently 
-                // and doesn't make the whole row clickable.
-                .buttonStyle(.borderless)
-            }
-            .padding(12)
-            .listRowBackground(
-                RoundedRectangle(cornerRadius: 26)
-                    .fill(Color(uiColor: .secondarySystemGroupedBackground))
-                    .padding(.bottom, 2)
-            )
-            .listRowSeparator(.hidden)
-        }
-        
-        PhotosPicker(
-            selection: $selectedPhotoItem,
-            matching: .images,
-            photoLibrary: .shared()
-        ) {
-            HStack {
-                Spacer()
-                Label(documentImage == nil ? "Choose Photo" : "Change Photo", systemImage: "photo.on.rectangle")
-                Spacer()
-            }
-            .padding(.vertical, 14)
-        }
-        .listRowInsets(EdgeInsets(top: 5, leading: 20, bottom: 5, trailing: 20))
-        .listRowBackground(
-            Capsule()
-                .foregroundColor(Color(uiColor: .secondarySystemGroupedBackground))
-                .padding(.vertical, 4)
-        )
-    }
-    
     // MARK: - SCANNER LOGIC
     var scannerDataTypes: Set<DataScannerViewController.RecognizedDataType> {
         switch type {

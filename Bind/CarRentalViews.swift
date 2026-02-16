@@ -57,6 +57,13 @@ struct CarRentalBackView: View {
     
     var body: some View {
         ZStack {
+            if let imageData = document.documentImageData, let uiImage = UIImage(data: imageData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(height: 450)
+                    .clipped()
+            } else {
             // Background
             brandColor
                 .overlay(
@@ -185,6 +192,7 @@ struct CarRentalBackView: View {
                     .foregroundColor(.white.opacity(0.7))
             }
             .padding(25)
+            }
         }
         .cornerRadius(20)
         .shadow(radius: 10)

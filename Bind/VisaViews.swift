@@ -162,6 +162,13 @@ struct VisaInteriorView: View {
             
             // BOTTOM PAGE (Personal Data)
             ZStack {
+                if let imageData = document.documentImageData, let uiImage = UIImage(data: imageData) {
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(height: 240)
+                        .clipped()
+                } else {
                 Color(red: 0.98, green: 0.98, blue: 0.95) // Off-white paper
                 
                 VStack(spacing: 0) {
@@ -238,6 +245,7 @@ struct VisaInteriorView: View {
                     .padding(.vertical, 10)
                     .background(Color.white.opacity(0.5))
                 }
+            }
             }
             .overlay(
                 LinearGradient(colors: [.black.opacity(0.15), .clear], startPoint: .top, endPoint: .bottom)

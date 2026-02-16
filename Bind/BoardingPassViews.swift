@@ -66,6 +66,13 @@ struct BoardingPassDetailView: View {
         let destinationInfo = parseAirportInfo(from: document.title)
         
         ZStack {
+            if let imageData = document.documentImageData, let uiImage = UIImage(data: imageData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(height: 440)
+                    .clipped()
+            } else {
             Color(red: 0.98, green: 0.98, blue: 0.99) // Off-white paper texture
             
             VStack(spacing: 0) {
@@ -204,6 +211,7 @@ struct BoardingPassDetailView: View {
                 )
                 .opacity(forSnapshot ? 1 : contentOpacity)
                 .offset(y: forSnapshot ? 0 : contentOffset * 0.5)
+            }
             }
         }
         .cornerRadius(20)
