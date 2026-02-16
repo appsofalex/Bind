@@ -457,6 +457,12 @@ struct TravelDocsWalletView: View {
                                         isSelected: isSelected,
                                         onTap: { toggleSelection(for: doc.id) }
                                     )
+                                } else if doc.type == .insurance {
+                                    InsuranceFlipCard(
+                                        document: doc,
+                                        isSelected: isSelected,
+                                        onTap: { toggleSelection(for: doc.id) }
+                                    )
                                 } else {
                                     DocumentCardView(document: doc)
                                         .onTapGesture { toggleSelection(for: doc.id) }
@@ -1444,6 +1450,8 @@ private struct AllCardsPreviewOverlay: View {
                 EventAnimatedCard(document: document, isSelected: isSelected, onTap: dismissCard)
             } else if [.petInsurance, .petVaccineRecord, .petPassport, .petID].contains(document.type) {
                 PetAnimatedCard(document: document, isSelected: isSelected, onTap: dismissCard)
+            } else if document.type == .insurance {
+                InsuranceFlipCard(document: document, isSelected: isSelected, onTap: dismissCard)
             } else {
                 DocumentCardView(document: document)
                     .onTapGesture { dismissCard() }

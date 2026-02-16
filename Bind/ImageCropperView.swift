@@ -1,5 +1,11 @@
 import SwiftUI
 
+/// Used so the cropper can read container size outside the GeometryReader (toolbar appears immediately).
+private struct ContainerSizeKey: PreferenceKey {
+    static var defaultValue: CGSize = .zero
+    static func reduce(value: inout CGSize, nextValue: () -> CGSize) { value = nextValue() }
+}
+
 /// Extension to normalize a UIImage's orientation to "up".
 /// This is crucial because `CGImage.cropping` does not respect EXIF orientation data.
 fileprivate extension UIImage {
@@ -23,6 +29,8 @@ fileprivate extension UIImage {
 struct ImageCropperView: View {
     let image: UIImage
     var onCrop: (UIImage) -> Void
+    /// When provided, a "Retake" button is shown so the user can return to the camera.
+    var onRetake: (() -> Void)? = nil
     
     @Environment(\.dismiss) var dismiss
 
@@ -31,22 +39,24 @@ struct ImageCropperView: View {
     @State private var lastScale: CGFloat = 1.0
     @State private var offset: CGSize = .zero
     @State private var lastOffset: CGSize = .zero
+    /// Stored so toolbar (outside GeometryReader) can use it and layout is stable from first frame.
+    @State private var containerSize: CGSize = .zero
     
     // The aspect ratio for a standard ID-1 card (e.g., credit cards, driver's licenses).
     private let cardAspectRatio: CGFloat = 1.586
 
-    init(image: UIImage, onCrop: @escaping (UIImage) -> Void) {
+    init(image: UIImage, onCrop: @escaping (UIImage) -> Void, onRetake: (() -> Void)? = nil) {
         // Normalize the image's orientation upon initialization.
         self.image = image.orientedUp()
         self.onCrop = onCrop
+        self.onRetake = onRetake
     }
     
     var body: some View {
         NavigationView {
-            VStack {
+            VStack(spacing: 0) {
                 GeometryReader { geometry in
                     let cropFrame = calculateCropFrame(in: geometry.size)
-                    
                     ZStack {
                         // The interactive image that can be panned and zoomed
                         Image(uiImage: image)
@@ -89,22 +99,38 @@ struct ImageCropperView: View {
                     }
                     .frame(width: geometry.size.width, height: geometry.size.height)
                     .clipped()
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarLeading) {
-                            Button("Cancel") { dismiss() }
-                        }
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            Button("Crop") {
-                                cropImage(in: geometry.size)
-                                dismiss()
-                            }
-                            .fontWeight(.bold)
-                        }
+                    .preference(key: ContainerSizeKey.self, value: geometry.size)
+                }
+                .onPreferenceChange(ContainerSizeKey.self) { containerSize = $0 }
+
+                // Retake at bottom center (only when in camera flow)
+                if onRetake != nil {
+                    Button(action: { onRetake?() }) {
+                        Text("Retake")
+                            .font(.body.weight(.medium))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
                     }
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 8)
                 }
             }
             .navigationTitle("Adjust and Crop")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Crop") {
+                        guard containerSize != .zero else { return }
+                        cropImage(in: containerSize)
+                        dismiss()
+                    }
+                    .fontWeight(.bold)
+                }
+            }
             .background(Color.black.edgesIgnoringSafeArea(.all))
         }
     }

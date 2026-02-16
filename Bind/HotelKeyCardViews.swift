@@ -73,7 +73,7 @@ struct HotelKeyBackView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .frame(height: 450)
-                    .clipped()
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
             } else {
             // Background
             Color(red: 0.1, green: 0.1, blue: 0.12) // Dark elegant background
@@ -99,7 +99,7 @@ struct HotelKeyBackView: View {
                             .tracking(2)
                     }
                     Spacer()
-                    Image(systemName: "key.fill")
+                    Image(systemName: document.iconName)
                         .font(.title)
                         .foregroundColor(.white.opacity(0.8))
                 }

@@ -10,7 +10,7 @@ struct VisaCoverView: View {
             
             VStack(spacing: 20) {
                 Spacer()
-                Image(systemName: "checkmark.seal.fill")
+                Image(systemName: document.iconName)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 60, height: 60)
@@ -86,7 +86,7 @@ struct VisaInteriorView: View {
                             .tracking(10)
                             .foregroundColor(.green.opacity(0.2))
                         
-                        Image(systemName: "seal.fill")
+                        Image(systemName: document.iconName)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 80, height: 80)
@@ -167,7 +167,7 @@ struct VisaInteriorView: View {
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                         .frame(height: 240)
-                        .clipped()
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
                 } else {
                 Color(red: 0.98, green: 0.98, blue: 0.95) // Off-white paper
                 

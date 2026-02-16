@@ -105,7 +105,7 @@ struct CoffeeRewardsView: View {
                             .resizable()
                             .aspectRatio(contentMode: .fill)
                             .frame(height: 400)
-                            .clipped()
+                            .clipShape(RoundedRectangle(cornerRadius: 20))
                     } else {
                     Color(red: 0.98, green: 0.96, blue: 0.93) // Cream paper
                     
@@ -117,7 +117,7 @@ struct CoffeeRewardsView: View {
                                 .fontWeight(.bold)
                                 .foregroundColor(brandColor)
                             Spacer()
-                            Image(systemName: "cup.and.saucer.fill")
+                            Image(systemName: document.iconName)
                                 .font(.title2)
                                 .foregroundColor(brandColor)
                         }
@@ -274,7 +274,7 @@ struct AirlineRewardsView: View {
                             .resizable()
                             .aspectRatio(contentMode: .fill)
                             .frame(height: 400)
-                            .clipped()
+                            .clipShape(RoundedRectangle(cornerRadius: 20))
                     } else {
                     // Sky Background
                     LinearGradient(
@@ -305,7 +305,7 @@ struct AirlineRewardsView: View {
                                 .tracking(2)
                                 .foregroundColor(brandColor)
                             Spacer()
-                            Image(systemName: "airplane.circle.fill")
+                            Image(systemName: document.iconName)
                                 .font(.title)
                                 .foregroundColor(brandColor)
                         }
@@ -469,7 +469,7 @@ struct SupermarketRewardsView: View {
                             .resizable()
                             .aspectRatio(contentMode: .fill)
                             .frame(height: 400)
-                            .clipped()
+                            .clipShape(RoundedRectangle(cornerRadius: 20))
                     } else {
                     Color.white
                     
@@ -490,7 +490,7 @@ struct SupermarketRewardsView: View {
                                 .fontWeight(.black)
                                 .foregroundColor(brandColor)
                             Spacer()
-                            Image(systemName: "basket.fill")
+                            Image(systemName: document.iconName)
                                 .foregroundColor(brandColor)
                         }
                         .padding()

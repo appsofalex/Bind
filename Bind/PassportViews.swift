@@ -20,7 +20,7 @@ struct PassportCoverView: View {
                     .tracking(1)
                     .padding(.horizontal)
                 
-                Image(systemName: "crown.fill") // Simplified crest
+                Image(systemName: document.iconName)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 80, height: 80)
@@ -98,7 +98,7 @@ struct PassportInteriorView: View {
                     }
                     
                     // B. Center Watermark
-                    Image(systemName: "globe.europe.africa.fill")
+                    Image(systemName: document.iconName)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 130)
@@ -241,7 +241,7 @@ struct PassportInteriorView: View {
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                         .frame(height: 240)
-                        .clipped()
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
                 } else {
                     Color(red: 0.98, green: 0.96, blue: 0.93)
                     

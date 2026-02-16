@@ -213,7 +213,7 @@ struct StudentIdDetailView: View {
                 VStack(spacing: 0) {
                     // Header with university color
                     HStack {
-                        Image(systemName: "graduationcap.fill")
+                        Image(systemName: document.iconName)
                             .font(.title)
                             .foregroundColor(.white)
                             .padding(.leading)
@@ -352,7 +352,7 @@ struct IDCardDetailView: View {
                 VStack(spacing: 0) {
                     // Header Strip
                     HStack {
-                        Image(systemName: "building.columns.fill")
+                        Image(systemName: document.iconName)
                             .foregroundColor(document.primaryColor)
                             .font(.caption2)
                         Text(document.title.uppercased())
@@ -360,9 +360,6 @@ struct IDCardDetailView: View {
                             .foregroundColor(document.primaryColor)
                             .tracking(1)
                         Spacer()
-                        Image(systemName: "star.circle")
-                            .foregroundColor(document.primaryColor)
-                            .font(.caption2)
                     }
                     .padding(.horizontal, 15)
                     .padding(.vertical, 8)

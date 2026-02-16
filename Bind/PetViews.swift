@@ -27,7 +27,7 @@ struct PetInsuranceDetailView: View {
             VStack(spacing: 0) {
                 // Header Strip
                 HStack {
-                    Image(systemName: "cross.case.fill")
+                    Image(systemName: document.iconName)
                         .foregroundColor(.white)
                         .font(.caption)
                     Text("PET INSURANCE")
@@ -35,9 +35,6 @@ struct PetInsuranceDetailView: View {
                         .foregroundColor(.white)
                         .tracking(2)
                     Spacer()
-                    Image(systemName: "pawprint.fill")
-                        .foregroundColor(.white)
-                        .font(.caption)
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 8)
@@ -156,7 +153,7 @@ struct PetVaccinationDetailView: View {
             
             VStack(spacing: 0) {
                 HStack {
-                    Image(systemName: "syringe.fill")
+                    Image(systemName: document.iconName)
                         .foregroundColor(.white)
                         .font(.caption)
                     Text("PET VACCINATION")
@@ -164,9 +161,6 @@ struct PetVaccinationDetailView: View {
                         .foregroundColor(.white)
                         .tracking(2)
                     Spacer()
-                    Image(systemName: "pawprint.fill")
-                        .foregroundColor(.white)
-                        .font(.caption)
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 8)
@@ -275,7 +269,7 @@ struct PetPassportDetailView: View {
             
             VStack(spacing: 0) {
                 HStack {
-                    Image(systemName: "pawprint.fill")
+                    Image(systemName: document.iconName)
                         .foregroundColor(.white)
                         .font(.caption)
                     Text(document.type == .petPassport ? "PET PASSPORT" : "PET IDENTIFICATION")

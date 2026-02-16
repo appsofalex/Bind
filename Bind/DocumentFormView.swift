@@ -358,7 +358,7 @@ struct DocumentFormView: View {
     
     // Helper to determine if we show the photo upload section
     private var shouldShowPhotoUpload: Bool {
-        return [.passport, .driversLicense, .studentID, .idCard, .nationalInsurance, .birthCertificate, .marriageCertificate, .rewardsCard, .event, .carRental, .hotelKeyCard, .petPassport, .petID, .visa].contains(type)
+        return [.passport, .driversLicense, .studentID, .idCard, .nationalInsurance, .birthCertificate, .marriageCertificate, .rewardsCard, .carRental, .petPassport, .petID, .petInsurance, .petVaccineRecord, .visa, .prescription, .vaccineRecord, .medicalAlert, .insurance].contains(type)
     }
     
     // Initialize default values based on type OR existing document
@@ -804,7 +804,6 @@ struct DocumentFormView: View {
                 CameraCaptureWithOverlayView(
                     onImageCaptured: { image in
                         showCamera = false
-                        // Present cropper after camera sheet dismisses
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                             imageToCrop = CroppableImage(image: image)
                         }
@@ -885,8 +884,8 @@ struct DocumentFormView: View {
                 .listRowSeparator(.hidden)
             }
             
-            // Scan (Passport / Boarding Pass / Event only)
-            if type == .passport || type == .boardingPass || type == .event {
+            // Scan (Passport / Boarding Pass / Event / Hotel Key)
+            if type == .passport || type == .boardingPass || type == .event || type == .hotelKeyCard {
                 Button(action: {
                     if ScannerView.isSupported {
                         showScanner = true
@@ -896,7 +895,7 @@ struct DocumentFormView: View {
                 }) {
                     HStack {
                         Image(systemName: "camera.viewfinder")
-                        Text("Scan \(type.displayName)")
+                        Text(type == .hotelKeyCard ? "Scan Hotel Key" : "Scan \(type.displayName)")
                     }
                     .foregroundColor(.blue)
                 }
@@ -1498,7 +1497,7 @@ struct DocumentFormView: View {
         switch type {
         case .passport:
             return [.text(textContentType: nil)]
-        case .boardingPass, .event:
+        case .boardingPass, .event, .hotelKeyCard:
             return [.barcode(symbologies: [.qr, .aztec, .pdf417, .code128, .code39, .ean8, .ean13, .upce])]
         default:
             return []
@@ -1751,7 +1750,7 @@ struct DocumentFormView: View {
             endorsements: type == .driversLicense ? endorsements : nil,
             height: type == .driversLicense ? height : nil,
             eyeColor: type == .driversLicense ? eyeColor : nil,
-            documentImageData: (type == .driversLicense || type == .passport || type == .idCard || type == .nationalInsurance || type == .studentID || type == .birthCertificate || type == .marriageCertificate || type == .rewardsCard || type == .event || type == .carRental || type == .hotelKeyCard || type == .petPassport || type == .petID || type == .visa) ? documentImage : nil,
+            documentImageData: (type == .driversLicense || type == .passport || type == .idCard || type == .nationalInsurance || type == .studentID || type == .birthCertificate || type == .marriageCertificate || type == .rewardsCard || type == .event || type == .carRental || type == .hotelKeyCard || type == .petPassport || type == .petID || type == .petInsurance || type == .petVaccineRecord || type == .visa || type == .prescription || type == .vaccineRecord || type == .medicalAlert || type == .insurance) ? documentImage : nil,
             dose: type == .vaccineRecord ? dose : nil,
             manufacturer: type == .vaccineRecord ? manufacturer : nil,
             frequency: type == .prescription ? frequency : nil,

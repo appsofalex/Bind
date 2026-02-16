@@ -30,14 +30,14 @@ struct EventDetailView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .frame(height: 500)
-                    .clipped()
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
             } else {
             Color(red: 0.98, green: 0.98, blue: 0.99)
             
             VStack(spacing: 0) {
                 // 1. Header with Event Type
                 HStack {
-                    Image(systemName: getEventTypeIcon(document.eventType ?? "Other"))
+                    Image(systemName: document.iconName)
                         .foregroundColor(.white)
                     Text(document.eventType?.capitalized ?? "Event")
                         .font(.system(size: 14, weight: .bold, design: .monospaced))

@@ -14,6 +14,14 @@ struct MedicalCardDetailView: View {
 
     var body: some View {
         ZStack {
+            if let imageData = document.documentImageData, let uiImage = UIImage(data: imageData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+            } else {
+            ZStack {
             // Plastic Card Background
             Color(white: 0.98)
             
@@ -40,7 +48,7 @@ struct MedicalCardDetailView: View {
             VStack(spacing: 0) {
                 // Header Strip
                 HStack {
-                    Image(systemName: "staroflife.fill")
+                    Image(systemName: document.iconName)
                         .foregroundColor(.white)
                         .font(.caption)
                     Text("MEDICAL CARD")
@@ -48,9 +56,6 @@ struct MedicalCardDetailView: View {
                         .foregroundColor(.white)
                         .tracking(2)
                     Spacer()
-                    Image(systemName: "cross.case.fill")
-                        .foregroundColor(.white)
-                        .font(.caption)
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 8)
@@ -168,8 +173,10 @@ struct MedicalCardDetailView: View {
             RoundedRectangle(cornerRadius: 20)
                 .stroke(Color.black.opacity(0.1), lineWidth: 1)
         )
+            }
+            }
+        }
     }
-}
 
 // MARK: - VACCINATION CARD DETAIL VIEW
 struct VaccinationCardDetailView: View {
@@ -186,6 +193,14 @@ struct VaccinationCardDetailView: View {
     
     var body: some View {
         ZStack {
+            if let imageData = document.documentImageData, let uiImage = UIImage(data: imageData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+            } else {
+            ZStack {
             // 1. Clinical White Background
             Color(white: 0.98)
             
@@ -202,7 +217,7 @@ struct VaccinationCardDetailView: View {
             VStack(spacing: 0) {
                 // HEADER — flush to card top, top corners match card radius
                 HStack {
-                    Image(systemName: "syringe.fill")
+                    Image(systemName: document.iconName)
                         .foregroundColor(.white)
                         .font(.caption)
                     Text("IMMUNISATION RECORD")
@@ -210,9 +225,6 @@ struct VaccinationCardDetailView: View {
                         .foregroundColor(.white)
                         .tracking(1.5)
                     Spacer()
-                    Image(systemName: "cross.circle.fill")
-                        .foregroundColor(.white)
-                        .font(.caption)
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 10)
@@ -352,6 +364,8 @@ struct VaccinationCardDetailView: View {
             RoundedRectangle(cornerRadius: 20)
                 .stroke(Color.black.opacity(0.1), lineWidth: 1)
         )
+            }
+        }
     }
 }
 
@@ -361,6 +375,14 @@ struct PrescriptionCardDetailView: View {
     
     var body: some View {
         ZStack {
+            if let imageData = document.documentImageData, let uiImage = UIImage(data: imageData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+            } else {
+            ZStack {
             // Pharmacy White Background
             Color(white: 0.98)
             
@@ -377,7 +399,7 @@ struct PrescriptionCardDetailView: View {
             VStack(spacing: 0) {
                 // Header
                 HStack {
-                    Image(systemName: "pills.fill")
+                    Image(systemName: document.iconName)
                         .foregroundColor(.white)
                         .font(.caption)
                     Text("PRESCRIPTION RECORD")
@@ -551,6 +573,8 @@ struct PrescriptionCardDetailView: View {
             RoundedRectangle(cornerRadius: 20)
                 .stroke(Color.black.opacity(0.1), lineWidth: 1)
         )
+            }
+        }
     }
 }
 
@@ -700,5 +724,89 @@ struct MedicalFlipCard: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - INSURANCE FLIP CARD (back shows full image when photo added)
+struct InsuranceFlipCard: View {
+    let document: TravelDocument
+    let isSelected: Bool
+    let onTap: () -> Void
+    
+    @State private var yRotation: Double = 0
+    @State private var isBackVisible = false
+    
+    var body: some View {
+        ZStack {
+            if isBackVisible {
+                InsuranceCardBackView(document: document)
+                    .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
+            } else {
+                DocumentCardView(document: document)
+            }
+        }
+        .frame(height: 240)
+        .rotation3DEffect(
+            .degrees(yRotation),
+            axis: (x: 0, y: 1, z: 0),
+            perspective: 0.8
+        )
+        .onTapGesture { onTap() }
+        .onChange(of: isSelected) { newValue in
+            if newValue {
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                    yRotation = 180
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    isBackVisible = true
+                }
+            } else {
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                    yRotation = 0
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    isBackVisible = false
+                }
+            }
+        }
+    }
+}
+
+// Back of insurance card: full image when present, else simple detail placeholder
+struct InsuranceCardBackView: View {
+    let document: TravelDocument
+    
+    var body: some View {
+        ZStack {
+            if let imageData = document.documentImageData, let uiImage = UIImage(data: imageData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+            } else {
+                Color(white: 0.96)
+                VStack(spacing: 8) {
+                    Image(systemName: document.iconName)
+                        .font(.system(size: 44))
+                        .foregroundColor(document.primaryColor.opacity(0.6))
+                    Text(document.displayTitle)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    if !document.detailValue.isEmpty {
+                        Text(document.detailValue)
+                            .font(.subheadline.monospaced())
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding()
+            }
+        }
+        .frame(height: 240)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(Color.black.opacity(0.1), lineWidth: 1)
+        )
     }
 }

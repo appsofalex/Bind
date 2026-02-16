@@ -11,7 +11,7 @@ struct BirthCertificateDetailView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .frame(height: 240)
-                    .clipped()
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
             } else {
             // Antique Paper Background
             Color(red: 0.98, green: 0.97, blue: 0.92)
@@ -23,7 +23,7 @@ struct BirthCertificateDetailView: View {
             
             // Watermark Seal
             GeometryReader { geo in
-                Image(systemName: "seal.fill")
+                Image(systemName: document.iconName)
                     .resizable()
                     .scaledToFit()
                     .frame(width: geo.size.width * 0.4)
@@ -177,7 +177,7 @@ struct MarriageCertificateDetailView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .frame(height: 240)
-                    .clipped()
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
             } else {
             // Elegant Cream Background
             Color(red: 0.99, green: 0.98, blue: 0.95)

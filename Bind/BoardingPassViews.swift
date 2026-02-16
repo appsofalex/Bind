@@ -71,14 +71,14 @@ struct BoardingPassDetailView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .frame(height: 440)
-                    .clipped()
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
             } else {
             Color(red: 0.98, green: 0.98, blue: 0.99) // Off-white paper texture
             
             VStack(spacing: 0) {
                 // 1. Airline Header
                 HStack {
-                    Image(systemName: "airplane")
+                    Image(systemName: document.iconName)
                         .foregroundColor(.white)
                     // Use dynamic airline name or default
                     Text(document.airline.isEmpty ? "AIRLINE" : document.airline.uppercased())

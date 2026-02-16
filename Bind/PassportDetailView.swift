@@ -32,7 +32,7 @@ struct PassportDetailView: View {
                         )
                     
                     // Watermark
-                    Image(systemName: "crown.fill")
+                    Image(systemName: document.iconName)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 200)
@@ -44,7 +44,7 @@ struct PassportDetailView: View {
                             .tracking(2)
                             .foregroundColor(document.secondaryColor)
                         
-                        Image(systemName: "globe.europe.africa.fill")
+                        Image(systemName: document.iconName)
                             .font(.system(size: 60))
                             .foregroundColor(document.secondaryColor.opacity(0.8))
                         
@@ -70,7 +70,7 @@ struct PassportDetailView: View {
                             .resizable()
                             .aspectRatio(contentMode: .fill)
                             .frame(height: 380)
-                            .clipped()
+                            .clipShape(RoundedRectangle(cornerRadius: 20))
                     } else {
                         // "Paper" Texture
                         Rectangle()

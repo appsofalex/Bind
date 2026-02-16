@@ -62,7 +62,7 @@ struct CarRentalBackView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .frame(height: 450)
-                    .clipped()
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
             } else {
             // Background
             brandColor
@@ -89,7 +89,7 @@ struct CarRentalBackView: View {
                             .foregroundColor(.white.opacity(0.8))
                     }
                     Spacer()
-                    Image(systemName: "car.2.fill")
+                    Image(systemName: document.iconName)
                         .font(.title)
                         .foregroundColor(.white)
                         .padding(10)
