@@ -12,6 +12,12 @@ struct DocumentCardView: View {
     private var displayedTitle: String { titleOverride ?? document.displayTitle }
     private var displayedSubtitle: String { subtitleOverride ?? document.subtitle }
 
+    /// Subtitle text for the card header, preserving "ID" and other acronyms (e.g. "National ID" not "National Id").
+    private var subtitleDisplayText: String {
+        if let override = subtitleOverride { return override }
+        return displayedSubtitle.displayCapitalized
+    }
+
     var body: some View {
         ZStack(alignment: .topLeading) {
             
@@ -50,7 +56,7 @@ struct DocumentCardView: View {
                     
                     Spacer()
                     
-                    Text(subtitleOverride != nil ? displayedSubtitle : displayedSubtitle.capitalized)
+                    Text(subtitleDisplayText)
                         .font(.caption)
                         .fontWeight(.bold)
                         .tracking(2)

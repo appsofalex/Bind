@@ -336,3 +336,15 @@ struct TravelDocument: Identifiable, Codable, Equatable {
     }
 }
 
+// MARK: - Display capitalization (preserves "ID" and similar acronyms app-wide)
+extension String {
+    /// Capitalized for display in the app, preserving "ID" (e.g. "National Id" → "National ID", "Student Id" → "Student ID").
+    var displayCapitalized: String {
+        var result = self.capitalized
+        result = result.replacingOccurrences(of: " Id", with: " ID")
+        result = result.replacingOccurrences(of: "Id ", with: "ID ")
+        if result == "Id" { result = "ID" }
+        return result
+    }
+}
+

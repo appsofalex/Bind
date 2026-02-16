@@ -93,11 +93,11 @@ private struct ProBenefitsSheetView: View {
     
     /// How to find or use each Pro feature (same order as ProUpgradeView.features).
     private static let benefitHowTo: [(path: String, pathAlternate: String?, steps: [String]?)] = [
-        ("Main screen → Tap a card → Edit → Card colour", "Main screen → Add card (+) → Choose type → Card colour", nil),
+        ("Main screen → Tap a card → Edit → Scroll down to Card Customisation → Card Colour", "Main screen → Add card (+) → Choose type → Scroll down to Card Customisation → Card Colour", nil),
         ("Sign in with the same Apple ID on each device. Your documents sync automatically when iCloud is enabled.", nil, nil),
         ("Main screen → Quick Access (⚡) → Edit → Add, remove, or reorder tiles", nil, nil),
         ("Settings → Membership → Bind Pro → Enable Expiry Alerts → Toggle on", nil, nil),
-        ("Main screen → Tap a card → Edit → Choose icon", "Main screen → Add card (+) → Choose type → Choose icon", nil)
+        ("Main screen → Tap a card → Edit → Scroll down to Card Customisation →  Card Icon", "Main screen → Add card (+) → Choose type → Scroll down to Card Customisation → Card Icon", nil)
     ]
     
     var body: some View {

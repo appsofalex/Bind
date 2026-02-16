@@ -851,9 +851,9 @@ struct TravelDocsWalletView: View {
                                                         .foregroundColor(doc.primaryColor)
                                                         .frame(width: 30)
                                                     VStack(alignment: .leading) {
-                                                        Text(doc.displayTitle)
+                                                        Text(doc.displayTitle.displayCapitalized)
                                                             .font(.headline)
-                                                        Text(doc.subtitle.capitalized)
+                                                        Text(doc.subtitle.displayCapitalized)
                                                             .font(.caption)
                                                             .foregroundColor(.gray)
                                                     }

@@ -134,6 +134,11 @@ struct DocumentFormView: View {
     // PRO: Custom card colours (used when subscriptionManager.isPro)
     @State private var customPrimaryColor: Color = .blue
     @State private var customSecondaryColor: Color = .white
+    // PRO: Custom card icon (used when subscriptionManager.isPro)
+    @State private var selectedIconName: String = "doc.fill"
+    // PRO: Remember icon/colour for future cards of this type
+    @State private var rememberIconForFuture: Bool = false
+    @State private var rememberColorForFuture: Bool = false
     
     // Image Picker & Cropper State
     @State private var selectedPhotoItem: PhotosPickerItem?
@@ -575,6 +580,9 @@ struct DocumentFormView: View {
             
             _customPrimaryColor = State(initialValue: doc.primaryColor)
             _customSecondaryColor = State(initialValue: doc.secondaryColor)
+            _selectedIconName = State(initialValue: doc.iconName)
+            _rememberIconForFuture = State(initialValue: UserDefaults.standard.bool(forKey: Self.rememberIconKey(doc.type)))
+            _rememberColorForFuture = State(initialValue: UserDefaults.standard.bool(forKey: Self.rememberColorKey(doc.type)))
             
         } else {
             // ADD MODE
@@ -694,9 +702,28 @@ struct DocumentFormView: View {
                 break
             }
             
-            _customPrimaryColor = State(initialValue: Self.defaultPrimaryColor(for: targetType))
+            let remIconOn = UserDefaults.standard.bool(forKey: Self.rememberIconKey(targetType))
+            let remColorOn = UserDefaults.standard.bool(forKey: Self.rememberColorKey(targetType))
+            let initialIcon = (remIconOn ? UserDefaults.standard.string(forKey: Self.rememberedIconKey(targetType)) : nil) ?? Self.getDefaultIcon(for: targetType)
+            let initialColor = (remColorOn ? Self.loadRememberedColor(for: targetType) : nil) ?? Self.defaultPrimaryColor(for: targetType)
+            _customPrimaryColor = State(initialValue: initialColor)
             _customSecondaryColor = State(initialValue: .white)
+            _selectedIconName = State(initialValue: initialIcon)
+            _rememberIconForFuture = State(initialValue: remIconOn)
+            _rememberColorForFuture = State(initialValue: remColorOn)
         }
+    }
+    
+    static func rememberIconKey(_ type: TravelDocument.DocumentType) -> String { "pro.rememberIcon.\(type.rawValue)" }
+    static func rememberColorKey(_ type: TravelDocument.DocumentType) -> String { "pro.rememberColor.\(type.rawValue)" }
+    static func rememberedIconKey(_ type: TravelDocument.DocumentType) -> String { "pro.rememberedIcon.\(type.rawValue)" }
+    static func rememberedColorKey(_ type: TravelDocument.DocumentType) -> String { "pro.rememberedColor.\(type.rawValue)" }
+    
+    static func loadRememberedColor(for type: TravelDocument.DocumentType) -> Color? {
+        guard let s = UserDefaults.standard.string(forKey: rememberedColorKey(type)) else { return nil }
+        let parts = s.split(separator: ",").compactMap { Double($0.trimmingCharacters(in: .whitespaces)) }
+        guard parts.count >= 3 else { return nil }
+        return Color(red: parts[0], green: parts[1], blue: parts[2])
     }
     
     /// Default primary colour per document type (used for new cards and when not Pro).
@@ -730,9 +757,6 @@ struct DocumentFormView: View {
         NavigationView {
             Form {
                 documentDetailsSection
-                if subscriptionManager.isPro {
-                    cardColourSection
-                }
                 personalInfoSection
                 
                 if shouldShowPhotoUpload {
@@ -740,6 +764,20 @@ struct DocumentFormView: View {
                         documentPhotoUploadArea
                     } header: {
                         documentPhotoUploadDivider
+                    }
+                }
+                
+                if subscriptionManager.isPro {
+                    Section {
+                        NavigationLink(destination: CardCustomisationView(
+                            customPrimaryColor: $customPrimaryColor,
+                            selectedIconName: $selectedIconName,
+                            rememberColorForFuture: $rememberColorForFuture,
+                            rememberIconForFuture: $rememberIconForFuture,
+                            type: type
+                        )) {
+                            Label("Card Customisation", systemImage: "paintpalette.fill")
+                        }
                     }
                 }
             }
@@ -783,12 +821,6 @@ struct DocumentFormView: View {
     }
     
     // MARK: - View Components
-    
-    private var cardColourSection: some View {
-        Section(header: Text("Card colour")) {
-            ColorPicker("Primary colour", selection: $customPrimaryColor, supportsOpacity: false)
-        }
-    }
     
     private var documentDetailsSection: some View {
         Section(header: Text("Card Details")) {
@@ -1657,7 +1689,7 @@ struct DocumentFormView: View {
         case .petPassport:
             finalSubtitle = "Pet Passport"
         case .petID:
-            if finalSubtitle.isEmpty { finalSubtitle = "Pet Registration" }
+            if finalSubtitle.isEmpty { finalSubtitle = "Pet ID" }
             
         default:
             break
@@ -1750,7 +1782,7 @@ struct DocumentFormView: View {
             witnesses: type == .marriageCertificate ? witnesses : nil,
             primaryColor: subscriptionManager.isPro ? customPrimaryColor : getColor(for: type),
             secondaryColor: subscriptionManager.isPro ? customSecondaryColor : .white,
-            iconName: getIcon(for: type),
+            iconName: subscriptionManager.isPro ? selectedIconName : getIcon(for: type),
             airline: finalAirline,
             isActive: true
         )
@@ -1808,6 +1840,125 @@ struct DocumentFormView: View {
         case .petPassport: return "pawprint.fill"
         case .petID: return "pawprint.fill"
         }
+    }
+    
+    /// Default icon per type (static for use in init).
+    static func getDefaultIcon(for type: TravelDocument.DocumentType) -> String {
+        switch type {
+        case .driversLicense: return "car.fill"
+        case .studentID: return "graduationcap.fill"
+        case .prescription: return "pills.fill"
+        case .vaccineRecord: return "syringe.fill"
+        case .medicalAlert: return "staroflife.fill"
+        case .birthCertificate: return "stroller.fill"
+        case .marriageCertificate: return "figure.and.child.holdinghands"
+        case .rewardsCard: return "star.fill"
+        case .event: return "ticket.fill"
+        case .carRental: return "car.2.fill"
+        case .hotelKeyCard: return "key.fill"
+        case .passport: return "globe"
+        case .boardingPass: return "airplane"
+        case .visa: return "checkmark.seal"
+        case .insurance: return "cross.case.fill"
+        case .idCard: return "person.text.rectangle"
+        case .nationalInsurance: return "number.square.fill"
+        case .petInsurance: return "cross.case.fill"
+        case .petVaccineRecord: return "syringe.fill"
+        case .petPassport: return "pawprint.fill"
+        case .petID: return "pawprint.fill"
+        }
+    }
+    
+    /// PRO: Contextual icon options per document type (SF Symbol names).
+    static func iconOptions(for type: TravelDocument.DocumentType) -> [String] {
+        switch type {
+        case .driversLicense: return ["car.fill", "truck.box.fill", "bicycle"]
+        case .studentID: return ["graduationcap.fill", "book.fill", "person.fill", "building.2.fill"]
+        case .prescription: return ["pills.fill", "cross.case.fill", "pill.fill", "staroflife.fill"]
+        case .vaccineRecord: return ["syringe.fill", "cross.vial.fill", "heart.fill", "shield.fill"]
+        case .medicalAlert: return ["staroflife.fill", "cross.case.fill", "heart.fill", "waveform.path.ecg"]
+        case .birthCertificate: return ["stroller.fill", "doc.text.fill", "person.fill", "heart.fill"]
+        case .marriageCertificate: return ["figure.and.child.holdinghands", "heart.fill", "heart.circle.fill"]
+        case .rewardsCard: return ["star.fill", "gift.fill", "tag.fill", "creditcard.fill"]
+        case .event: return ["ticket.fill", "music.note", "calendar", "theatermasks.fill"]
+        case .carRental: return ["car.2.fill", "car.fill", "key.fill", "fuelpump.fill"]
+        case .hotelKeyCard: return ["key.fill", "building.2.fill", "bed.double.fill", "house.fill"]
+        case .passport: return ["globe", "doc.text.fill", "map.fill", "airplane"]
+        case .boardingPass: return ["airplane", "airplane.departure", "airplane.arrival"]
+        case .visa: return ["checkmark.seal", "doc.text.fill", "globe", "map.fill"]
+        case .insurance: return ["cross.case.fill", "shield.fill", "heart.fill", "cross.vial.fill"]
+        case .idCard: return ["person.text.rectangle", "person.fill", "creditcard.fill", "doc.text.fill"]
+        case .nationalInsurance: return ["number.square.fill", "doc.text.fill", "person.text.rectangle"]
+        case .petInsurance: return ["cross.case.fill", "pawprint.fill", "heart.fill"]
+        case .petVaccineRecord: return ["syringe.fill", "pawprint.fill", "cross.vial.fill"]
+        case .petPassport: return ["pawprint.fill", "globe", "doc.text.fill"]
+        case .petID: return ["pawprint.fill", "heart.fill", "tag.fill"]
+        }
+    }
+}
+
+// MARK: - Card Customisation sub-screen (Pro)
+fileprivate struct CardCustomisationView: View {
+    @Binding var customPrimaryColor: Color
+    @Binding var selectedIconName: String
+    @Binding var rememberColorForFuture: Bool
+    @Binding var rememberIconForFuture: Bool
+    let type: TravelDocument.DocumentType
+    
+    private func saveRememberedColor() {
+        let c = CodableColor(color: customPrimaryColor)
+        let s = "\(c.red),\(c.green),\(c.blue)"
+        UserDefaults.standard.set(s, forKey: DocumentFormView.rememberedColorKey(type))
+    }
+    
+    var body: some View {
+        Form {
+            Section(header: Text("Card Colour")) {
+                ColorPicker("Primary colour", selection: $customPrimaryColor, supportsOpacity: false)
+                Toggle("Remember for future cards", isOn: $rememberColorForFuture)
+                    .onChange(of: rememberColorForFuture) { _, on in
+                        UserDefaults.standard.set(on, forKey: DocumentFormView.rememberColorKey(type))
+                        if on { saveRememberedColor() }
+                    }
+                    .onChange(of: customPrimaryColor) { _, _ in
+                        if rememberColorForFuture { saveRememberedColor() }
+                    }
+            }
+            Section(header: Text("Card Icon")) {
+                let options = DocumentFormView.iconOptions(for: type)
+                let displayOptions = options.contains(selectedIconName) ? options : options + [selectedIconName]
+                VStack(alignment: .leading, spacing: 12) {
+                    LazyVGrid(columns: [
+                        GridItem(.adaptive(minimum: 52), spacing: 12)
+                    ], spacing: 12) {
+                        ForEach(displayOptions, id: \.self) { iconName in
+                            Button {
+                                selectedIconName = iconName
+                            } label: {
+                                Image(systemName: iconName)
+                                    .font(.system(size: 24))
+                                    .foregroundColor(selectedIconName == iconName ? .white : .primary)
+                                    .frame(width: 52, height: 52)
+                                    .background(selectedIconName == iconName ? Color.blue : Color.primary.opacity(0.08))
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                .padding(.vertical, 8)
+                Toggle("Remember for future cards", isOn: $rememberIconForFuture)
+                    .onChange(of: rememberIconForFuture) { _, on in
+                        UserDefaults.standard.set(on, forKey: DocumentFormView.rememberIconKey(type))
+                        if on { UserDefaults.standard.set(selectedIconName, forKey: DocumentFormView.rememberedIconKey(type)) }
+                    }
+                    .onChange(of: selectedIconName) { _, new in
+                        if rememberIconForFuture { UserDefaults.standard.set(new, forKey: DocumentFormView.rememberedIconKey(type)) }
+                    }
+            }
+        }
+        .navigationTitle("Card Customisation")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
