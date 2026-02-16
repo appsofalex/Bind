@@ -8,11 +8,13 @@ struct ScannerView: UIViewControllerRepresentable {
     
     // The types of items we want to scan
     let recognizedDataTypes: Set<DataScannerViewController.RecognizedDataType>
+    var dismissOnSuccess: Bool = true
     
     enum ScanMode {
         case passport
         case boardingPass
         case barcode
+        case quickScan
     }
     
     let mode: ScanMode
@@ -111,7 +113,9 @@ struct ScannerView: UIViewControllerRepresentable {
             exampleLabel.text = "P<GBRDOE<<JOHN<<<<<<<<<<<<<<<<<<<<\n1234567897GBR9001018M2801019<<<<<<"
         } else if mode == .boardingPass {
             label.text = "Align the boarding pass barcode to scan"
-            // Hide example label for boarding pass as it's confusing (barcodes are shapes not text lines)
+            exampleLabel.isHidden = true
+        } else if mode == .quickScan {
+            label.text = "Scan a passport, barcode, or QR code"
             exampleLabel.isHidden = true
         } else {
             label.text = "Align any ticket barcode or QR code"
@@ -320,7 +324,7 @@ struct ScannerView: UIViewControllerRepresentable {
                 // 1. Full Success
                 if let passportData = DocumentParser.parsePassportMRZ(text.transcript) {
                     parent.scannedData = .passport(passportData)
-                    parent.dismiss()
+                    if parent.dismissOnSuccess { parent.dismiss() }
                     return
                 }
                 
@@ -336,11 +340,14 @@ struct ScannerView: UIViewControllerRepresentable {
                     // Reset if lost (optional, but good for feedback)
                     DispatchQueue.main.async {
                         let text: String
-                        if self.mode == .passport {
+                        switch self.mode {
+                        case .passport:
                             text = "Rotate phone to landscape & align the bottom 2 lines of passport"
-                        } else if self.mode == .boardingPass {
+                        case .boardingPass:
                             text = "Align the boarding pass barcode to scan"
-                        } else {
+                        case .quickScan:
+                            text = "Scan a passport, barcode, or QR code"
+                        case .barcode:
                             text = "Align any ticket barcode or QR code"
                         }
                         
@@ -357,11 +364,11 @@ struct ScannerView: UIViewControllerRepresentable {
                 if let payload = barcode.payloadStringValue {
                    if let boardingPassData = DocumentParser.parseBoardingPass(payload) {
                        parent.scannedData = .boardingPass(boardingPassData)
-                       parent.dismiss()
+                       if parent.dismissOnSuccess { parent.dismiss() }
                    } else {
                        // It's a barcode but not a boarding pass, treat as generic
                        parent.scannedData = .generic(payload)
-                       parent.dismiss()
+                       if parent.dismissOnSuccess { parent.dismiss() }
                    }
                 }
             default:

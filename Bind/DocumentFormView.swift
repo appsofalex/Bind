@@ -14,7 +14,10 @@ struct DocumentFormView: View {
     let type: TravelDocument.DocumentType
     let onSave: (TravelDocument) -> Void
     let existingID: UUID? // Stores ID if we are editing
+    let existingCreatedAt: Date? // Preserve creation date when editing (for stack chronological order)
+    let existingStackOrderIndex: Int? // Preserve stack order when editing (newest at front)
     let prefilledTitle: String? // Optional prefill title
+    let initialScanResult: ScanResult? // Pre-filled from Quick Scan
 
     @Environment(\.dismiss) var dismiss
     @StateObject private var subscriptionManager = SubscriptionManager.shared
@@ -148,6 +151,7 @@ struct DocumentFormView: View {
     @State private var showScanner = false
     @State private var scannedData: ScanResult?
     @State private var showScannerUnavailableAlert = false
+    @State private var hasAppliedInitialScan = false
     
     // MARK: - DATA COLLECTIONS
     let bloodTypes = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"]
@@ -358,10 +362,12 @@ struct DocumentFormView: View {
     init(type: TravelDocument.DocumentType? = nil,
          document: TravelDocument? = nil,
          prefilledTitle: String? = nil,
+         initialScanResult: ScanResult? = nil,
          onSave: @escaping (TravelDocument) -> Void) {
         
         self.onSave = onSave
         self.prefilledTitle = prefilledTitle
+        self.initialScanResult = initialScanResult
         
         // Initialize all @State properties
         _title = State(initialValue: "")
@@ -449,6 +455,8 @@ struct DocumentFormView: View {
             // EDIT MODE
             self.type = doc.type
             self.existingID = doc.id
+            self.existingCreatedAt = doc.createdAt
+            self.existingStackOrderIndex = doc.stackOrderIndex
             
             _title = State(initialValue: doc.title)
             _subtitle = State(initialValue: doc.subtitle)
@@ -589,6 +597,8 @@ struct DocumentFormView: View {
             let targetType = type ?? .passport
             self.type = targetType
             self.existingID = nil
+            self.existingCreatedAt = nil
+            self.existingStackOrderIndex = nil
             
             switch targetType {
             case .passport:
@@ -808,6 +818,12 @@ struct DocumentFormView: View {
                     handleScanResult(data)
                 }
             }
+            .onAppear {
+                if !hasAppliedInitialScan, let result = initialScanResult {
+                    handleScanResult(result)
+                    hasAppliedInitialScan = true
+                }
+            }
             .onChange(of: selectedPhotoItem) {
                 Task {
                     if let data = try? await selectedPhotoItem?.loadTransferable(type: Data.self) {
@@ -1007,7 +1023,7 @@ struct DocumentFormView: View {
                 }
                 .onChange(of: selectedHotelBrand) { newValue in
                     title = newValue
-                    subtitle = "Hotel Access"
+                    subtitle = "Hotel Key"
                 }
                 
                 if selectedHotelBrand.isEmpty {
@@ -1680,7 +1696,7 @@ struct DocumentFormView: View {
             finalSubtitle = "Rental Agreement"
             
         case .hotelKeyCard:
-            finalSubtitle = "Hotel Access"
+            finalSubtitle = "Hotel Key"
             
         case .petInsurance:
             if finalSubtitle.isEmpty { finalSubtitle = "Pet Insurance" }
@@ -1784,7 +1800,9 @@ struct DocumentFormView: View {
             secondaryColor: subscriptionManager.isPro ? customSecondaryColor : .white,
             iconName: subscriptionManager.isPro ? selectedIconName : getIcon(for: type),
             airline: finalAirline,
-            isActive: true
+            isActive: true,
+            createdAt: existingCreatedAt,
+            stackOrderIndex: existingStackOrderIndex
         )
         
         onSave(newDoc)

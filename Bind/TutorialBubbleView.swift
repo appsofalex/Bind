@@ -102,6 +102,8 @@ struct TutorialBubbleOverlay: View {
     var preferredPointerEdge: Edge = .bottom
     /// When set (e.g. All Cards list), position bubble just below that many list rows so it sits under the content.
     var listItemCount: Int? = nil
+    /// When true with listItemCount set, position bubble above the first list row with spike pointing down.
+    var listBubbleAboveFirstRow: Bool = false
     /// Optional nudge for the pointer tip (e.g. +10 to shift spike right, -10 to shift left).
     var pointerTipOffsetX: CGFloat = 0
     let onDismiss: () -> Void
@@ -180,6 +182,7 @@ struct TutorialBubbleOverlay: View {
             .fixedSize(horizontal: false, vertical: true)
             .padding(bubblePadding)
             .offset(y: textVerticalOffset)
+            .frame(width: bubbleRect.width, height: bubbleRect.height)
             .background(
                 SpeechBubbleShape(pointerEdge: edge, pointerTipX: pointerTipXLocal, cornerRadius: 16, pointerSize: pointerSize, pointerInset: 24)
                     .fill(Color(.secondarySystemBackground))
@@ -197,19 +200,28 @@ struct TutorialBubbleOverlay: View {
         let bubbleH: CGFloat = max(bubbleMinHeight, 88)
 
         if !hasTarget {
-            edge = preferredPointerEdge
             let x = (safeSize.width - bubbleW) / 2
             let y: CGFloat
             if let count = listItemCount, count > 0 {
                 let listTop: CGFloat = 100
                 let listRowHeight: CGFloat = 52
-                let listContentBottom = listTop + CGFloat(count) * listRowHeight
                 let gap = gapFromTarget + pointerSize
-                y = listContentBottom + gap + bubbleH / 2
-                let maxY = safeSize.height - bubbleH / 2 - 24
-                let clampedY = min(y, maxY)
-                return (CGRect(x: x, y: clampedY, width: bubbleW, height: bubbleH), edge)
+                if listBubbleAboveFirstRow {
+                    edge = .bottom
+                    y = listTop - gap - bubbleH / 2
+                    let minY = bubbleH / 2 + 24
+                    let clampedY = max(y, minY)
+                    return (CGRect(x: x, y: clampedY, width: bubbleW, height: bubbleH), edge)
+                } else {
+                    edge = preferredPointerEdge
+                    let listContentBottom = listTop + CGFloat(count) * listRowHeight
+                    y = listContentBottom + gap + bubbleH / 2
+                    let maxY = safeSize.height - bubbleH / 2 - 24
+                    let clampedY = min(y, maxY)
+                    return (CGRect(x: x, y: clampedY, width: bubbleW, height: bubbleH), edge)
+                }
             } else {
+                edge = preferredPointerEdge
                 y = safeSize.height * preferredVerticalFraction - bubbleH / 2
                 return (CGRect(x: x, y: y, width: bubbleW, height: bubbleH), edge)
             }

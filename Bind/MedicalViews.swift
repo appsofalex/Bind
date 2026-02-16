@@ -200,7 +200,7 @@ struct VaccinationCardDetailView: View {
             }
             
             VStack(spacing: 0) {
-                // HEADER
+                // HEADER — flush to card top, top corners match card radius
                 HStack {
                     Image(systemName: "syringe.fill")
                         .foregroundColor(.white)
@@ -214,12 +214,21 @@ struct VaccinationCardDetailView: View {
                         .foregroundColor(.white)
                         .font(.caption)
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, 20)
                 .padding(.vertical, 10)
-                .background(document.primaryColor)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    UnevenRoundedRectangle(
+                        topLeadingRadius: 20,
+                        bottomLeadingRadius: 0,
+                        bottomTrailingRadius: 0,
+                        topTrailingRadius: 20
+                    )
+                    .fill(document.primaryColor)
+                )
                 
-                // MAIN CONTENT
-                VStack(alignment: .leading, spacing: 12) {
+                // MAIN CONTENT — more room to breathe
+                VStack(alignment: .leading, spacing: 16) {
                     
                     // ROW 1: Patient & Vaccine (Prominent)
                     HStack(alignment: .top) {
@@ -248,13 +257,14 @@ struct VaccinationCardDetailView: View {
                                 .lineLimit(1)
                         }
                     }
-                    .padding(.top, 8)
+                    .padding(.top, 14)
                     
                     Divider()
                         .background(Color.gray.opacity(0.15))
+                        .padding(.vertical, 2)
                     
                     // ROW 2: Vaccine Details Grid - Using Grid for alignment
-                    Grid(alignment: .topLeading, horizontalSpacing: 20, verticalSpacing: 10) {
+                    Grid(alignment: .topLeading, horizontalSpacing: 20, verticalSpacing: 12) {
                         GridRow {
                             // Vaccine (Left)
                             VStack(alignment: .leading, spacing: 1) {
@@ -329,13 +339,15 @@ struct VaccinationCardDetailView: View {
                             }
                         }
                     }
-                    .padding(.bottom, 18) 
+                    .padding(.top, 2)
+                    .padding(.bottom, 20)
                 }
                 .padding(.horizontal, 20)
+                .padding(.top, 4)
             }
         }
         .frame(height: 240)
-        .cornerRadius(20)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
         .overlay(
             RoundedRectangle(cornerRadius: 20)
                 .stroke(Color.black.opacity(0.1), lineWidth: 1)

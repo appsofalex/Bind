@@ -193,7 +193,7 @@ struct TravelDocsWalletView: View {
     // ADD MENU STATE
     @State private var showAllCardsSheet = false
     @State private var showSettingsSheet = false
-    @State private var showQuickAccessSheet = false
+    @State private var showQuickScanSheet = false
     @State private var showUpgradeSheet = false // Direct upgrade sheet (e.g. from Settings)
     @State private var selectedTypeToAdd: TravelDocument.DocumentType? = nil
     
@@ -216,21 +216,33 @@ struct TravelDocsWalletView: View {
     @AppStorage("hasSeenSixthCardTutorial") private var hasSeenSixthCardTutorial = false
     @AppStorage("hasSeenAllCardsTutorial") private var hasSeenAllCardsTutorial = false
     @AppStorage("hasSeenSettingsTutorial") private var hasSeenSettingsTutorial = false
+    @AppStorage("hasSeenMaxStackTutorial") private var hasSeenMaxStackTutorial = false
+    @AppStorage("hasSeenQuickScanTutorial") private var hasSeenQuickScanTutorial = false
+    @AppStorage("hasSeenReorderTutorial") private var hasSeenReorderTutorial = false
     @State private var showFirstCardTutorial = false
     @State private var showSixthCardTutorial = false
     @State private var showSettingsTutorial = false
     @State private var showAllCardsListTutorial = false
+    @State private var showMaxStackTutorial = false
+    @State private var showQuickScanTutorial = false
+    @State private var showReorderTutorial = false
     @State private var allCardsButtonFrame: CGRect = .zero
     @State private var settingsButtonFrame: CGRect = .zero
+    @State private var quickScanButtonFrame: CGRect = .zero
+    @State private var topCardFrame: CGRect = .zero
     
     // Scroll/Drag State
     @AppStorage("walletScrollOffset") private var baseScrollOffset: Double = 0
     @State private var dragOffset: CGFloat = 0
+    /// When set (e.g. right after adding a card), forces the stack to show this offset so the newest card is at front. Cleared when user drags.
+    @State private var scrollOffsetForNewCard: Double? = nil
     
     // Reorder stack sheet (long-press on card opens exposé-style reorder)
     @State private var showReorderStackSheet = false
     @State private var longPressedDocumentID: UUID? = nil
     @State private var reorderStackInitialOrder: [UUID] = []
+    /// Tracks active count so we only re-center when it changes (add/remove/toggle), not on every documents change.
+    @State private var lastAppliedActiveCount: Int = -1
     
     // Configuration
     private let cardSpacing: CGFloat = 65
@@ -242,6 +254,45 @@ struct TravelDocsWalletView: View {
     // MARK: - Stack: only active cards, max 6 on stack (overflow bumped to All Cards, switch off)
     var activeDocuments: [TravelDocument] {
         documents.filter { $0.isActive }
+    }
+    
+    /// Stack order: NEWEST FIRST (index 0 = front). Uses explicit stackOrderIndex (higher = newer); legacy docs use array index.
+    private var stackOrderedDocuments: [TravelDocument] {
+        let active = activeDocuments
+        let orderById = Dictionary(uniqueKeysWithValues: documents.enumerated().map { ($0.element.id, $0.offset) })
+        return active.sorted { a, b in
+            let oa = a.stackOrderIndex ?? (orderById[a.id] ?? 0)
+            let ob = b.stackOrderIndex ?? (orderById[b.id] ?? 0)
+            return oa > ob
+        }
+    }
+    
+    /// Scroll value used for layout; when we just added a card we force the offset so index 0 (newest) is at front.
+    private var effectiveBaseScrollOffset: Double {
+        scrollOffsetForNewCard ?? baseScrollOffset
+    }
+    
+    /// Single source of truth for keeping the stack centered: scroll offset so the front card (index 0) is at visual center.
+    private func centeredScrollOffset(for activeCount: Int) -> Double {
+        guard activeCount > 1 else { return 0 }
+        return Double(activeCount - 1) * Double(cardSpacing) / 2
+    }
+    
+    /// Fixed adjustment to centre the stack on screen (midpoint of positions at centred scroll). Depends only on count so dragging stays smooth.
+    private var stackCenterAdjustmentForCount: CGFloat {
+        let count = activeDocuments.count
+        guard count > 0, totalScrollHeight > 0 else { return 0 }
+        let scroll = CGFloat(centeredScrollOffset(for: count))
+        var minP: CGFloat = .greatestFiniteMagnitude
+        var maxP: CGFloat = -.greatestFiniteMagnitude
+        for i in 0..<count {
+            let raw = CGFloat(i) * cardSpacing + scroll
+            var p = raw.truncatingRemainder(dividingBy: totalScrollHeight)
+            if p < 0 { p += totalScrollHeight }
+            minP = min(minP, p)
+            maxP = max(maxP, p)
+        }
+        return (minP + maxP) / 2
     }
     
     private var totalScrollHeight: CGFloat {
@@ -304,7 +355,7 @@ struct TravelDocsWalletView: View {
             // MARK: - 1. MAIN CARD AREA (Now Full Screen Background)
             GeometryReader { geo in
                 ZStack(alignment: .center) {
-                    ForEach(Array(activeDocuments.enumerated()), id: \.element.id) { index, doc in
+                    ForEach(Array(stackOrderedDocuments.enumerated()), id: \.element.id) { index, doc in
                         
                         // 1. CALCULATE DYNAMIC POSITION
                         let targetPos = getCircularPosition(for: index)
@@ -446,6 +497,11 @@ struct TravelDocsWalletView: View {
                                     removal: .move(edge: .trailing).combined(with: .opacity)
                                 )
                             )
+                            .background(
+                                GeometryReader { g in
+                                    Color.clear.preference(key: TutorialTargetFrameKey.self, value: index == 0 ? [4: g.frame(in: .named("tutorialSpace"))] : [:])
+                                }
+                            )
                         }
                     }
                 }
@@ -457,6 +513,7 @@ struct TravelDocsWalletView: View {
                     DragGesture()
                         .onChanged { value in
                             guard selectedID == nil else { return }
+                            scrollOffsetForNewCard = nil
                             dragOffset = value.translation.height
                         }
                         .onEnded { value in
@@ -465,19 +522,19 @@ struct TravelDocsWalletView: View {
                             let totalDrag = CGFloat(baseScrollOffset) + value.translation.height
                             
                             // Calculate pure velocity impact for inertial scrolling
-                            // Subtract translation to isolate the momentum
                             let velocity = (value.predictedEndTranslation.height - value.translation.height)
-                            
-                            // Apply friction to the slide (adjustable for feel, 0.5 is balanced)
                             let friction: CGFloat = 0.5
                             let projectedTotal = totalDrag + (velocity * friction)
                             
-                            let snapStep = cardSpacing
-                            let nearestStep = (projectedTotal / snapStep).rounded() * snapStep
+                            // Snap to steps aligned with the centred scroll so stack stays vertically centred
+                            let center = CGFloat(centeredScrollOffset(for: activeDocuments.count))
+                            var nearestStep = center + (round((projectedTotal - center) / cardSpacing) * cardSpacing)
+                            nearestStep = nearestStep.truncatingRemainder(dividingBy: totalScrollHeight)
+                            if nearestStep < 0 { nearestStep += totalScrollHeight }
                             
-                            // "Slider.js" style smoothness: Slightly slower response, higher damping for a 'gliding' stop
                             withAnimation(.spring(response: 0.55, dampingFraction: 0.825)) {
                                 baseScrollOffset = Double(nearestStep)
+                                scrollOffsetForNewCard = nil
                                 dragOffset = 0
                             }
                         }
@@ -606,9 +663,9 @@ struct TravelDocsWalletView: View {
                             HStack {
                                 Spacer()
                                 
-                                // Quick Access Button
+                                // Quick Scan Button
                                 Button(action: {
-                                    showQuickAccessSheet = true
+                                    showQuickScanSheet = true
                                 }) {
                                     Image(systemName: "bolt.fill")
                                         .font(.system(size: 20))
@@ -618,6 +675,7 @@ struct TravelDocsWalletView: View {
                                         .clipShape(Circle())
                                         .shadow(radius: 5)
                                 }
+                                .reportTutorialFrame(tag: 3)
                                 
                                 Spacer()
                                 
@@ -736,10 +794,33 @@ struct TravelDocsWalletView: View {
                     message: "Tap the cog for settings and other useful options.",
                     targetFrame: settingsButtonFrame,
                     pointerEdge: .leading,
-                    pointerTipOffsetX: 20,
                     onDismiss: {
                         hasSeenSettingsTutorial = true
                         showSettingsTutorial = false
+                    }
+                )
+                .zIndex(300)
+            }
+            if showQuickScanTutorial {
+                TutorialBubbleOverlay(
+                    message: "Tap the bolt to add a card by scanning a barcode or ticket - quick and easy.",
+                    targetFrame: quickScanButtonFrame,
+                    pointerEdge: .trailing,
+                    onDismiss: {
+                        hasSeenQuickScanTutorial = true
+                        showQuickScanTutorial = false
+                    }
+                )
+                .zIndex(300)
+            }
+            if showReorderTutorial {
+                TutorialBubbleOverlay(
+                    message: "Long-press any card to reorder the stack - then drag to change the order.",
+                    targetFrame: topCardFrame,
+                    pointerEdge: .top,
+                    onDismiss: {
+                        hasSeenReorderTutorial = true
+                        showReorderTutorial = false
                     }
                 )
                 .zIndex(300)
@@ -749,6 +830,12 @@ struct TravelDocsWalletView: View {
         .onPreferenceChange(TutorialTargetFrameKey.self) { dict in
             if let r = dict[1] { allCardsButtonFrame = r }
             if let r = dict[2] { settingsButtonFrame = r }
+            if let r = dict[3] { quickScanButtonFrame = r }
+            if let r = dict[4] { topCardFrame = r }
+        }
+        .onAppear {
+            backfillStackOrderIndexIfNeeded()
+            lastAppliedActiveCount = activeDocuments.count
         }
         // AUTOMATIC SAVING: Whenever documents array changes, save to disk
         .onChange(of: documents) { newValue in
@@ -757,6 +844,13 @@ struct TravelDocsWalletView: View {
                let updated = newValue.first(where: { $0.id == preview.id }) {
                 allCardsPreviewDocument = updated
             }
+            // Re-center the stack when the number of active cards changes (add/remove/toggle) so it never drifts.
+            let activeCount = newValue.filter(\.isActive).count
+            guard activeCount != lastAppliedActiveCount else { return }
+            lastAppliedActiveCount = activeCount
+            let offset = centeredScrollOffset(for: activeCount)
+            baseScrollOffset = offset
+            scrollOffsetForNewCard = offset
         }
         // TUTORIAL TRIGGERS
         .onChange(of: documents.count) { count in
@@ -775,6 +869,16 @@ struct TravelDocsWalletView: View {
                     showSettingsTutorial = true
                 }
             }
+            if count == 3 && !hasSeenQuickScanTutorial {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                    showQuickScanTutorial = true
+                }
+            }
+            if count == 4 && !hasSeenReorderTutorial {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                    showReorderTutorial = true
+                }
+            }
         }
         .onChange(of: showAllCardsSheet) { isOpen in
             if isOpen && !hasSeenAllCardsTutorial {
@@ -785,10 +889,15 @@ struct TravelDocsWalletView: View {
         .sheet(item: $selectedTypeToAdd) { type in
             DocumentFormView(type: type) { newDoc in
                 withAnimation {
-                    documents.append(newDoc)
+                    var docToAdd = newDoc
+                    docToAdd.stackOrderIndex = (documents.flatMap { $0.stackOrderIndex }.max() ?? -1) + 1
+                    documents.append(docToAdd)
                     bumpLeastRecentActiveIfOverLimit()
-                    baseScrollOffset = 0
                     dragOffset = 0
+                    let count = documents.filter(\.isActive).count
+                    let offset = centeredScrollOffset(for: count)
+                    baseScrollOffset = offset
+                    scrollOffsetForNewCard = offset
                 }
             }
         }
@@ -815,9 +924,9 @@ struct TravelDocsWalletView: View {
         .sheet(isPresented: $showSettingsSheet) {
             SettingsView(documents: $documents)
         }
-        // MARK: - QUICK ACCESS SHEET
-        .sheet(isPresented: $showQuickAccessSheet) {
-            QuickAccessView(documents: $documents)
+        // MARK: - QUICK SCAN SHEET
+        .sheet(isPresented: $showQuickScanSheet) {
+            QuickScanView(documents: $documents)
         }
         // MARK: - REORDER STACK SHEET (exposé-style grid)
         .sheet(isPresented: $showReorderStackSheet) {
@@ -825,7 +934,13 @@ struct TravelDocsWalletView: View {
                 documents: $documents,
                 highlightedDocumentID: longPressedDocumentID,
                 initialOrder: reorderStackInitialOrder,
-                onDismiss: { showReorderStackSheet = false }
+                onDismiss: {
+                    let count = documents.filter(\.isActive).count
+                    let offset = centeredScrollOffset(for: count)
+                    baseScrollOffset = offset
+                    scrollOffsetForNewCard = offset
+                    showReorderStackSheet = false
+                }
             )
             .presentationDetents([.large])
             .presentationCornerRadius(24)
@@ -863,7 +978,7 @@ struct TravelDocsWalletView: View {
                                             }
                                             .buttonStyle(.plain)
                                             
-                                            // Native Switch (max 6 on stack; turning 7th on bumps least recent off)
+                                            // Native Switch (max 6 on stack; at 6, show tutorial and prevent 7th)
                                             Toggle("", isOn: Binding(
                                                 get: { doc.isActive },
                                                 set: { newValue in
@@ -871,10 +986,16 @@ struct TravelDocsWalletView: View {
                                                     if newValue {
                                                         let activeCount = documents.filter(\.isActive).count
                                                         if activeCount >= maxCardsOnStack {
-                                                            bumpLeastRecentActiveIfOverLimit()
+                                                            if !hasSeenMaxStackTutorial {
+                                                                showMaxStackTutorial = true
+                                                            }
+                                                            return
                                                         }
                                                     }
                                                     documents[index].isActive = newValue
+                                                    if newValue {
+                                                        bumpLeastRecentActiveIfOverLimit()
+                                                    }
                                                 }
                                             ))
                                                 .labelsHidden()
@@ -934,14 +1055,29 @@ struct TravelDocsWalletView: View {
                 }
                 if showAllCardsListTutorial {
                     TutorialBubbleOverlay(
-                        message: "Switch cards on or off to show them in the card stack. You can quick view any card here by tapping it.",
+                        message: "Switch cards on or off to show them on the stack. Tap any card to quick view it.",
                         targetFrame: .zero,
                         pointerEdge: .bottom,
-                        preferredPointerEdge: .top,
+                        preferredPointerEdge: .bottom,
                         listItemCount: documents.count,
+                        listBubbleAboveFirstRow: true,
                         onDismiss: {
                             hasSeenAllCardsTutorial = true
                             showAllCardsListTutorial = false
+                        }
+                    )
+                }
+                if showMaxStackTutorial {
+                    TutorialBubbleOverlay(
+                        message: "The stack is full - only 6 cards at a time. Turn one off to add this card.",
+                        targetFrame: .zero,
+                        pointerEdge: .bottom,
+                        preferredPointerEdge: .bottom,
+                        listItemCount: documents.count,
+                        listBubbleAboveFirstRow: true,
+                        onDismiss: {
+                            hasSeenMaxStackTutorial = true
+                            showMaxStackTutorial = false
                         }
                     )
                 }
@@ -956,7 +1092,7 @@ struct TravelDocsWalletView: View {
                 // Return to home screen immediately
                 showAllCardsSheet = false
                 showSettingsSheet = false
-                showQuickAccessSheet = false
+                showQuickScanSheet = false
                 showUpgradeSheet = false
                 selectedTypeToAdd = nil
                 documentToEdit = nil
@@ -967,14 +1103,24 @@ struct TravelDocsWalletView: View {
     
     // MARK: - LOGIC
     
-    /// Keeps at most 6 cards on the main stack. If more are active, the least recent (first in list order) is turned off and only appears in All Cards with switch off.
+    /// Backfill stackOrderIndex for legacy docs (nil) so stack order is deterministic. Uses current array index (higher = newer).
+    private func backfillStackOrderIndexIfNeeded() {
+        guard documents.contains(where: { $0.stackOrderIndex == nil }) else { return }
+        var updated = documents
+        for i in updated.indices where updated[i].stackOrderIndex == nil {
+            updated[i].stackOrderIndex = i
+        }
+        documents = updated
+    }
+    
+    /// Keeps at most 6 cards on the main stack. Only when a 7th card is active, the oldest (lowest stackOrderIndex) is turned off.
     private func bumpLeastRecentActiveIfOverLimit() {
-        let activeIndices = documents.enumerated()
+        let activeWithOrder = documents.enumerated()
             .filter(\.element.isActive)
-            .map(\.offset)
-        guard activeIndices.count >= maxCardsOnStack else { return }
-        let leastRecentIndex = activeIndices.min()!
-        documents[leastRecentIndex].isActive = false
+            .map { (offset: $0.offset, order: $0.element.stackOrderIndex ?? $0.offset) }
+        guard activeWithOrder.count > maxCardsOnStack else { return }
+        let leastRecent = activeWithOrder.min(by: { $0.order < $1.order })!
+        documents[leastRecent.offset].isActive = false
     }
     
     func deleteDocument(_ doc: TravelDocument) {
@@ -1030,7 +1176,7 @@ struct TravelDocsWalletView: View {
         if totalScrollHeight == 0 { return 0 }
         
         let initialOffset = CGFloat(index) * cardSpacing
-        let currentScroll = CGFloat(baseScrollOffset) + dragOffset
+        let currentScroll = CGFloat(effectiveBaseScrollOffset) + dragOffset
         
         // Combine index offset with scroll
         let rawPosition = initialOffset + currentScroll
@@ -1050,13 +1196,8 @@ struct TravelDocsWalletView: View {
             // Return to 0 for true center
             return selected == docID ? 0 : 1000
         }
-        
-        // FIX: Center the stack based on the number of actual cards, not the scroll loop.
-        // We calculate the midpoint of the card distribution: ((Count - 1) * Spacing) / 2
-        let count = CGFloat(activeDocuments.count)
-        let stackCenterAdjustment = count > 1 ? ((count - 1) * cardSpacing) / 2 : 0
-        
-        return position - stackCenterAdjustment
+        // Use fixed adjustment (from centred scroll only) so re-centring is correct and drag stays smooth.
+        return position - stackCenterAdjustmentForCount
     }
     
     func getScale(for position: CGFloat, docID: UUID) -> CGFloat {
@@ -1080,11 +1221,9 @@ struct TravelDocsWalletView: View {
         return Double(position)
     }
     
-    /// Order of active card ids as they appear on the stack (top to bottom) for the reorder sheet.
+    /// Order of active card ids as they appear on the stack (newest first) for the reorder sheet.
     private func visualOrderForReorderSheet() -> [UUID] {
-        guard !activeDocuments.isEmpty else { return [] }
-        let indices = activeDocuments.indices.sorted { getCircularPosition(for: $0) < getCircularPosition(for: $1) }
-        return indices.map { activeDocuments[$0].id }
+        stackOrderedDocuments.map(\.id)
     }
 }
 
@@ -1184,7 +1323,12 @@ private struct ReorderStackView: View {
             return
         }
         let inactive = documents.filter { !$0.isActive }
-        let newActive = orderedIDs.compactMap { id in documents.first(where: { $0.id == id }) }
+        let count = orderedIDs.count
+        let newActive = orderedIDs.enumerated().compactMap { (i, id) -> TravelDocument? in
+            guard var doc = documents.first(where: { $0.id == id }) else { return nil }
+            doc.stackOrderIndex = count - 1 - i
+            return doc
+        }
         withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
             documents = newActive + inactive
         }

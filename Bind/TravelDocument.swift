@@ -112,6 +112,10 @@ struct TravelDocument: Identifiable, Codable, Equatable {
     let iconName: String
     let airline: String
     var isActive: Bool = true // Toggle state property
+    /// When the document was added; used to keep the card stack in chronological order (newest at front).
+    var createdAt: Date? = nil
+    /// Explicit stack order: higher = newer. Used so stack is always newest-first. Nil for legacy docs (we use array index as fallback).
+    var stackOrderIndex: Int? = nil
     
     // Public computed properties for View usage
     var primaryColor: Color { primaryColorData.color }
@@ -202,7 +206,9 @@ struct TravelDocument: Identifiable, Codable, Equatable {
          secondaryColor: Color,
          iconName: String,
          airline: String,
-         isActive: Bool = true) {
+         isActive: Bool = true,
+         createdAt: Date? = nil,
+         stackOrderIndex: Int? = nil) {
         
         self.id = id
         self.type = type
@@ -283,6 +289,8 @@ struct TravelDocument: Identifiable, Codable, Equatable {
         self.iconName = iconName
         self.airline = airline
         self.isActive = isActive
+        self.createdAt = createdAt ?? Date()
+        self.stackOrderIndex = stackOrderIndex
     }
     
     enum DocumentType: String, CaseIterable, Identifiable, Codable {
@@ -338,12 +346,22 @@ struct TravelDocument: Identifiable, Codable, Equatable {
 
 // MARK: - Display capitalization (preserves "ID" and similar acronyms app-wide)
 extension String {
-    /// Capitalized for display in the app, preserving "ID" (e.g. "National Id" → "National ID", "Student Id" → "Student ID").
+    /// Capitalized for display in the app, preserving "ID" (e.g. "National Id" → "National ID", "Student Id" → "Student ID")
+    /// and ordinals (e.g. "1St Dose" → "1st Dose" for vaccination cards).
     var displayCapitalized: String {
         var result = self.capitalized
         result = result.replacingOccurrences(of: " Id", with: " ID")
         result = result.replacingOccurrences(of: "Id ", with: "ID ")
         if result == "Id" { result = "ID" }
+        // Fix ordinals (1St → 1st, 2Nd → 2nd, 3Rd → 3rd, 4Th → 4th, etc.)
+        let ordinalFix: [(String, String)] = [
+            ("1St", "1st"), ("2Nd", "2nd"), ("3Rd", "3rd"), ("4Th", "4th"), ("5Th", "5th"),
+            ("6Th", "6th"), ("7Th", "7th"), ("8Th", "8th"), ("9Th", "9th"),
+            ("11Th", "11th"), ("12Th", "12th"), ("13Th", "13th")
+        ]
+        for (wrong, correct) in ordinalFix {
+            result = result.replacingOccurrences(of: wrong, with: correct)
+        }
         return result
     }
 }
