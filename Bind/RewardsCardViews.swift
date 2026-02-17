@@ -257,6 +257,14 @@ struct AirlineRewardsView: View {
     let isSelected: Bool
     let onTap: () -> Void
     
+    private func tierColor(_ tier: String) -> Color {
+        switch tier.lowercased() {
+        case "bronze": return Color(red: 0.6, green: 0.35, blue: 0.2)
+        case "gold": return Color(red: 0.8, green: 0.6, blue: 0.0)
+        default: return Color(red: 0.55, green: 0.55, blue: 0.58) // Silver
+        }
+    }
+    
     @State private var planeOffset: CGFloat = 0
     @State private var planeOpacity: Double = 0
     
@@ -333,10 +341,10 @@ struct AirlineRewardsView: View {
                                     .font(.caption2)
                                     .fontWeight(.bold)
                                     .foregroundColor(.gray)
-                                Text("GOLD")
+                                Text((document.airlineTier ?? "Silver").uppercased())
                                     .font(.headline)
                                     .fontWeight(.black)
-                                    .foregroundColor(Color(red: 0.8, green: 0.6, blue: 0.0))
+                                    .foregroundColor(tierColor(document.airlineTier ?? "Silver"))
                             }
                             Spacer()
                             VStack(alignment: .trailing) {

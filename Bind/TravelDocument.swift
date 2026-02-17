@@ -111,6 +111,8 @@ struct TravelDocument: Identifiable, Codable, Equatable {
     
     let iconName: String
     let airline: String
+    /// Airline rewards tier (Bronze, Silver, Gold). Used when type is rewardsCard and card type is Airline.
+    var airlineTier: String?
     var isActive: Bool = true // Toggle state property
     /// When the document was added; used to keep the card stack in chronological order (newest at front).
     var createdAt: Date? = nil
@@ -206,6 +208,7 @@ struct TravelDocument: Identifiable, Codable, Equatable {
          secondaryColor: Color,
          iconName: String,
          airline: String,
+         airlineTier: String? = nil,
          isActive: Bool = true,
          createdAt: Date? = nil,
          stackOrderIndex: Int? = nil) {
@@ -288,6 +291,7 @@ struct TravelDocument: Identifiable, Codable, Equatable {
         self.secondaryColorData = CodableColor(color: secondaryColor)
         self.iconName = iconName
         self.airline = airline
+        self.airlineTier = airlineTier
         self.isActive = isActive
         self.createdAt = createdAt ?? Date()
         self.stackOrderIndex = stackOrderIndex

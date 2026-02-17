@@ -61,77 +61,90 @@ struct DriversLicenseDetailView: View {
     }
 
     var body: some View {
+        // ID-1 card aspect ratio (85.6 × 53.98 mm) to prevent stretching
+        let id1AspectRatio: CGFloat = 85.6 / 53.98
+
         if let imageData = document.documentImageData, let uiImage = UIImage(data: imageData) {
             Image(uiImage: uiImage)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
                 .frame(height: 240)
-                .cornerRadius(20)
-                .clipped()
+                .aspectRatio(id1AspectRatio, contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
         } else {
             ZStack {
-                // Plastic Card Background
-                Color(white: 0.95)
+                // Card background (like National ID / Vaccination)
+                Color(white: 0.96)
                 
-                // Decorative guilloche patterns
+                // Subtle pattern
                 Circle()
                     .fill(document.primaryColor.opacity(0.05))
-                    .frame(width: 300, height: 300)
-                    .offset(x: -150, y: -80)
+                    .frame(width: 280, height: 280)
+                    .offset(x: -120, y: -60)
                 
                 VStack(spacing: 0) {
-                    // Header Strip
+                    // Extra top padding so banner sits well below card’s rounded corner
+                    Color.clear.frame(height: 18)
+                    
+                    // Blue banner – same style as Vaccination card (rounded top, full color)
                     HStack {
                         Image(systemName: document.iconName)
                             .foregroundColor(.white)
+                            .font(.caption)
                         Text(document.title.uppercased())
                             .font(.system(size: 12, weight: .heavy, design: .monospaced))
                             .foregroundColor(.white)
                             .tracking(1)
                         Spacer()
                     }
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
-                    .background(document.primaryColor)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        UnevenRoundedRectangle(
+                            topLeadingRadius: 16,
+                            bottomLeadingRadius: 0,
+                            bottomTrailingRadius: 0,
+                            topTrailingRadius: 16
+                        )
+                        .fill(document.primaryColor)
+                    )
                     
-                    // Main Content
+                    // Main content – compact so bottom grid fits with room to breathe
                     HStack(alignment: .top, spacing: 10) {
                         // Photo & Signature
-                        VStack(spacing: 8) {
+                        VStack(spacing: 4) {
                             ZStack {
                                 Rectangle()
                                     .fill(Color.gray.opacity(0.2))
-                                    .frame(width: 80, height: 100)
+                                    .frame(width: 64, height: 76)
                                     .cornerRadius(4)
                                 Image(systemName: "person.fill")
                                     .resizable()
                                     .aspectRatio(contentMode: .fit)
-                                    .frame(width: 40)
+                                    .frame(width: 32)
                                     .foregroundColor(.gray)
                             }
-                            
                             Text("SIGNATURE")
-                                .font(.system(size: 6, weight: .bold))
+                                .font(.system(size: 7, weight: .bold))
                                 .foregroundColor(.gray)
-                            
                             Rectangle()
                                 .fill(Color.clear)
-                                .frame(height: 25)
+                                .frame(height: 16)
                                 .border(Color.gray.opacity(0.3), width: 1)
                         }
-                        .padding([.leading, .top], 10)
+                        .padding(.leading, 12)
+                        .padding(.top, 4)
                         
                         // Fields
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 3) {
                             FieldView(label: "LICENSE NO.", value: document.detailValue)
                             FieldView(label: "SURNAME", value: names.surname)
                             FieldView(label: "GIVEN NAME", value: names.given)
-                            
                             if let address = document.address, !address.isEmpty {
                                 FieldView(label: "ADDRESS", value: address.uppercased())
                             }
-                            
-                            HStack(alignment: .top) {
+                            HStack(alignment: .top, spacing: 8) {
                                 if let dob = document.birthDate {
                                     FieldView(label: "DOB", value: dateFormatter.string(from: dob).uppercased())
                                 }
@@ -140,14 +153,15 @@ struct DriversLicenseDetailView: View {
                                 }
                             }
                         }
-                        .padding(.top, 10)
+                        .padding(.top, 4)
                         
-                        Spacer()
+                        Spacer(minLength: 0)
                     }
+                    .padding(.trailing, 12)
                     
-                    Spacer()
+                    Spacer(minLength: 0)
                     
-                    // Bottom Details Grid
+                    // Bottom grid – plenty of padding so CLASS etc. stay clear of card edge
                     HStack {
                         GridField(label: "CLASS", value: document.licenseClass)
                         GridField(label: "RESTR", value: document.restrictions)
@@ -155,12 +169,17 @@ struct DriversLicenseDetailView: View {
                         GridField(label: "EYES", value: document.eyeColor)
                         GridField(label: "HGT", value: document.height)
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.bottom, 10)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 14)
+                    .padding(.bottom, 16)
+                    
+                    // Extra bottom padding so text isn’t clipped by card’s rounded corner
+                    Color.clear.frame(height: 18)
                 }
             }
             .frame(height: 240)
-            .cornerRadius(20)
+            .aspectRatio(id1AspectRatio, contentMode: .fit)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
             .overlay(
                 RoundedRectangle(cornerRadius: 20)
                     .stroke(Color.black.opacity(0.1), lineWidth: 1)
@@ -479,6 +498,7 @@ struct IDFlipCard: View {
             }
         }
         .frame(height: 240) // Standard height, no expansion
+        .aspectRatio(85.6 / 53.98, contentMode: .fit) // ID-1 card ratio: prevent stretch
         .rotation3DEffect(
             .degrees(yRotation),
             axis: (x: 0, y: 1, z: 0),

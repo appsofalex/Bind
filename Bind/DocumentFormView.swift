@@ -3,6 +3,20 @@ import PhotosUI
 import VisionKit
 import Vision
 
+/// Rotate image 90° clockwise so certificate photos display horizontally on the card.
+fileprivate extension UIImage {
+    func rotated90DegreesClockwise() -> UIImage {
+        let newSize = CGSize(width: size.height, height: size.width)
+        UIGraphicsBeginImageContextWithOptions(newSize, false, scale)
+        defer { UIGraphicsEndImageContext() }
+        guard let ctx = UIGraphicsGetCurrentContext() else { return self }
+        ctx.translateBy(x: size.height, y: 0)
+        ctx.rotate(by: .pi / 2)
+        draw(in: CGRect(origin: .zero, size: size))
+        return UIGraphicsGetImageFromCurrentImageContext() ?? self
+    }
+}
+
 // A helper struct to make UIImage identifiable for use with .sheet(item:).
 fileprivate struct CroppableImage: Identifiable {
     let id = UUID()
@@ -75,6 +89,7 @@ struct DocumentFormView: View {
     // REWARDS CARD SPECIFIC
     @State private var selectedRewardType: String = "Coffee"
     @State private var selectedRewardBrand: String = ""
+    @State private var selectedAirlineTier: String = "Silver"
     
     // PET SPECIFIC FIELDS
     @State private var petName: String = ""
@@ -579,6 +594,7 @@ struct DocumentFormView: View {
                 }
             } else if doc.type == .rewardsCard {
                 _selectedRewardBrand = State(initialValue: doc.title)
+                _selectedAirlineTier = State(initialValue: doc.airlineTier ?? "Silver")
                 // Try to guess the type based on the brand or subtitle
                 if doc.subtitle.localizedCaseInsensitiveContains("COFFEE") {
                     _selectedRewardType = State(initialValue: "Coffee")
@@ -797,7 +813,13 @@ struct DocumentFormView: View {
             )
             .sheet(item: $imageToCrop) { item in
                 ImageCropperView(image: item.image) { croppedImage in
-                    documentImage = croppedImage.jpegData(compressionQuality: 0.8)
+                    let imageToSave: UIImage
+                    if type == .birthCertificate || type == .marriageCertificate {
+                        imageToSave = croppedImage.rotated90DegreesClockwise()
+                    } else {
+                        imageToSave = croppedImage
+                    }
+                    documentImage = imageToSave.jpegData(compressionQuality: 0.8)
                 }
             }
             .sheet(isPresented: $showCamera) {
@@ -1185,6 +1207,11 @@ struct DocumentFormView: View {
                     .onChange(of: selectedRewardBrand) { newValue in
                         title = newValue
                         subtitle = "Frequent Flyer"
+                    }
+                    Picker("Tier", selection: $selectedAirlineTier) {
+                        Text("Bronze").tag("Bronze")
+                        Text("Silver").tag("Silver")
+                        Text("Gold").tag("Gold")
                     }
                 } else if selectedRewardType == "Supermarket" {
                     Picker("Supermarket", selection: $selectedRewardBrand) {
@@ -1640,6 +1667,7 @@ struct DocumentFormView: View {
         var finalHolder = holderName
         var finalDetail = detailValue
         var finalAirline = ""
+        var finalAirlineTier: String? = nil
         
         switch type {
         case .medicalAlert:
@@ -1688,6 +1716,10 @@ struct DocumentFormView: View {
         case .rewardsCard:
             if finalSubtitle.isEmpty || finalSubtitle == "LOYALTY" {
                 finalSubtitle = "Loyalty Card"
+            }
+            if selectedRewardType == "Airline" {
+                finalAirline = selectedRewardBrand
+                finalAirlineTier = selectedAirlineTier
             }
             
         case .event:
@@ -1801,6 +1833,7 @@ struct DocumentFormView: View {
             secondaryColor: subscriptionManager.isPro ? customSecondaryColor : .white,
             iconName: subscriptionManager.isPro ? selectedIconName : getIcon(for: type),
             airline: finalAirline,
+            airlineTier: finalAirlineTier,
             isActive: true,
             createdAt: existingCreatedAt,
             stackOrderIndex: existingStackOrderIndex
