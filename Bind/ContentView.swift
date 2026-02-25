@@ -809,7 +809,7 @@ struct TravelDocsWalletView: View {
             }
             if showQuickScanTutorial {
                 TutorialBubbleOverlay(
-                    message: "Tap the bolt to add a card by scanning a barcode or ticket - quick and easy.",
+                    message: "Tap the bolt to quickly add a card by scanning a barcode or ticket.",
                     targetFrame: quickScanButtonFrame,
                     pointerEdge: .trailing,
                     onDismiss: {

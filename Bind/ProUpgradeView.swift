@@ -9,7 +9,6 @@ struct ProUpgradeView: View {
     static let features: [(icon: String, title: String, description: String)] = [
         ("paintpalette.fill", "Customisable Card Colours", "Choose your own colours for each card. Personalise your wallet to match your style."),
         ("icloud.fill", "Cloud Sync", "Seamlessly sync your documents across all your Apple devices via iCloud."),
-        ("bolt.fill", "Quick Access Personalization", "Customize your Quick Access view to keep your most vital info just a tap away."),
         ("bell.badge.fill", "Smart Expiry Alerts", "Get notified before your passports or visas expire. Never get caught out at the border."),
         ("square.grid.2x2.fill", "Customisable Card Icons", "Choose from a selection of icons to make each card your own.")
     ]
