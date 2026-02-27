@@ -17,8 +17,9 @@ struct MedicalCardDetailView: View {
             if let imageData = document.documentImageData, let uiImage = UIImage(data: imageData) {
                 Image(uiImage: uiImage)
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
+                    .scaledToFill()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
                     .clipShape(RoundedRectangle(cornerRadius: 20))
             } else {
             ZStack {
@@ -196,8 +197,9 @@ struct VaccinationCardDetailView: View {
             if let imageData = document.documentImageData, let uiImage = UIImage(data: imageData) {
                 Image(uiImage: uiImage)
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
+                    .scaledToFill()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
                     .clipShape(RoundedRectangle(cornerRadius: 20))
             } else {
             ZStack {
@@ -378,8 +380,9 @@ struct PrescriptionCardDetailView: View {
             if let imageData = document.documentImageData, let uiImage = UIImage(data: imageData) {
                 Image(uiImage: uiImage)
                     .resizable()
-                    .aspectRatio(contentMode: .fit)
+                    .scaledToFill()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
                     .clipShape(RoundedRectangle(cornerRadius: 20))
             } else {
             ZStack {
@@ -772,9 +775,44 @@ struct InsuranceFlipCard: View {
     }
 }
 
-// Back of insurance card: full image when present, else simple detail placeholder
 struct InsuranceCardBackView: View {
     let document: TravelDocument
+
+    // Date + formatting helpers
+    private var dateFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "dd MMM yyyy"
+        return formatter
+    }
+
+    private var coverageStart: String {
+        if let start = document.issueDate {
+            return dateFormatter.string(from: start)
+        }
+        return "Not set"
+    }
+
+    private var coverageEnd: String {
+        if let end = document.expiryDate {
+            return dateFormatter.string(from: end)
+        }
+        return "Not set"
+    }
+
+    @ViewBuilder
+    private func infoRow(label: String, value: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(label.uppercased())
+                .font(.system(size: 8, weight: .semibold, design: .monospaced))
+                .foregroundColor(.gray)
+            Spacer(minLength: 10)
+            Text(value.isEmpty ? "Not set" : value)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(.black)
+                .multilineTextAlignment(.trailing)
+        }
+        .padding(.vertical, 2)
+    }
     
     var body: some View {
         ZStack {
@@ -786,23 +824,63 @@ struct InsuranceCardBackView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 20))
             } else {
                 ZStack {
-                    // Match other health card backs: light card surface with static dark text
+                    // Detailed insurance layout (matches Add Health Insurance fields)
                     Color(white: 0.98)
-                    
-                    VStack(spacing: 8) {
-                        Image(systemName: document.iconName)
-                            .font(.system(size: 44))
-                            .foregroundColor(document.primaryColor)
-                        Text(document.displayTitle)
-                            .font(.headline)
-                            .foregroundColor(.black)
-                        if !document.detailValue.isEmpty {
-                            Text(document.detailValue)
-                                .font(.subheadline.monospaced())
-                                .foregroundColor(.gray)
+
+                    VStack(spacing: 0) {
+                        // Header – provider + plan (condensed)
+                        HStack(alignment: .center, spacing: 8) {
+                            Image(systemName: document.iconName)
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.white)
+                            VStack(alignment: .leading, spacing: 0) {
+                                Text(document.title.isEmpty ? "INSURANCE PROVIDER" : document.title)
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.7)
+                                if !document.subtitle.isEmpty {
+                                    Text(document.subtitle.displayCapitalized)
+                                        .font(.system(size: 10, weight: .medium))
+                                        .foregroundColor(Color.white.opacity(0.9))
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.7)
+                                }
+                            }
+                            Spacer()
                         }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 6)
+                        .background(document.primaryColor)
+
+                        // Main content
+                        VStack(alignment: .leading, spacing: 0) {
+                            infoRow(label: "Policy holder", value: document.holderName)
+                            infoRow(label: "Policy number", value: document.detailValue)
+                            infoRow(label: "Group number", value: document.groupNumber ?? "")
+                            infoRow(label: "Coverage start", value: coverageStart)
+                            infoRow(label: "Coverage end", value: coverageEnd)
+                            infoRow(label: "Emergency contact", value: document.emergencyPhoneNumber ?? "")
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.top, 8)
+                        .padding(.bottom, 4)
+
+                        Spacer(minLength: 0)
+
+                        // Footer (condensed)
+                        HStack {
+                            Text("Present this card to your provider when receiving care.")
+                                .font(.system(size: 8, weight: .medium))
+                                .foregroundColor(.white.opacity(0.9))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.85)
+                            Spacer()
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 4)
+                        .background(document.primaryColor.opacity(0.85))
                     }
-                    .padding()
                 }
             }
         }
