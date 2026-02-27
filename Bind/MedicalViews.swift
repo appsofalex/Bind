@@ -785,21 +785,25 @@ struct InsuranceCardBackView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipShape(RoundedRectangle(cornerRadius: 20))
             } else {
-                Color(white: 0.96)
-                VStack(spacing: 8) {
-                    Image(systemName: document.iconName)
-                        .font(.system(size: 44))
-                        .foregroundColor(document.primaryColor.opacity(0.6))
-                    Text(document.displayTitle)
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                    if !document.detailValue.isEmpty {
-                        Text(document.detailValue)
-                            .font(.subheadline.monospaced())
-                            .foregroundColor(.secondary)
+                ZStack {
+                    // Match other health card backs: light card surface with static dark text
+                    Color(white: 0.98)
+                    
+                    VStack(spacing: 8) {
+                        Image(systemName: document.iconName)
+                            .font(.system(size: 44))
+                            .foregroundColor(document.primaryColor)
+                        Text(document.displayTitle)
+                            .font(.headline)
+                            .foregroundColor(.black)
+                        if !document.detailValue.isEmpty {
+                            Text(document.detailValue)
+                                .font(.subheadline.monospaced())
+                                .foregroundColor(.gray)
+                        }
                     }
+                    .padding()
                 }
-                .padding()
             }
         }
         .frame(height: 240)

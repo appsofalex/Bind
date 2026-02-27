@@ -15,7 +15,16 @@ struct BindApp: App {
     @AppStorage("appTheme") private var appTheme: AppTheme = .dark
     
     @Environment(\.scenePhase) private var scenePhase
-    @State private var isUnlocked = false
+    @State private var isUnlocked: Bool
+    
+    init() {
+        // On cold launch:
+        // - If onboarding is complete AND Face ID is enabled, start locked.
+        // - Otherwise, show content without an extra Face ID prompt.
+        let hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+        let isFaceIDEnabled = UserDefaults.standard.bool(forKey: "isFaceIDEnabled")
+        _isUnlocked = State(initialValue: !(hasCompletedOnboarding && isFaceIDEnabled))
+    }
     
     var body: some Scene {
         WindowGroup {
@@ -46,11 +55,6 @@ struct BindApp: App {
                     if isFaceIDEnabled {
                         isUnlocked = false
                     }
-                }
-            }
-            .onChange(of: hasCompletedOnboarding) { completed in
-                if completed {
-                    isUnlocked = true
                 }
             }
         }
