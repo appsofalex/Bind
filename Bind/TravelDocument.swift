@@ -119,6 +119,9 @@ struct TravelDocument: Identifiable, Codable, Equatable {
     /// Explicit stack order: higher = newer. Used so stack is always newest-first. Nil for legacy docs (we use array index as fallback).
     var stackOrderIndex: Int? = nil
     
+    /// Raw barcode/QR payload for rendering a scannable barcode (rewards, event, boarding pass). Nil for legacy or when not yet set.
+    var barcodePayload: String? = nil
+    
     // Public computed properties for View usage
     var primaryColor: Color { primaryColorData.color }
     var secondaryColor: Color { secondaryColorData.color }
@@ -211,7 +214,8 @@ struct TravelDocument: Identifiable, Codable, Equatable {
          airlineTier: String? = nil,
          isActive: Bool = true,
          createdAt: Date? = nil,
-         stackOrderIndex: Int? = nil) {
+         stackOrderIndex: Int? = nil,
+         barcodePayload: String? = nil) {
         
         self.id = id
         self.type = type
@@ -295,6 +299,7 @@ struct TravelDocument: Identifiable, Codable, Equatable {
         self.isActive = isActive
         self.createdAt = createdAt ?? Date()
         self.stackOrderIndex = stackOrderIndex
+        self.barcodePayload = barcodePayload
     }
     
     enum DocumentType: String, CaseIterable, Identifiable, Codable {

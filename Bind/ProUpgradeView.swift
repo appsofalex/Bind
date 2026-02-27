@@ -1,4 +1,5 @@
 import SwiftUI
+import StoreKit
 
 struct ProUpgradeView: View {
     @Environment(\.dismiss) var dismiss
@@ -12,6 +13,14 @@ struct ProUpgradeView: View {
         ("bell.badge.fill", "Smart Expiry Alerts", "Get notified before your passports or visas expire. Never get caught out at the border."),
         ("square.grid.2x2.fill", "Customisable Card Icons", "Choose from a selection of icons to make each card your own.")
     ]
+    
+    /// Price string for the yearly product (e.g. "£9.99", "$9.99"). Fallback when product not loaded.
+    private var priceText: String {
+        if let product = subscriptionManager.yearlyProduct {
+            return product.displayPrice
+        }
+        return "£9.99"
+    }
     
     var body: some View {
         ZStack {
@@ -64,33 +73,50 @@ struct ProUpgradeView: View {
                 // Purchase Button
                 Button(action: {
                     subscriptionManager.upgradeToPro()
-                    
-                    // Request Notification Permission on upgrade with a 3-second delay
-                    // so the user can see the Pro animation on the home screen first.
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                        NotificationManager.shared.requestPermission()
-                    }
-                    
-                    dismiss()
                 }) {
-                    Text("Upgrade for $4.99/Year")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                        .background(Color.blue)
-                        .clipShape(Capsule())
-                        .shadow(radius: 5)
+                    Group {
+                        if subscriptionManager.isPurchasing {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        } else {
+                            Text("Upgrade for \(priceText)/Year")
+                        }
+                    }
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(subscriptionManager.isPurchasing ? Color.gray : Color.blue)
+                    .clipShape(Capsule())
+                    .shadow(radius: 5)
                 }
+                .disabled(subscriptionManager.isPurchasing || subscriptionManager.isLoadingProducts)
                 .padding(.horizontal, 24)
-                .padding(.bottom, 10)
+                .padding(.bottom, 16)
                 
-                // Restore Purchase / Close
+                // Close
                 Button("No Thanks") {
                     dismiss()
                 }
                 .foregroundColor(.secondary)
                 .padding(.bottom, 20)
+            }
+        }
+        .alert("Purchase", isPresented: Binding(
+            get: { subscriptionManager.purchaseError != nil },
+            set: { _ in }
+        )) {
+            Button("OK") {
+                subscriptionManager.purchaseError = nil
+            }
+        } message: {
+            if let error = subscriptionManager.purchaseError {
+                Text(error)
+            }
+        }
+        .onChange(of: subscriptionManager.isPro) { isPro in
+            if isPro {
+                dismiss()
             }
         }
     }

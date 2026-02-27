@@ -184,13 +184,22 @@ struct CoffeeRewardsView: View {
                         
                         Spacer()
                         
-                        // Barcode
-                        Image(systemName: "barcode.viewfinder")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(height: 40)
-                            .foregroundColor(.black.opacity(0.8))
-                            .padding(.bottom, 20)
+                        // Barcode (real when payload available, else placeholder)
+                        if let payload = document.barcodePayload ?? (document.detailValue.isEmpty ? nil : document.detailValue),
+                           let barcodeImage = BarcodeRenderer.makeBarcodeImage(from: payload, kind: .code128) {
+                            barcodeImage
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(height: 40)
+                                .padding(.bottom, 20)
+                        } else {
+                            Image(systemName: "barcode.viewfinder")
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(height: 40)
+                                .foregroundColor(.black.opacity(0.8))
+                                .padding(.bottom, 20)
+                        }
                     }
                     }
                 }
@@ -368,6 +377,16 @@ struct AirlineRewardsView: View {
                                 .stroke(Color.black.opacity(0.05), lineWidth: 1)
                         )
                         .padding()
+                        
+                        if let payload = document.barcodePayload ?? (document.detailValue.isEmpty ? nil : document.detailValue),
+                           let barcodeImage = BarcodeRenderer.makeBarcodeImage(from: payload, kind: .code128) {
+                            barcodeImage
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(height: 36)
+                                .padding(.horizontal, 20)
+                                .padding(.bottom, 16)
+                        }
                     }
                     
                     // Flying Plane Animation - UPDATED PATH
@@ -547,21 +566,28 @@ struct SupermarketRewardsView: View {
                                 .fontWeight(.bold)
                                 .foregroundColor(.gray)
                             
-                            // Simulated Barcode
-                            HStack(spacing: 2) {
-                                ForEach(0..<30) { _ in
-                                    Rectangle()
-                                        .fill(Color.black)
-                                        .frame(width: CGFloat.random(in: 1...4), height: 50)
+                            if let payload = document.barcodePayload ?? (document.detailValue.isEmpty ? nil : document.detailValue),
+                               let barcodeImage = BarcodeRenderer.makeBarcodeImage(from: payload, kind: .code128) {
+                                barcodeImage
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(height: 50)
+                            } else {
+                                HStack(spacing: 2) {
+                                    ForEach(0..<30, id: \.self) { _ in
+                                        Rectangle()
+                                            .fill(Color.black)
+                                            .frame(width: CGFloat.random(in: 1...4), height: 50)
+                                    }
                                 }
                             }
                             
                             Text(document.detailValue)
                                 .font(.system(.caption, design: .monospaced))
-                        .tracking(2)
-                        .foregroundColor(brandColor)
-                    }
-                    .padding(.bottom, 30)
+                                .tracking(2)
+                                .foregroundColor(brandColor)
+                        }
+                        .padding(.bottom, 30)
                 }
                 }
                 }

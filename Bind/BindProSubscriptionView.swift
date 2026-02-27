@@ -1,9 +1,10 @@
 import SwiftUI
 
-/// Sub-screen for managing Bind Pro subscription: status, expiry alerts, and card colours.
+/// Sub-screen for managing Bind Pro subscription: status and expiry alerts.
 struct BindProSubscriptionView: View {
     let documents: [TravelDocument]
     @State private var showProBenefitsSheet = false
+    @StateObject private var subscriptionManager = SubscriptionManager.shared
     
     var body: some View {
         Form {
@@ -44,19 +45,6 @@ struct BindProSubscriptionView: View {
                             .foregroundColor(.red)
                     }
                 }
-                
-                Label {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Card Colours")
-                            .foregroundColor(.primary)
-                        Text("Edit any card to set its colour")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                } icon: {
-                    Image(systemName: "paintpalette.fill")
-                        .foregroundColor(.gray)
-                }
             }
             
             Section {
@@ -64,7 +52,7 @@ struct BindProSubscriptionView: View {
                     showProBenefitsSheet = true
                 } label: {
                     Label {
-                        Text("What's included")
+                        Text("What's Included")
                     } icon: {
                         Image(systemName: "sparkles")
                             .foregroundColor(.blue)
@@ -73,11 +61,40 @@ struct BindProSubscriptionView: View {
             }
             
             Section {
+                Button(action: {
+                    Task {
+                        await subscriptionManager.restorePurchases()
+                    }
+                }) {
+                    Label {
+                        Text(subscriptionManager.isPurchasing ? "Restoring…" : "Restore Purchases")
+                    } icon: {
+                        Image(systemName: "arrow.clockwise")
+                            .foregroundColor(.blue)
+                    }
+                }
+                .disabled(subscriptionManager.isPurchasing)
+                
+                if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
+                    Link(destination: url) {
+                        Label {
+                            Text("Manage Subscription")
+                        } icon: {
+                            Image(systemName: "person.crop.circle.badge.exclam")
+                                .foregroundColor(.blue)
+                        }
+                    }
+                }
+            }
+            
+            #if DEBUG
+            Section {
                 Button("Demote to Free Plan (Test)") {
                     SubscriptionManager.shared.downgradeToFree()
                 }
                 .foregroundColor(.red)
             }
+            #endif
         }
         .navigationTitle("Bind Pro")
         .navigationBarTitleDisplayMode(.inline)

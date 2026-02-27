@@ -167,6 +167,12 @@ struct DocumentFormView: View {
     @State private var scannedData: ScanResult?
     @State private var showScannerUnavailableAlert = false
     @State private var hasAppliedInitialScan = false
+
+    // BARCODE FROM SCREENSHOT
+    @State private var barcodePayload: String?
+    @State private var barcodeScreenshotItem: PhotosPickerItem?
+    @State private var showBarcodeNotFoundAlert = false
+    @State private var isExtractingBarcode = false
     
     // CAMERA STATE (Take Photo)
     @State private var showCamera = false
@@ -552,6 +558,7 @@ struct DocumentFormView: View {
             _venueName = State(initialValue: doc.venueName ?? "")
             _venueLocation = State(initialValue: doc.venueLocation ?? "")
             _section = State(initialValue: doc.section ?? "")
+            _barcodePayload = State(initialValue: doc.barcodePayload)
             _row = State(initialValue: doc.row ?? "")
             if let ed = doc.eventDate { _eventDate = State(initialValue: ed) }
             _ticketType = State(initialValue: doc.ticketType ?? "General Admission")
@@ -692,7 +699,7 @@ struct DocumentFormView: View {
                 _title = State(initialValue: "Car Rental")
                 _subtitle = State(initialValue: "Reservation")
             case .hotelKeyCard:
-                _title = State(initialValue: "Hotel Key")
+                _title = State(initialValue: "")
                 _subtitle = State(initialValue: "Guest Access")
             case .idCard:
                 // Pre-fill logic for National Insurance
@@ -864,6 +871,38 @@ struct DocumentFormView: View {
                     }
                 }
             }
+            .onChange(of: barcodeScreenshotItem) { _, newItem in
+                guard let item = newItem else { return }
+                Task {
+                    await MainActor.run { isExtractingBarcode = true }
+                    defer { Task { @MainActor in isExtractingBarcode = false } }
+                    if let data = try? await item.loadTransferable(type: Data.self),
+                       let image = UIImage(data: data) {
+                        let payload = await BarcodeFromImage.extractBarcodePayload(from: image)
+                        await MainActor.run {
+                            barcodeScreenshotItem = nil
+                            if let payload = payload {
+                                barcodePayload = payload
+                                if detailValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                    detailValue = payload
+                                }
+                            } else {
+                                showBarcodeNotFoundAlert = true
+                            }
+                        }
+                    } else {
+                        await MainActor.run {
+                            barcodeScreenshotItem = nil
+                            showBarcodeNotFoundAlert = true
+                        }
+                    }
+                }
+            }
+            .alert("No Barcode Found", isPresented: $showBarcodeNotFoundAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text("No barcode or QR code was detected in the image. Try a clearer screenshot or photo.")
+            }
         }
     }
     
@@ -921,6 +960,26 @@ struct DocumentFormView: View {
                     }
                     .foregroundColor(.blue)
                 }
+                if type == .event {
+                    PhotosPicker(
+                        selection: $barcodeScreenshotItem,
+                        matching: .images,
+                        photoLibrary: .shared()
+                    ) {
+                        HStack {
+                            if isExtractingBarcode { ProgressView().padding(.trailing, 6) }
+                            Image(systemName: "photo.badge.plus")
+                            Text(isExtractingBarcode ? "Reading…" : "Import barcode from screenshot")
+                        }
+                        .foregroundColor(.blue)
+                    }
+                    .disabled(isExtractingBarcode)
+                    if barcodePayload != nil {
+                        Label("Barcode will appear on card", systemImage: "checkmark.circle.fill")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
             }
             
             // Take Photo
@@ -946,6 +1005,26 @@ struct DocumentFormView: View {
                         Text(documentImage == nil ? "Choose Photo" : "Change Photo")
                     }
                     .foregroundColor(.blue)
+                }
+                if type == .rewardsCard {
+                    PhotosPicker(
+                        selection: $barcodeScreenshotItem,
+                        matching: .images,
+                        photoLibrary: .shared()
+                    ) {
+                        HStack {
+                            if isExtractingBarcode { ProgressView().padding(.trailing, 6) }
+                            Image(systemName: "photo.badge.plus")
+                            Text(isExtractingBarcode ? "Reading…" : "Import barcode from screenshot")
+                        }
+                        .foregroundColor(.blue)
+                    }
+                    .disabled(isExtractingBarcode)
+                    if barcodePayload != nil {
+                        Label("Barcode will appear on card", systemImage: "checkmark.circle.fill")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
             }
         }
@@ -1077,7 +1156,18 @@ struct DocumentFormView: View {
                     .textInputAutocapitalization(.characters)
                 
             case .studentID:
-                EmptyView()
+                Group {
+                    TextField("University", text: $title)
+                        .textInputAutocapitalization(.words)
+                    TextField("Your Name", text: $holderName)
+                        .textInputAutocapitalization(.words)
+                    TextField("Student number", text: $detailValue)
+                        .textInputAutocapitalization(.characters)
+                        .onChange(of: detailValue) { newValue in
+                            detailValue = newValue.uppercased()
+                        }
+                    DatePicker("Date of Expiry", selection: $expiryDate, displayedComponents: .date)
+                }
                 
             case .event:
                 Picker("Event Type", selection: $selectedEventType) {
@@ -1111,7 +1201,7 @@ struct DocumentFormView: View {
                 }
                 
             case .hotelKeyCard:
-                Picker("Hotel Brand", selection: $selectedHotelBrand) {
+                Picker("Hotel", selection: $selectedHotelBrand) {
                     Text("Select Brand").tag("")
                     ForEach(hotelBrands, id: \.self) { brand in
                         Text(brand).tag(brand)
@@ -1451,14 +1541,7 @@ struct DocumentFormView: View {
                 DatePicker("Expiry Date", selection: $expiryDate, displayedComponents: .date)
 
             case .studentID:
-                TextField("Your Name", text: $holderName)
-                    .textInputAutocapitalization(.words)
-                TextField(getDetailLabel(), text: $detailValue)
-                    .textInputAutocapitalization(.characters)
-                    .onChange(of: detailValue) { newValue in
-                        detailValue = newValue.uppercased()
-                    }
-                DatePicker("Date of Expiry", selection: $expiryDate, displayedComponents: .date)
+                EmptyView() // Student ID fields live in Card Details section
             
             case .carRental:
                 TextField("Driver Name", text: $holderName)
@@ -1515,6 +1598,26 @@ struct DocumentFormView: View {
                     .onChange(of: detailValue) { newValue in
                         detailValue = newValue.uppercased()
                     }
+                if type == .boardingPass {
+                    PhotosPicker(
+                        selection: $barcodeScreenshotItem,
+                        matching: .images,
+                        photoLibrary: .shared()
+                    ) {
+                        HStack {
+                            if isExtractingBarcode { ProgressView().padding(.trailing, 6) }
+                            Image(systemName: "photo.badge.plus")
+                            Text(isExtractingBarcode ? "Reading…" : "Import barcode from screenshot")
+                        }
+                        .foregroundColor(.blue)
+                    }
+                    .disabled(isExtractingBarcode)
+                    if barcodePayload != nil {
+                        Label("Barcode will appear on card", systemImage: "checkmark.circle.fill")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
             }
         }
     }
@@ -1554,7 +1657,8 @@ struct DocumentFormView: View {
         case .boardingPass(let data):
             holderName = data.name
             detailValue = data.flightNumber
-            
+            barcodePayload = data.rawPayload
+
             // Map Carrier Code to Name
             let carrierCode = data.carrier.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
             let airlineMapping: [String: String] = [
@@ -1616,7 +1720,8 @@ struct DocumentFormView: View {
         case .generic(let payload):
             // Auto-recognition for general tickets
             detailValue = payload
-            
+            barcodePayload = payload
+
             // Simple heuristics for ticket data
             // If it's a long alphanumeric string, it's likely a confirmation code
             // If we are in .event mode, we can try to pre-fill
@@ -1836,7 +1941,8 @@ struct DocumentFormView: View {
             airlineTier: finalAirlineTier,
             isActive: true,
             createdAt: existingCreatedAt,
-            stackOrderIndex: existingStackOrderIndex
+            stackOrderIndex: existingStackOrderIndex,
+            barcodePayload: type == .boardingPass ? barcodePayload : (type == .rewardsCard || type == .event ? (barcodePayload ?? (detailValue.isEmpty ? nil : detailValue)) : nil)
         )
         
         onSave(newDoc)

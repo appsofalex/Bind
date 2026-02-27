@@ -1,0 +1,45 @@
+{
+  "identifier" : "BindProTesting",
+  "nonRenewingSubscriptions" : [],
+  "products" : [],
+  "settings" : {},
+  "subscriptionGroups" : [
+    {
+      "id" : "bind_pro",
+      "localizations" : [],
+      "name" : "Bind Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "9.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "bind_pro_yearly",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Bind Pro yearly subscription. Unlock cloud sync, custom colours and icons, expiry alerts, and quick access personalisation.",
+              "displayName" : "Bind Pro Yearly",
+              "locale" : "en_GB"
+            },
+            {
+              "description" : "Bind Pro yearly subscription. Unlock cloud sync, custom colours and icons, expiry alerts, and quick access personalisation.",
+              "displayName" : "Bind Pro Yearly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.AlexCo.Bind.pro.subscription.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Bind Pro Yearly",
+          "subscriptionGroupID" : "bind_pro",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 2,
+    "minor" : 0
+  }
+}

@@ -183,10 +183,19 @@ struct BoardingPassDetailView: View {
                 // 4. Tear-off Stub / Footer
                 VStack {
                     HStack {
-                        Image(systemName: "qrcode")
-                            .resizable()
-                            .frame(width: 40, height: 40)
-                            .foregroundColor(.black.opacity(0.8))
+                        if let payload = document.barcodePayload,
+                           !payload.isEmpty,
+                           let barcodeImage = BarcodeRenderer.makeBarcodeImage(from: payload, kind: .qr) {
+                            barcodeImage
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(width: 40, height: 40)
+                        } else {
+                            Image(systemName: "qrcode")
+                                .resizable()
+                                .frame(width: 40, height: 40)
+                                .foregroundColor(.black.opacity(0.8))
+                        }
                         
                         Spacer()
                         
@@ -194,9 +203,10 @@ struct BoardingPassDetailView: View {
                             Text("ELECTRONIC TICKET")
                                 .font(.system(size: 8, weight: .bold))
                                 .foregroundColor(.gray)
-                            Text("ETKT 123 999 000 22")
+                            Text(document.barcodePayload.map { String($0.prefix(22)) } ?? "ETKT 123 999 000 22")
                                 .font(.system(size: 10, design: .monospaced))
                                 .foregroundColor(.black)
+                                .lineLimit(1)
                         }
                     }
                 }

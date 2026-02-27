@@ -139,12 +139,19 @@ struct EventDetailView: View {
                 // 5. Barcode Area
                 VStack(spacing: 12) {
                     HStack {
-                        // Using a simple barcode-like representation
-                        HStack(spacing: 2) {
-                            ForEach(0..<20) { _ in
-                                Rectangle()
-                                    .fill(Color.black)
-                                    .frame(width: CGFloat.random(in: 1...4), height: 40)
+                        if let payload = document.barcodePayload ?? (document.detailValue.isEmpty ? nil : document.detailValue),
+                           let barcodeImage = BarcodeRenderer.makeBarcodeImage(from: payload, kind: .code128) {
+                            barcodeImage
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(height: 40)
+                        } else {
+                            HStack(spacing: 2) {
+                                ForEach(0..<20, id: \.self) { _ in
+                                    Rectangle()
+                                        .fill(Color.black)
+                                        .frame(width: CGFloat.random(in: 1...4), height: 40)
+                                }
                             }
                         }
                         

@@ -4,6 +4,9 @@ import LocalAuthentication
 struct LockScreenView: View {
     var onSuccess: () -> Void
     @Environment(\.colorScheme) var colorScheme
+    @State private var isPulsing = false
+    @State private var isVisuallyUnlocked = false
+    @State private var isAnimatingUnlock = false
     
     // Matches the app background color used in Onboarding
     var appBackgroundColor: Color {
@@ -21,10 +24,39 @@ struct LockScreenView: View {
             VStack(spacing: 30) {
                 Spacer()
                 
-                Image(systemName: "lock.fill")
-                    .font(.system(size: 80))
-                    .foregroundColor(.primary)
-                    .padding(.bottom, 20)
+                ZStack {
+                    // Closed lock
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 80))
+                        .foregroundColor(.primary)
+                        .opacity(isVisuallyUnlocked ? 0 : 1)
+                        .scaleEffect(isPulsing ? 1.04 : 0.98)
+                        .rotationEffect(.degrees(isAnimatingUnlock ? -8 : 0))
+                        .offset(y: isAnimatingUnlock ? 10 : 0)
+                        .animation(
+                            .easeInOut(duration: 1.2)
+                                .repeatForever(autoreverses: true),
+                            value: isPulsing
+                        )
+                        .animation(
+                            .spring(response: 0.45, dampingFraction: 0.75, blendDuration: 0.1),
+                            value: isAnimatingUnlock
+                        )
+                    
+                    // Open lock
+                    Image(systemName: "lock.open.fill")
+                        .font(.system(size: 80))
+                        .foregroundColor(.primary)
+                        .opacity(isVisuallyUnlocked ? 1 : 0)
+                        .scaleEffect(isVisuallyUnlocked ? 1.05 : 0.9)
+                        .offset(y: isVisuallyUnlocked ? 0 : -14)
+                        .rotationEffect(.degrees(isVisuallyUnlocked ? 0 : 10))
+                        .animation(
+                            .spring(response: 0.45, dampingFraction: 0.8, blendDuration: 0.15),
+                            value: isVisuallyUnlocked
+                        )
+                }
+                .padding(.bottom, 20)
                 
                 VStack(spacing: 16) {
                     Text("All your Bind cards are secure")
@@ -59,6 +91,14 @@ struct LockScreenView: View {
             }
         }
         .onAppear {
+            isVisuallyUnlocked = false
+            isAnimatingUnlock = false
+            
+            // Start subtle breathing animation on the closed lock
+            DispatchQueue.main.async {
+                isPulsing = true
+            }
+            
             authenticate()
         }
     }
@@ -75,8 +115,19 @@ struct LockScreenView: View {
             context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) { success, authenticationError in
                 DispatchQueue.main.async {
                     if success {
-                        withAnimation {
-                            onSuccess()
+                        // Animate the lock visually unlocking before transitioning away
+                        isAnimatingUnlock = true
+                        isPulsing = false
+                        
+                        withAnimation(.spring(response: 0.45, dampingFraction: 0.8, blendDuration: 0.15)) {
+                            isVisuallyUnlocked = true
+                        }
+                        
+                        // Give the unlock animation a moment to play before dismissing
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                            withAnimation {
+                                onSuccess()
+                            }
                         }
                     }
                 }

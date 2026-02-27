@@ -405,6 +405,8 @@ struct BoardingPassData: Equatable {
     let flightDate: Date?
     let seat: String?
     let classCode: String?
+    /// Raw barcode payload (PDF417/Aztec/etc.) for rendering on the card.
+    let rawPayload: String?
 }
 
 // MARK: - Parsing Logic
@@ -628,7 +630,8 @@ struct DocumentParser {
             flightNumber: flightNum,
             flightDate: flightDate,
             seat: seat,
-            classCode: classCode
+            classCode: classCode,
+            rawPayload: payload
         )
     }
 }

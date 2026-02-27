@@ -1,5 +1,6 @@
 import SwiftUI
 import LocalAuthentication
+import StoreKit
 
 struct SettingsView: View {
     @Binding var documents: [TravelDocument]
@@ -14,8 +15,14 @@ struct SettingsView: View {
     @State private var showDeleteConfirmation = false
     @State private var showUpgradeSheet = false
     
+    @Environment(\.requestReview) private var requestReview
+    
     // Subscription Manager
     @StateObject private var subscriptionManager = SubscriptionManager.shared
+    
+    // Subscription alert state (for restore purchases from Settings)
+    @State private var showSubscriptionAlert = false
+    @State private var subscriptionAlertMessage: String?
     
     var body: some View {
         NavigationView {
@@ -117,6 +124,24 @@ struct SettingsView: View {
                                     .clipShape(Capsule())
                             }
                             .buttonStyle(PlainButtonStyle())
+                            
+                            Button(action: {
+                                Task {
+                                    await subscriptionManager.restorePurchases()
+                                    
+                                    if let error = subscriptionManager.purchaseError {
+                                        subscriptionAlertMessage = error
+                                        showSubscriptionAlert = true
+                                        subscriptionManager.purchaseError = nil
+                                    }
+                                }
+                            }) {
+                                Text(subscriptionManager.isPurchasing ? "Restoring…" : "Restore Purchases")
+                                    .font(.subheadline)
+                                    .foregroundColor(.blue)
+                                    .frame(maxWidth: .infinity, alignment: .center)
+                            }
+                            .padding(.top, 8)
                         }
                         .padding(.vertical, 8)
                     }
@@ -141,7 +166,45 @@ struct SettingsView: View {
                 
                 // MARK: - ABOUT
                 Section(header: Text("About")) {
-                    Link(destination: URL(string: "https://www.example.com/privacy")!) {
+                    Button {
+                        requestReview()
+                    } label: {
+                        Label {
+                            Text("Rate the App")
+                        } icon: {
+                            Image(systemName: "star")
+                                .foregroundColor(.blue)
+                        }
+                    }
+                    
+                    ShareLink(item: URL(string: "https://apps.apple.com/app/idXXXXXXXX")!, subject: Text("Check out Bind"), message: Text("I've been using Bind for my travel cards and documents — thought you might like it!")) {
+                        Label {
+                            Text("Recommend the App")
+                        } icon: {
+                            Image(systemName: "heart")
+                                .foregroundColor(.blue)
+                        }
+                    }
+                    
+                    Link(destination: URL(string: "mailto:alexwalterswork@gmail.com")!) {
+                        Label {
+                            Text("Support")
+                        } icon: {
+                            Image(systemName: "envelope")
+                                .foregroundColor(.blue)
+                        }
+                    }
+                    
+                    Link(destination: URL(string: "https://docs.google.com/document/d/1mV-V1QHxxg9T1PQFawWqc3bGPjRIsiON/edit?usp=sharing&ouid=108114645063419842929&rtpof=true&sd=true")!) {
+                        Label {
+                            Text("Terms of Service")
+                        } icon: {
+                            Image(systemName: "doc.text")
+                                .foregroundColor(.blue)
+                        }
+                    }
+                    
+                    Link(destination: URL(string: "https://docs.google.com/document/d/1lhfu2p_Cl7_aNBGQYbF-2G_kkywbmhZr/edit?usp=sharing&ouid=108114645063419842929&rtpof=true&sd=true")!) {
                         Label {
                             Text("Privacy Policy")
                         } icon: {
@@ -179,6 +242,15 @@ struct SettingsView: View {
                 }
             } message: {
                 Text("This action cannot be undone. All your stored cards and documents will be permanently removed.")
+            }
+            .alert("Subscription", isPresented: $showSubscriptionAlert) {
+                Button("OK") {
+                    showSubscriptionAlert = false
+                }
+            } message: {
+                if let error = subscriptionAlertMessage {
+                    Text(error)
+                }
             }
             .sheet(isPresented: $showUpgradeSheet) {
                 ProUpgradeView()
