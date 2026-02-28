@@ -110,8 +110,8 @@ struct TutorialBubbleOverlay: View {
 
     // Background dim
     @State private var overlayOpacity: Double = 0.0
-    // Light pop-in animation
-    @State private var bubbleScale: CGFloat = 0.85
+    // Energetic bounce pop-in (start small, overshoot slightly, settle)
+    @State private var bubbleScale: CGFloat = 0.72
     @State private var bubbleOpacity: Double = 0.0
     // Lock tap-to-dismiss for first couple of seconds
     @State private var canDismiss: Bool = false
@@ -146,16 +146,12 @@ struct TutorialBubbleOverlay: View {
                 withAnimation(.easeInOut(duration: 1.8)) {
                     overlayOpacity = 1.0
                 }
-                bubbleScale = 0.85
+                bubbleScale = 0.72
                 bubbleOpacity = 0.0
-                withAnimation(.easeOut(duration: 0.28)) {
+                // Single energetic bounce: small → slight overshoot → settle (clean, noticeable)
+                withAnimation(.spring(response: 0.36, dampingFraction: 0.66)) {
                     bubbleOpacity = 1.0
-                    bubbleScale = 1.02
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.72)) {
-                        bubbleScale = 1.0
-                    }
+                    bubbleScale = 1.0
                 }
                 canDismiss = false
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
