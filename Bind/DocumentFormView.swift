@@ -794,7 +794,9 @@ struct DocumentFormView: View {
             Form {
                 quickAddSection
                 documentDetailsSection
-                personalInfoSection
+                if type != .studentID {
+                    personalInfoSection
+                }
                 
                 if subscriptionManager.isPro {
                     Section {

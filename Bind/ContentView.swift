@@ -256,15 +256,12 @@ struct TravelDocsWalletView: View {
         documents.filter { $0.isActive }
     }
     
-    /// Stack order: NEWEST FIRST (index 0 = front). Uses explicit stackOrderIndex (higher = newer); legacy docs use array index.
+    /// Stack order: NEWEST FIRST (index 0 = front). With centeredScrollOffset, index 0’s position is at visual center, so index 0 is the front card. Uses stackOrderIndex (higher = newer); legacy docs use array index.
+    /// Stack order: by position in documents array only. Highest array index = front. Last doc in array = front card. Appending a new card puts it at end = front.
     private var stackOrderedDocuments: [TravelDocument] {
         let active = activeDocuments
         let orderById = Dictionary(uniqueKeysWithValues: documents.enumerated().map { ($0.element.id, $0.offset) })
-        return active.sorted { a, b in
-            let oa = a.stackOrderIndex ?? (orderById[a.id] ?? 0)
-            let ob = b.stackOrderIndex ?? (orderById[b.id] ?? 0)
-            return oa > ob
-        }
+        return active.sorted { (orderById[$0.id] ?? 0) > (orderById[$1.id] ?? 0) }
     }
     
     /// Scroll value used for layout; when we just added a card we force the offset so index 0 (newest) is at front.
@@ -272,10 +269,11 @@ struct TravelDocsWalletView: View {
         scrollOffsetForNewCard ?? baseScrollOffset
     }
     
-    /// Single source of truth for keeping the stack centered: scroll offset so the front card (index 0) is at visual center.
+    /// Scroll offset so that index 0 has the maximum position = front of stack (bottom of screen, largest, on top). With this, the newest (index 0) is always the visible front card.
     private func centeredScrollOffset(for activeCount: Int) -> Double {
-        guard activeCount > 1 else { return 0 }
-        return Double(activeCount - 1) * Double(cardSpacing) / 2
+        guard activeCount > 0 else { return 0 }
+        let total = Double(activeCount) * Double(cardSpacing)
+        return total - Double(cardSpacing) / 2
     }
     
     /// Fixed adjustment to centre the stack on screen (midpoint of positions at centred scroll). Depends only on count so dragging stays smooth.
@@ -850,13 +848,19 @@ struct TravelDocsWalletView: View {
                let updated = newValue.first(where: { $0.id == preview.id }) {
                 allCardsPreviewDocument = updated
             }
-            // Re-center the stack when the number of active cards changes (add/remove/toggle) so it never drifts.
+            // Backfill any nil stackOrderIndex so sort order is deterministic (newest = highest index).
+            if newValue.contains(where: { $0.stackOrderIndex == nil }) {
+                backfillStackOrderIndexIfNeeded()
+            }
+            // Re-center the stack when the number of active cards changes (add/remove/toggle) so newest is at front.
             let activeCount = newValue.filter(\.isActive).count
-            guard activeCount != lastAppliedActiveCount else { return }
-            lastAppliedActiveCount = activeCount
-            let offset = centeredScrollOffset(for: activeCount)
-            baseScrollOffset = offset
-            scrollOffsetForNewCard = offset
+            let countChanged = (activeCount != lastAppliedActiveCount)
+            if countChanged {
+                lastAppliedActiveCount = activeCount
+                let offset = centeredScrollOffset(for: activeCount)
+                baseScrollOffset = offset
+                scrollOffsetForNewCard = offset
+            }
         }
         // TUTORIAL TRIGGERS
         .onChange(of: documents.count) { count in
@@ -895,11 +899,16 @@ struct TravelDocsWalletView: View {
         .sheet(item: $selectedTypeToAdd) { type in
             DocumentFormView(type: type) { newDoc in
                 withAnimation {
-                    var docToAdd = newDoc
-                    docToAdd.stackOrderIndex = (documents.flatMap { $0.stackOrderIndex }.max() ?? -1) + 1
-                    documents.append(docToAdd)
+                    documents.append(newDoc)
                     bumpLeastRecentActiveIfOverLimit()
                     dragOffset = 0
+                    let count = documents.filter(\.isActive).count
+                    let offset = centeredScrollOffset(for: count)
+                    baseScrollOffset = offset
+                    scrollOffsetForNewCard = offset
+                }
+                // Apply scroll again after layout so the new card is guaranteed at front (fixes timing with stack re-render).
+                DispatchQueue.main.async {
                     let count = documents.filter(\.isActive).count
                     let offset = centeredScrollOffset(for: count)
                     baseScrollOffset = offset
@@ -1119,13 +1128,11 @@ struct TravelDocsWalletView: View {
         documents = updated
     }
     
-    /// Keeps at most 6 cards on the main stack. Only when a 7th card is active, the oldest (lowest stackOrderIndex) is turned off.
+    /// Keeps at most 6 cards on the main stack. When a 7th is active, turn off the one with the smallest array index (oldest in list = back of stack).
     private func bumpLeastRecentActiveIfOverLimit() {
-        let activeWithOrder = documents.enumerated()
-            .filter(\.element.isActive)
-            .map { (offset: $0.offset, order: $0.element.stackOrderIndex ?? $0.offset) }
-        guard activeWithOrder.count > maxCardsOnStack else { return }
-        let leastRecent = activeWithOrder.min(by: { $0.order < $1.order })!
+        let activeIndices = documents.enumerated().filter(\.element.isActive)
+        guard activeIndices.count > maxCardsOnStack else { return }
+        let leastRecent = activeIndices.min(by: { $0.offset < $1.offset })!
         documents[leastRecent.offset].isActive = false
     }
     
@@ -1227,7 +1234,7 @@ struct TravelDocsWalletView: View {
         return Double(position)
     }
     
-    /// Order of active card ids as they appear on the stack (newest first) for the reorder sheet.
+    /// Order of active card ids as they appear on the stack (newest/front first) for the reorder sheet.
     private func visualOrderForReorderSheet() -> [UUID] {
         stackOrderedDocuments.map(\.id)
     }
@@ -1329,12 +1336,8 @@ private struct ReorderStackView: View {
             return
         }
         let inactive = documents.filter { !$0.isActive }
-        let count = orderedIDs.count
-        let newActive = orderedIDs.enumerated().compactMap { (i, id) -> TravelDocument? in
-            guard var doc = documents.first(where: { $0.id == id }) else { return nil }
-            doc.stackOrderIndex = count - 1 - i
-            return doc
-        }
+        // orderedIDs is [front, ..., back] (first row = front). Array order must be [back, ..., front] so sort-by-index-desc puts front first.
+        let newActive = orderedIDs.reversed().compactMap { id in documents.first(where: { $0.id == id }) }
         withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
             documents = newActive + inactive
         }
