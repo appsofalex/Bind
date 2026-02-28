@@ -76,8 +76,9 @@ class SubscriptionManager: ObservableObject {
     
     private func listenForTransactions() async {
         for await result in Transaction.updates {
-            if case .verified(_) = result {
+            if case .verified(let transaction) = result {
                 await updateProFromEntitlements()
+                await transaction.finish()
             }
         }
     }
@@ -100,6 +101,7 @@ class SubscriptionManager: ObservableObject {
         defer { isPurchasing = false }
         
         do {
+            // System presents the native payment sheet: user confirms with Face ID, Touch ID, or double‑click side button.
             let result = try await product.purchase()
             switch result {
             case .success(let verification):

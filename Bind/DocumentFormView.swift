@@ -1793,7 +1793,9 @@ struct DocumentFormView: View {
             finalAirline = selectedAirline
             
         case .insurance:
-            finalSubtitle = subtitle + " Insurance"
+            // Only append " Insurance" if not already present (avoids "Health Insurance Insurance" on re-save)
+            let trimmed = subtitle.trimmingCharacters(in: .whitespaces)
+            finalSubtitle = trimmed.lowercased().hasSuffix("insurance") ? subtitle : subtitle + " Insurance"
             
         case .driversLicense:
             finalSubtitle = "Driver License"

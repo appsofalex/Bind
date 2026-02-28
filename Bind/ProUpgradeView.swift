@@ -104,7 +104,7 @@ struct ProUpgradeView: View {
         }
         .alert("Purchase", isPresented: Binding(
             get: { subscriptionManager.purchaseError != nil },
-            set: { _ in }
+            set: { if !$0 { subscriptionManager.purchaseError = nil } }
         )) {
             Button("OK") {
                 subscriptionManager.purchaseError = nil

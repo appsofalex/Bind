@@ -75,14 +75,18 @@ struct BindProSubscriptionView: View {
                 }
                 .disabled(subscriptionManager.isPurchasing)
                 
-                if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
-                    Link(destination: url) {
-                        Label {
-                            Text("Manage Subscription")
-                        } icon: {
-                            Image(systemName: "person.crop.circle.badge.exclam")
-                                .foregroundColor(.blue)
-                        }
+                Button {
+                    // Opens in App Store app when possible (subscription management), not Safari.
+                    // No public API exists to open Settings → [Apple ID] → Subscriptions.
+                    if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
+                        UIApplication.shared.open(url)
+                    }
+                } label: {
+                    Label {
+                        Text("Manage Subscription")
+                    } icon: {
+                        Image(systemName: "person.crop.circle.badge.exclam")
+                            .foregroundColor(.blue)
                     }
                 }
             }
