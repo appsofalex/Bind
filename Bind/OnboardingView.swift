@@ -234,7 +234,7 @@ struct WelcomePageView: View {
                                 .foregroundColor(.white)
                                 .multilineTextAlignment(.center)
                             
-                            Text("The new home for life’s most important documents. Secure, organised, and always with you.")
+                            Text("The new home for life's most important documents. Everything stays on your device, encrypted and private.")
                                 .font(.system(size: 17, weight: .regular))
                                 .foregroundColor(.white.opacity(0.7))
                                 .multilineTextAlignment(.center)

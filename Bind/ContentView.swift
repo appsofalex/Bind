@@ -207,9 +207,7 @@ struct TravelDocsWalletView: View {
     @State private var allCardsPreviewDocument: TravelDocument? = nil
     
     // SHARE STATE (zoomed card snapshot)
-    @State private var showShareSheet = false
-    @State private var shareImage: UIImage? = nil
-    @State private var shareFileURL: URL? = nil
+    @State private var sharePayload: SharePayload? = nil
     
     // TUTORIAL STATE (first-time prompts)
     @AppStorage("hasSeenFirstCardTutorial") private var hasSeenFirstCardTutorial = false
@@ -219,6 +217,7 @@ struct TravelDocsWalletView: View {
     @AppStorage("hasSeenMaxStackTutorial") private var hasSeenMaxStackTutorial = false
     @AppStorage("hasSeenQuickScanTutorial") private var hasSeenQuickScanTutorial = false
     @AppStorage("hasSeenReorderTutorial") private var hasSeenReorderTutorial = false
+    @AppStorage("hasSeenAddMenuTutorial") private var hasSeenAddMenuTutorial = false
     @State private var showFirstCardTutorial = false
     @State private var showSixthCardTutorial = false
     @State private var showSettingsTutorial = false
@@ -226,10 +225,12 @@ struct TravelDocsWalletView: View {
     @State private var showMaxStackTutorial = false
     @State private var showQuickScanTutorial = false
     @State private var showReorderTutorial = false
+    @State private var showAddMenuTutorial = false
     @State private var allCardsButtonFrame: CGRect = .zero
     @State private var settingsButtonFrame: CGRect = .zero
     @State private var quickScanButtonFrame: CGRect = .zero
     @State private var topCardFrame: CGRect = .zero
+    @State private var addMenuButtonFrame: CGRect = .zero
     
     // Scroll/Drag State
     @AppStorage("walletScrollOffset") private var baseScrollOffset: Double = 0
@@ -237,6 +238,8 @@ struct TravelDocsWalletView: View {
     /// When set (e.g. right after adding a card), forces the stack to show this offset so the newest card is at front. Cleared when user drags.
     @State private var scrollOffsetForNewCard: Double? = nil
     
+    // Add card type picker sheet (replaces Menu so section headers can be styled)
+    @State private var showAddCardSheet = false
     // Reorder stack sheet (long-press on card opens exposé-style reorder)
     @State private var showReorderStackSheet = false
     @State private var longPressedDocumentID: UUID? = nil
@@ -575,49 +578,19 @@ struct TravelDocsWalletView: View {
                     Spacer()
                     
                     if selectedID == nil {
-                        // NEW: Native Plus Menu with Dropdown Options
-                        Menu {
-                            Section("Travel") {
-                                Button(action: { startAdd(.passport) }) { Label("Passport", systemImage: "globe") }
-                                Button(action: { startAdd(.boardingPass) }) { Label("Boarding Pass", systemImage: "airplane") }
-                                Button(action: { startAdd(.carRental) }) { Label("Car Rental", systemImage: "car.2.fill") }
-                                Button(action: { startAdd(.hotelKeyCard) }) { Label("Hotel Key Card", systemImage: "key.fill") }
-                                Button(action: { startAdd(.visa) }) { Label("Visa", systemImage: "checkmark.seal") }
+                        // Add card: sheet with list so section headers (Travel, Identity, etc.) can be styled
+                        Button(action: {
+                            if !hasSeenAddMenuTutorial && !showAddMenuTutorial {
+                                showAddMenuTutorial = true
                             }
-                            Section("Identity") {
-                                Button(action: { startAdd(.driversLicense) }) { Label("Driver's License", systemImage: "car") }
-                                Button(action: { startAdd(.studentID) }) { Label("Student ID", systemImage: "graduationcap") }
-                                Button(action: { startAdd(.idCard) }) { Label("National ID", systemImage: "person.text.rectangle") }
-                                Button(action: { startAdd(.nationalInsurance) }) { Label("National Insurance", systemImage: "number.square.fill") }
-                            }
-                            
-                            Section("Health") {
-                                Button(action: { startAdd(.prescription) }) { Label("Prescription", systemImage: "pills") }
-                                Button(action: { startAdd(.vaccineRecord) }) { Label("Vaccination", systemImage: "syringe") }
-                                Button(action: { startAdd(.medicalAlert) }) { Label("Blood & Allergies", systemImage: "staroflife") }
-                                Button(action: { startAdd(.insurance) }) { Label("Insurance", systemImage: "cross.case") }
-                            }
-                            
-                            Section("Pets") {
-                                Button(action: { startAdd(.petInsurance) }) { Label("Pet Insurance", systemImage: "cross.case.fill") }
-                                Button(action: { startAdd(.petVaccineRecord) }) { Label("Pet Vaccination", systemImage: "syringe.fill") }
-                                Button(action: { startAdd(.petPassport) }) { Label("Pet Passport", systemImage: "pawprint.fill") }
-                                Button(action: { startAdd(.petID) }) { Label("Pet ID", systemImage: "pawprint.fill") }
-                            }
-
-                            Section("Other") {
-                                Button(action: { startAdd(.birthCertificate) }) { Label("Birth Certificate", systemImage: "stroller.fill") }
-                                Button(action: { startAdd(.marriageCertificate) }) { Label("Marriage Certificate", systemImage: "figure.and.child.holdinghands") }
-                                Button(action: { startAdd(.rewardsCard) }) { Label("Rewards Card", systemImage: "star.fill") }
-                                Button(action: { startAdd(.event) }) { Label("Event", systemImage: "ticket.fill") }
-                            }
-
-                        } label: {
+                            showAddCardSheet = true
+                        }) {
                             Image(systemName: "plus.circle.fill")
                                 .font(.system(size: 32)) // Slightly larger touch target
                                 .symbolRenderingMode(.hierarchical)
                                 .foregroundColor(.white)
                                 .background(Color.black.opacity(0.5).clipShape(Circle())) // Match ellipsis style
+                                .reportTutorialFrame(tag: 5)
                         }
                         .transition(.scale.combined(with: .opacity))
                     } else {
@@ -671,7 +644,7 @@ struct TravelDocsWalletView: View {
                                 Button(action: {
                                     showQuickScanSheet = true
                                 }) {
-                                    Image(systemName: "bolt.fill")
+                                    Image(systemName: "camera.fill")
                                         .font(.system(size: 20))
                                         .foregroundColor(.primary)
                                         .frame(width: 44, height: 44)
@@ -766,7 +739,7 @@ struct TravelDocsWalletView: View {
             // MARK: - TUTORIAL BUBBLES (first-time prompts)
             if showFirstCardTutorial {
                 TutorialBubbleOverlay(
-                    message: "This is your card stack. Up to 6 cards show here - add more to see them stack!",
+                    message: "These are your cards. Add up to six and watch them stack up here.",
                     targetFrame: .zero,
                     pointerEdge: .bottom,
                     onDismiss: {
@@ -807,7 +780,7 @@ struct TravelDocsWalletView: View {
             }
             if showQuickScanTutorial {
                 TutorialBubbleOverlay(
-                    message: "Tap the bolt to quickly add a card by scanning a barcode or ticket.",
+                    message: "Tap the camera to quickly add a card by scanning a barcode or ticket.",
                     targetFrame: quickScanButtonFrame,
                     pointerEdge: .trailing,
                     onDismiss: {
@@ -829,6 +802,20 @@ struct TravelDocsWalletView: View {
                 )
                 .zIndex(300)
             }
+            if showAddMenuTutorial {
+                TutorialBubbleOverlay(
+                    message: "Scroll to explore all the card categories!",
+                    targetFrame: .zero,
+                    preferredVerticalFraction: 0.80,
+                    preferredHorizontalFraction: 0.82,
+                    preferredPointerEdge: .top,
+                    onDismiss: {
+                        hasSeenAddMenuTutorial = true
+                        showAddMenuTutorial = false
+                    }
+                )
+                .zIndex(300)
+            }
         }
         .coordinateSpace(name: "tutorialSpace")
         .onPreferenceChange(TutorialTargetFrameKey.self) { dict in
@@ -836,6 +823,7 @@ struct TravelDocsWalletView: View {
             if let r = dict[2] { settingsButtonFrame = r }
             if let r = dict[3] { quickScanButtonFrame = r }
             if let r = dict[4] { topCardFrame = r }
+            if let r = dict[5] { addMenuButtonFrame = r }
         }
         .onAppear {
             backfillStackOrderIndexIfNeeded()
@@ -895,7 +883,17 @@ struct TravelDocsWalletView: View {
                 showAllCardsListTutorial = true
             }
         }
-        // ADD SHEET: Triggers when the user selects an item from the Menu
+        // ADD CARD TYPE PICKER: List with prominent section headers (Travel, Identity, etc.)
+        .sheet(isPresented: $showAddCardSheet) {
+            AddCardTypePickerView(
+                onSelect: { type in
+                    showAddCardSheet = false
+                    startAdd(type)
+                },
+                onDismiss: { showAddCardSheet = false }
+            )
+        }
+        // ADD SHEET: Triggers when the user selects an item from the type picker
         .sheet(item: $selectedTypeToAdd) { type in
             DocumentFormView(type: type) { newDoc in
                 withAnimation {
@@ -926,14 +924,13 @@ struct TravelDocsWalletView: View {
             }
         }
         // MARK: - SHARE SHEET (card snapshot)
-        .sheet(isPresented: $showShareSheet, onDismiss: {
-            shareImage = nil
-            if let url = shareFileURL {
-                try? FileManager.default.removeItem(at: url)
-            }
-            shareFileURL = nil
-        }) {
-            ShareSheet(fileURL: shareFileURL, image: shareImage)
+        .sheet(item: $sharePayload) { payload in
+            ShareSheet(payload: payload)
+                .onDisappear {
+                    if let url = payload.fileURL {
+                        try? FileManager.default.removeItem(at: url)
+                    }
+                }
         }
         // MARK: - SETTINGS SHEET
         .sheet(isPresented: $showSettingsSheet) {
@@ -1149,6 +1146,10 @@ struct TravelDocsWalletView: View {
     }
     
     func startAdd(_ type: TravelDocument.DocumentType) {
+        if showAddMenuTutorial {
+            hasSeenAddMenuTutorial = true
+            showAddMenuTutorial = false
+        }
         // Changed Check: Count total documents instead of just active ones
         selectedTypeToAdd = type
     }
@@ -1162,9 +1163,7 @@ struct TravelDocsWalletView: View {
         let image = renderCardSnapshot(document: doc)
         let fileURL = renderCardSnapshotToFile(document: doc)
         guard image != nil || fileURL != nil else { return }
-        shareImage = image
-        shareFileURL = fileURL
-        showShareSheet = true
+        sharePayload = SharePayload(fileURL: fileURL, image: image)
     }
     
     func toggleSelection(for id: UUID?) {
@@ -1237,6 +1236,113 @@ struct TravelDocsWalletView: View {
     /// Order of active card ids as they appear on the stack (newest/front first) for the reorder sheet.
     private func visualOrderForReorderSheet() -> [UUID] {
         stackOrderedDocuments.map(\.id)
+    }
+}
+
+// MARK: - Add Card Type Picker (list with prominent section headers)
+private struct AddCardTypePickerView: View {
+    var onSelect: (TravelDocument.DocumentType) -> Void
+    var onDismiss: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    private static let travelTypes: [(TravelDocument.DocumentType, String, String)] = [
+        (.passport, "Passport", "globe"),
+        (.boardingPass, "Boarding Pass", "airplane"),
+        (.carRental, "Car Rental", "car.2.fill"),
+        (.hotelKeyCard, "Hotel Key Card", "key.fill"),
+        (.visa, "Visa", "checkmark.seal"),
+    ]
+    private static let identityTypes: [(TravelDocument.DocumentType, String, String)] = [
+        (.driversLicense, "Driver's License", "car"),
+        (.studentID, "Student ID", "graduationcap"),
+        (.idCard, "National ID", "person.text.rectangle"),
+        (.nationalInsurance, "National Insurance", "number.square.fill"),
+    ]
+    private static let healthTypes: [(TravelDocument.DocumentType, String, String)] = [
+        (.prescription, "Prescription", "pills"),
+        (.vaccineRecord, "Vaccination", "syringe"),
+        (.medicalAlert, "Blood & Allergies", "staroflife"),
+        (.insurance, "Insurance", "cross.case"),
+    ]
+    private static let petsTypes: [(TravelDocument.DocumentType, String, String)] = [
+        (.petInsurance, "Pet Insurance", "cross.case.fill"),
+        (.petVaccineRecord, "Pet Vaccination", "syringe.fill"),
+        (.petPassport, "Pet Passport", "pawprint.fill"),
+        (.petID, "Pet ID", "pawprint.fill"),
+    ]
+    private static let otherTypes: [(TravelDocument.DocumentType, String, String)] = [
+        (.birthCertificate, "Birth Certificate", "stroller.fill"),
+        (.marriageCertificate, "Marriage Certificate", "figure.and.child.holdinghands"),
+        (.rewardsCard, "Rewards Card", "star.fill"),
+        (.event, "Event", "ticket.fill"),
+    ]
+
+    var body: some View {
+        NavigationView {
+            List {
+                Section(header: sectionHeader("Travel")) {
+                    ForEach(Self.travelTypes, id: \.0) { type, label, icon in
+                        row(type: type, label: label, icon: icon)
+                    }
+                }
+                Section(header: sectionHeader("Identity")) {
+                    ForEach(Self.identityTypes, id: \.0) { type, label, icon in
+                        row(type: type, label: label, icon: icon)
+                    }
+                }
+                Section(header: sectionHeader("Health")) {
+                    ForEach(Self.healthTypes, id: \.0) { type, label, icon in
+                        row(type: type, label: label, icon: icon)
+                    }
+                }
+                Section(header: sectionHeader("Pets")) {
+                    ForEach(Self.petsTypes, id: \.0) { type, label, icon in
+                        row(type: type, label: label, icon: icon)
+                    }
+                }
+                Section(header: sectionHeader("Other")) {
+                    ForEach(Self.otherTypes, id: \.0) { type, label, icon in
+                        row(type: type, label: label, icon: icon)
+                    }
+                }
+            }
+            .navigationTitle("Add Card")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        onDismiss()
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.headline)
+            .fontWeight(.semibold)
+            .foregroundColor(.primary)
+            .textCase(nil)
+            .padding(.top, 8)
+            .padding(.bottom, 2)
+    }
+
+    private func row(type: TravelDocument.DocumentType, label: String, icon: String) -> some View {
+        Button(action: {
+            onSelect(type)
+            dismiss()
+        }) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 28, alignment: .center)
+                Text(label)
+                    .foregroundColor(.primary)
+            }
+        }
     }
 }
 

@@ -100,22 +100,26 @@ private struct RewardsCardSnapshotView: View {
     }
 }
 
+// MARK: - Share payload (carries data into the sheet so it's always present on creation)
+struct SharePayload: Identifiable {
+    let id = UUID()
+    let fileURL: URL?
+    let image: UIImage?
+}
+
 // MARK: - Share sheet (native UIActivityViewController)
 struct ShareSheet: UIViewControllerRepresentable {
-    /// Prefer passing a file URL so "Save to Files" works and only one file is created.
-    let fileURL: URL?
-    /// Fallback when file URL is nil (e.g. render failed).
-    let image: UIImage?
+    let payload: SharePayload
 
     func makeUIViewController(context: Context) -> UIActivityViewController {
         // Pass only ONE item to avoid duplicate saves (file URL *or* image, not both).
-        if let url = fileURL {
+        if let url = payload.fileURL {
             return UIActivityViewController(activityItems: [url], applicationActivities: nil)
         }
-        if let img = image {
+        if let img = payload.image {
             return UIActivityViewController(activityItems: [img], applicationActivities: nil)
         }
-        return UIActivityViewController(activityItems: [UIImage()], applicationActivities: nil)
+        return UIActivityViewController(activityItems: [], applicationActivities: nil)
     }
 
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
