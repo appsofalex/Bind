@@ -8,15 +8,28 @@ struct HotelKeyAnimatedCard: View {
     
     @State private var yRotation: Double = 0
     @State private var isBackVisible = false
-    @State private var showCheckmark = false
-    @State private var keyOffset: CGFloat = 50
+    /// Whether the animated door+key lock is visible (used only during the unlock animation).
+    @State private var showLockShell: Bool = false
+    /// Whether the lock is in the "unlocked" pose (door open, colored lock dot, rotated key).
+    @State private var showCheckmark: Bool = false
+    /// Horizontal offset for the animated key as it slides into the lock.
+    /// Start further to the right so the key appears to enter from the card's right edge.
+    @State private var keyOffset: CGFloat = 80
+    /// Rotation for the single key icon (starts flat at -90º, ends upright at 0º).
+    @State private var keyRotation: Double = -90
     
     var body: some View {
         ZStack {
             if isBackVisible {
                 // BACK OF CARD (Details)
-                HotelKeyBackView(document: document)
-                    .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
+                HotelKeyBackView(
+                    document: document,
+                    keyOffset: keyOffset,
+                    keyRotation: keyRotation,
+                    showCheckmark: showCheckmark,
+                    showLockShell: showLockShell
+                )
+                .rotation3DEffect(.degrees(180), axis: (x: 0, y: 1, z: 0))
             } else {
                 // FRONT OF CARD
                 DocumentCardView(document: document)
@@ -39,10 +52,31 @@ struct HotelKeyAnimatedCard: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                     isBackVisible = true
                     
-                    // Trigger back-side animations
-                    withAnimation(.spring(response: 0.8, dampingFraction: 0.7).delay(0.2)) {
+                    // Prepare lock shell + key for animation (no animation for initial state)
+                    withAnimation(.none) {
+                        showLockShell = true
+                        keyOffset = 80      // start off to the right edge
+                        keyRotation = -90   // flat / horizontal
+                        showCheckmark = false
+                    }
+                    
+                    // Key slides into the lock, coming in flat
+                    withAnimation(.spring(response: 0.7, dampingFraction: 0.78).delay(0.18)) {
                         keyOffset = 0
+                    }
+                    // Door flips to open + lock glows
+                    withAnimation(.easeInOut(duration: 0.35).delay(0.46)) {
                         showCheckmark = true
+                    }
+                    // Same key rotates up 90º into its final upright state
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.78).delay(0.46)) {
+                        keyRotation = 0
+                    }
+                    // Then the whole door+key shell fades away, revealing the static white key icon
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.82) {
+                        withAnimation(.easeOut(duration: 0.3)) {
+                            showLockShell = false
+                        }
                     }
                 }
             } else {
@@ -54,9 +88,13 @@ struct HotelKeyAnimatedCard: View {
                     isBackVisible = false
                 }
                 
-                // Reset animations
-                keyOffset = 50
-                showCheckmark = false
+                // Reset animations (no animated snap-back)
+                withAnimation(.none) {
+                    keyOffset = 80
+                    keyRotation = -90
+                    showCheckmark = false
+                    showLockShell = false
+                }
             }
         }
     }
@@ -65,6 +103,10 @@ struct HotelKeyAnimatedCard: View {
 // MARK: - BACK VIEW
 struct HotelKeyBackView: View {
     let document: TravelDocument
+    let keyOffset: CGFloat
+    let keyRotation: Double
+    let showCheckmark: Bool
+    let showLockShell: Bool
     
     var body: some View {
         ZStack {
@@ -99,9 +141,26 @@ struct HotelKeyBackView: View {
                             .tracking(2)
                     }
                     Spacer()
-                    Image(systemName: document.iconName)
-                        .font(.title)
-                        .foregroundColor(.white.opacity(0.8))
+                    ZStack {
+                        // Single persistent key (white), used both during and after the animation.
+                        Image(systemName: "key.fill")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(.white)
+                            .offset(x: keyOffset, y: 0) // keep Y fixed so it doesn't "swing" in
+                            .rotationEffect(.degrees(keyRotation), anchor: .trailing)
+                            .shadow(color: .black.opacity(0.35), radius: 4, x: 0, y: 3)
+                        
+                        if showLockShell {
+                            // Animated lock shell (door + lock dot) that appears only during the unlock animation.
+                            ZStack {
+                                    // Door icon only (no border frame, no lock dot)
+                                    Image(systemName: showCheckmark ? "door.left.hand.open" : "door.left.hand.closed")
+                                        .font(.system(size: 20, weight: .semibold))
+                                        .foregroundColor(.white.opacity(0.9))
+                            }
+                            .transition(.opacity)
+                        }
+                    }
                 }
                 .padding(.bottom, 5)
                 

@@ -23,7 +23,14 @@ struct CardSnapshotContentView: View {
             case .carRental:
                 CarRentalBackView(document: document, brandColor: getCarBrandColor(for: document.title))
             case .hotelKeyCard:
-                HotelKeyBackView(document: document)
+                // Snapshot shows the clean, static key icon state (no animated shell)
+                HotelKeyBackView(
+                    document: document,
+                    keyOffset: 0,
+                    keyRotation: 0,
+                    showCheckmark: false,
+                    showLockShell: false
+                )
             case .event:
                 EventDetailView(document: document, forSnapshot: true)
             case .birthCertificate:
