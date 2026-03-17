@@ -2000,27 +2000,76 @@ struct DocumentFormView: View {
     
     func getColor(for type: TravelDocument.DocumentType) -> Color {
         switch type {
-        case .driversLicense: return Color(red: 0.2, green: 0.3, blue: 0.45)
-        case .studentID: return Color(red: 0.5, green: 0.1, blue: 0.1)
-        case .prescription: return Color(red: 0.0, green: 0.6, blue: 0.45)
-        case .vaccineRecord: return Color(red: 0.2, green: 0.4, blue: 0.7)
-        case .medicalAlert: return Color(red: 0.85, green: 0.2, blue: 0.2)
-        case .birthCertificate: return Color(red: 0.4, green: 0.3, blue: 0.2)
-        case .marriageCertificate: return Color(red: 0.7, green: 0.5, blue: 0.2)
-        case .rewardsCard: return Color(red: 0.95, green: 0.75, blue: 0.1)
-        case .event: return Color(red: 0.0, green: 0.7, blue: 0.8)
-        case .carRental: return Color(red: 0.1, green: 0.4, blue: 0.2)
-        case .hotelKeyCard: return Color(red: 0.15, green: 0.15, blue: 0.2)
-        case .passport: return Color(red: 0.05, green: 0.05, blue: 0.25)
-        case .boardingPass: return Color(red: 1.0, green: 0.31, blue: 0.0)
-        case .visa: return Color(red: 0.85, green: 0.2, blue: 0.3)
-        case .insurance: return Color(red: 0.0, green: 0.5, blue: 0.5)
-        case .idCard: return Color(red: 0.45, green: 0.2, blue: 0.6)
-        case .nationalInsurance: return Color(red: 0.2, green: 0.6, blue: 0.3)
-        case .petInsurance: return Color(red: 0.2, green: 0.6, blue: 0.3) // Green
-        case .petVaccineRecord: return Color(red: 0.2, green: 0.4, blue: 0.7) // Same as vaccine
-        case .petPassport: return Color(red: 0.5, green: 0.1, blue: 0.2) // Burgundy
-        case .petID: return Color(red: 0.8, green: 0.4, blue: 0.0) // Orange
+        // Identity
+        case .driversLicense:
+            // Vibrant blue-teal
+            return Color(red: 0.16, green: 0.48, blue: 0.96)
+        case .studentID:
+            // Playful purple
+            return Color(red: 0.58, green: 0.30, blue: 0.96)
+        case .idCard:
+            // Deeper plum to complement student ID
+            return Color(red: 0.52, green: 0.20, blue: 0.72)
+        case .nationalInsurance:
+            // Bright, confident green
+            return Color(red: 0.26, green: 0.78, blue: 0.40)
+
+        // Health
+        case .prescription:
+            // Fresh turquoise
+            return Color(red: 0.02, green: 0.76, blue: 0.64)
+        case .vaccineRecord:
+            // Clean sky blue
+            return Color(red: 0.18, green: 0.52, blue: 0.98)
+        case .medicalAlert:
+            // Punchy red-pink
+            return Color(red: 0.96, green: 0.24, blue: 0.42)
+        case .insurance:
+            // Teal that harmonises with health/identity greens
+            return Color(red: 0.02, green: 0.68, blue: 0.74)
+
+        // Civil docs
+        case .birthCertificate:
+            // Warm peach
+            return Color(red: 0.99, green: 0.74, blue: 0.46)
+        case .marriageCertificate:
+            // Rosy pink
+            return Color(red: 0.98, green: 0.45, blue: 0.72)
+
+        // Travel
+        case .passport:
+            // Rich navy
+            return Color(red: 0.07, green: 0.11, blue: 0.36)
+        case .visa:
+            // Deep wine
+            return Color(red: 0.78, green: 0.16, blue: 0.37)
+        case .boardingPass:
+            // Original boarding pass orange
+            return Color(red: 1.0, green: 0.31, blue: 0.0)
+        case .carRental:
+            // Confident green with a hint of blue
+            return Color(red: 0.12, green: 0.72, blue: 0.50)
+        case .hotelKeyCard:
+            // Deep indigo
+            return Color(red: 0.20, green: 0.22, blue: 0.40)
+
+        // Lifestyle
+        case .rewardsCard:
+            // Golden yellow, more saturated
+            return Color(red: 1.00, green: 0.82, blue: 0.24)
+        case .event:
+            // Electric magenta-cyan blend
+            return Color(red: 0.86, green: 0.32, blue: 0.94)
+
+        // Pets (paired to Health/Identity colours but slightly softer)
+        case .petInsurance:
+            return Color(red: 0.32, green: 0.80, blue: 0.54)
+        case .petVaccineRecord:
+            return Color(red: 0.24, green: 0.54, blue: 0.98)
+        case .petPassport:
+            return Color(red: 0.73, green: 0.19, blue: 0.35)
+        case .petID:
+            return Color(red: 1.00, green: 0.60, blue: 0.18)
         }
     }
     
