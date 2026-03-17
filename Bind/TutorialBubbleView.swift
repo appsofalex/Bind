@@ -106,6 +106,8 @@ struct TutorialBubbleOverlay: View {
     var listBubbleAboveFirstRow: Bool = false
     /// Optional nudge for the pointer tip (e.g. +10 to shift spike right, -10 to shift left).
     var pointerTipOffsetX: CGFloat = 0
+    /// Optional automatic dismiss timer; when set, bubble will dismiss after this many seconds.
+    var autoDismissAfter: TimeInterval? = nil
     let onDismiss: () -> Void
 
     // Background dim
@@ -156,6 +158,11 @@ struct TutorialBubbleOverlay: View {
                 canDismiss = false
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
                     canDismiss = true
+                }
+                if let delay = autoDismissAfter {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                        onDismiss()
+                    }
                 }
             }
         }

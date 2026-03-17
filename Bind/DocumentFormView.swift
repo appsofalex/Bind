@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import PhotosUI
 import VisionKit
 import Vision
@@ -53,6 +54,7 @@ struct DocumentFormView: View {
     @State private var birthDate: Date
     @State private var issueDate: Date
     @State private var expiryDate: Date
+    @State private var nationalInsuranceHasExpiry: Bool = true
     
     // BOARDING PASS SPECIFIC FIELDS
     @State private var origin: String
@@ -166,6 +168,7 @@ struct DocumentFormView: View {
     @State private var showScanner = false
     @State private var scannedData: ScanResult?
     @State private var showScannerUnavailableAlert = false
+    @State private var showCameraPermissionAlert = false
     @State private var hasAppliedInitialScan = false
 
     // BARCODE FROM SCREENSHOT
@@ -474,6 +477,7 @@ struct DocumentFormView: View {
         _marriagePlace = State(initialValue: "")
         _officiantName = State(initialValue: "")
         _witnesses = State(initialValue: "")
+        _nationalInsuranceHasExpiry = State(initialValue: true)
         
         if let doc = document {
             // EDIT MODE
@@ -492,6 +496,10 @@ struct DocumentFormView: View {
             if let dob = doc.birthDate { _birthDate = State(initialValue: dob) }
             if let iss = doc.issueDate { _issueDate = State(initialValue: iss) }
             if let exp = doc.expiryDate { _expiryDate = State(initialValue: exp) }
+
+            if doc.type == .nationalInsurance {
+                _nationalInsuranceHasExpiry = State(initialValue: doc.issueDate != nil || doc.expiryDate != nil)
+            }
             
             _origin = State(initialValue: doc.origin ?? "")
             _gate = State(initialValue: doc.gate ?? "")
@@ -705,7 +713,7 @@ struct DocumentFormView: View {
                 // Pre-fill logic for National Insurance
                 if let prefill = prefilledTitle, (prefill == "National Insurance" || prefill == "SSN") {
                     _title = State(initialValue: "United Kingdom")
-                    _subtitle = State(initialValue: "National Insurance")
+                    _subtitle = State(initialValue: "National ID Number")
                     _nationality = State(initialValue: "United Kingdom")
                 } else {
                     _title = State(initialValue: "United Kingdom")
@@ -716,9 +724,11 @@ struct DocumentFormView: View {
                 _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60 * 10))
             case .nationalInsurance:
                 _title = State(initialValue: "United Kingdom")
-                _subtitle = State(initialValue: "NI Number")
+                _subtitle = State(initialValue: "National ID Number")
                 _nationality = State(initialValue: "United Kingdom")
-                
+                _issueDate = State(initialValue: Date())
+                _expiryDate = State(initialValue: Date().addingTimeInterval(365 * 24 * 60 * 60 * 10))
+                _nationalInsuranceHasExpiry = State(initialValue: false)
             case .petInsurance:
                 _title = State(initialValue: "")
                 _subtitle = State(initialValue: "")
@@ -853,6 +863,16 @@ struct DocumentFormView: View {
             } message: {
                 Text("Your device does not support scanning documents. This feature requires a camera and is not available on simulators.")
             }
+            .alert("Camera Access Needed", isPresented: $showCameraPermissionAlert) {
+                Button("Open Settings") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }
+                Button("Not Now", role: .cancel) { }
+            } message: {
+                Text("Bind needs access to your camera to scan and capture documents. You can enable this in Settings.")
+            }
             .onChange(of: scannedData) { _, data in
                 if let data = data {
                     handleScanResult(data)
@@ -950,10 +970,19 @@ struct DocumentFormView: View {
             // Scan (Passport / Boarding Pass / Event / Hotel Key)
             if type == .passport || type == .boardingPass || type == .event || type == .hotelKeyCard {
                 Button(action: {
-                    if ScannerView.isSupported {
-                        showScanner = true
-                    } else {
-                        showScannerUnavailableAlert = true
+                    CameraPermission.ensureAuthorized { status in
+                        switch status {
+                        case .granted:
+                            if ScannerView.isSupported {
+                                showScanner = true
+                            } else {
+                                showScannerUnavailableAlert = true
+                            }
+                        case .noCamera:
+                            showScannerUnavailableAlert = true
+                        case .denied, .restricted:
+                            showCameraPermissionAlert = true
+                        }
                     }
                 }) {
                     HStack {
@@ -987,7 +1016,16 @@ struct DocumentFormView: View {
             // Take Photo
             if shouldShowPhotoUpload {
                 Button(action: {
-                    showCamera = true
+                    CameraPermission.ensureAuthorized { status in
+                        switch status {
+                        case .granted:
+                            showCamera = true
+                        case .noCamera:
+                            showScannerUnavailableAlert = true
+                        case .denied, .restricted:
+                            showCameraPermissionAlert = true
+                        }
+                    }
                 }) {
                     HStack {
                         Image(systemName: "camera.fill")
@@ -1533,14 +1571,22 @@ struct DocumentFormView: View {
             case .idCard, .nationalInsurance:
                 TextField("Full Name", text: $holderName)
                     .textInputAutocapitalization(.words)
-                TextField(type == .idCard ? "ID Number" : "NI Number", text: $detailValue)
+                TextField(type == .idCard ? "ID Number" : "National ID Number", text: $detailValue)
                     .textInputAutocapitalization(.characters)
                     .onChange(of: detailValue) { newValue in
                         detailValue = newValue.uppercased()
                     }
                 DatePicker("Date of Birth", selection: $birthDate, displayedComponents: .date)
-                DatePicker("Issue Date", selection: $issueDate, displayedComponents: .date)
-                DatePicker("Expiry Date", selection: $expiryDate, displayedComponents: .date)
+                if type == .nationalInsurance {
+                    Toggle("Has Expiry Date", isOn: $nationalInsuranceHasExpiry)
+                    if nationalInsuranceHasExpiry {
+                        DatePicker("Issue Date", selection: $issueDate, displayedComponents: .date)
+                        DatePicker("Expiry Date", selection: $expiryDate, displayedComponents: .date)
+                    }
+                } else {
+                    DatePicker("Issue Date", selection: $issueDate, displayedComponents: .date)
+                    DatePicker("Expiry Date", selection: $expiryDate, displayedComponents: .date)
+                }
 
             case .studentID:
                 EmptyView() // Student ID fields live in Card Details section
@@ -1749,10 +1795,10 @@ struct DocumentFormView: View {
             return "Reservation Number"
         case .hotelKeyCard:
             return "Room / Res Number"
-        case .idCard:
-            return "ID Number"
-        case .nationalInsurance:
-            return "NI Number"
+            case .idCard:
+                return "ID Number"
+            case .nationalInsurance:
+                return "National ID Number"
         case .petInsurance:
             return "Policy Number"
         case .petVaccineRecord:
@@ -1806,7 +1852,7 @@ struct DocumentFormView: View {
             finalSubtitle = "National ID"
 
         case .nationalInsurance:
-            finalSubtitle = "NI Number"
+            finalSubtitle = "National ID Number"
 
         case .studentID:
             finalSubtitle = "Student ID"
@@ -1873,8 +1919,8 @@ struct DocumentFormView: View {
             origin: type == .boardingPass ? origin : nil,
             nationality: (type == .passport || type == .driversLicense || type == .idCard || type == .nationalInsurance || type == .visa) ? nationality : nil,
             birthDate: (type == .passport || type == .driversLicense || type == .idCard || type == .nationalInsurance || type == .petPassport || type == .visa) ? birthDate : nil,
-            issueDate: (type == .passport || type == .insurance || type == .driversLicense || type == .idCard || type == .nationalInsurance || type == .petInsurance || type == .petVaccineRecord || type == .petPassport || type == .petID || type == .vaccineRecord || type == .visa || type == .prescription || type == .birthCertificate) ? issueDate : nil,
-            expiryDate: (type == .passport || type == .insurance || type == .driversLicense || type == .visa || type == .studentID || type == .idCard || type == .nationalInsurance || type == .petInsurance || type == .petVaccineRecord || type == .petPassport || type == .petID || type == .prescription) ? expiryDate : nil,
+            issueDate: (type == .passport || type == .insurance || type == .driversLicense || type == .idCard || type == .petInsurance || type == .petVaccineRecord || type == .petPassport || type == .petID || type == .vaccineRecord || type == .visa || type == .prescription || type == .birthCertificate || (type == .nationalInsurance && nationalInsuranceHasExpiry)) ? issueDate : nil,
+            expiryDate: (type == .passport || type == .insurance || type == .driversLicense || type == .visa || type == .studentID || type == .idCard || type == .petInsurance || type == .petVaccineRecord || type == .petPassport || type == .petID || type == .prescription || (type == .nationalInsurance && nationalInsuranceHasExpiry)) ? expiryDate : nil,
             gate: type == .boardingPass ? gate : nil,
             seat: (type == .boardingPass || type == .event) ? seat : nil,
             flightClass: type == .boardingPass ? flightClass : nil,

@@ -320,7 +320,7 @@ struct TravelDocument: Identifiable, Codable, Equatable {
             case .vaccineRecord: return "Vaccination"
             case .medicalAlert: return "Medical Card"
             case .idCard: return "National ID"
-            case .nationalInsurance: return "National Insurance"
+            case .nationalInsurance: return "National ID Number"
             case .visa: return "Visa"
             case .boardingPass: return "Boarding Pass"
             case .birthCertificate: return "Birth Certificate"

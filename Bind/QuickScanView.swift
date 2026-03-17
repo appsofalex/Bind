@@ -1,6 +1,7 @@
 import SwiftUI
 import VisionKit
 import Vision
+import UIKit
 
 // MARK: - Quick Scan Add Request (type + scan result for Add form)
 private struct QuickScanAddRequest: Identifiable {
@@ -30,6 +31,7 @@ struct QuickScanView: View {
     @State private var addRequest: QuickScanAddRequest?
     @State private var pendingGenericPayload: String?
     @State private var showScannerUnavailableAlert = false
+    @State private var showCameraPermissionAlert = false
     
     private static let quickScanDataTypes: Set<DataScannerViewController.RecognizedDataType> = [
         .text(textContentType: nil),
@@ -81,6 +83,17 @@ struct QuickScanView: View {
         .onAppear {
             if !ScannerView.isSupported {
                 showScannerUnavailableAlert = true
+            } else {
+                CameraPermission.ensureAuthorized { status in
+                    switch status {
+                    case .granted:
+                        break
+                    case .noCamera:
+                        showScannerUnavailableAlert = true
+                    case .denied, .restricted:
+                        showCameraPermissionAlert = true
+                    }
+                }
             }
         }
         .alert("Scanner Unavailable", isPresented: $showScannerUnavailableAlert) {
@@ -89,6 +102,16 @@ struct QuickScanView: View {
             }
         } message: {
             Text("Your device does not support scanning. This feature requires a camera and is not available on simulators.")
+        }
+        .alert("Camera Access Needed", isPresented: $showCameraPermissionAlert) {
+            Button("Open Settings") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+            Button("Not Now", role: .cancel) { }
+        } message: {
+            Text("Bind needs access to your camera to quickly scan documents. You can enable this in Settings.")
         }
     }
 }
