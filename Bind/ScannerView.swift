@@ -1,4 +1,5 @@
 import SwiftUI
+import Foundation
 import VisionKit
 
 // MARK: - Scanner View
@@ -12,6 +13,7 @@ struct ScannerView: UIViewControllerRepresentable {
     
     enum ScanMode {
         case passport
+        case driversLicense
         case boardingPass
         case barcode
         case quickScan
@@ -111,6 +113,9 @@ struct ScannerView: UIViewControllerRepresentable {
         if mode == .passport {
             label.text = "Rotate phone to landscape & align the bottom 2 lines of passport"
             exampleLabel.text = "P<GBRDOE<<JOHN<<<<<<<<<<<<<<<<<<<<\n1234567897GBR9001018M2801019<<<<<<"
+        } else if mode == .driversLicense {
+            label.text = "Scan the back barcode (US) or front text (UK/EU)"
+            exampleLabel.isHidden = true
         } else if mode == .boardingPass {
             label.text = "Align the boarding pass barcode to scan"
             exampleLabel.isHidden = true
@@ -321,15 +326,26 @@ struct ScannerView: UIViewControllerRepresentable {
         func process(_ item: RecognizedItem) {
             switch item {
             case .text(let text):
-                // 1. Full Success
-                if let passportData = DocumentParser.parsePassportMRZ(text.transcript) {
-                    parent.scannedData = .passport(passportData)
-                    if parent.dismissOnSuccess { parent.dismiss() }
-                    return
+                // Mode-specific parsing
+                switch mode {
+                case .passport:
+                    if let passportData = DocumentParser.parsePassportMRZ(text.transcript) {
+                        parent.scannedData = .passport(passportData)
+                        if parent.dismissOnSuccess { parent.dismiss() }
+                        return
+                    }
+                case .driversLicense:
+                    if let dlData = DocumentParser.parseDriversLicenseText(text.transcript) {
+                        parent.scannedData = .driversLicense(dlData)
+                        if parent.dismissOnSuccess { parent.dismiss() }
+                        return
+                    }
+                case .boardingPass, .barcode, .quickScan:
+                    break
                 }
                 
                 // 2. Partial / Potential Match (Option 1 Enhancement)
-                if text.transcript.contains("P<") {
+                if mode == .passport, text.transcript.contains("P<") {
                     // Update UI to show detection
                     DispatchQueue.main.async {
                         self.instructionLabel?.text = "Hold Steady..."
@@ -343,6 +359,8 @@ struct ScannerView: UIViewControllerRepresentable {
                         switch self.mode {
                         case .passport:
                             text = "Rotate phone to landscape & align the bottom 2 lines of passport"
+                        case .driversLicense:
+                            text = "Scan the back barcode (US) or front text (UK/EU)"
                         case .boardingPass:
                             text = "Align the boarding pass barcode to scan"
                         case .quickScan:
@@ -360,16 +378,23 @@ struct ScannerView: UIViewControllerRepresentable {
                 }
                 
             case .barcode(let barcode):
-                // Attempt to parse Boarding Pass
                 if let payload = barcode.payloadStringValue {
-                   if let boardingPassData = DocumentParser.parseBoardingPass(payload) {
-                       parent.scannedData = .boardingPass(boardingPassData)
-                       if parent.dismissOnSuccess { parent.dismiss() }
-                   } else {
-                       // It's a barcode but not a boarding pass, treat as generic
-                       parent.scannedData = .generic(payload)
-                       if parent.dismissOnSuccess { parent.dismiss() }
-                   }
+                    // Attempt to parse Drivers License first when in that mode (US PDF417/AAMVA).
+                    if mode == .driversLicense, let dlData = DocumentParser.parseUSDriversLicenseAAMVA(payload) {
+                        parent.scannedData = .driversLicense(dlData)
+                        if parent.dismissOnSuccess { parent.dismiss() }
+                        return
+                    }
+                    
+                    // Attempt to parse Boarding Pass
+                    if let boardingPassData = DocumentParser.parseBoardingPass(payload) {
+                        parent.scannedData = .boardingPass(boardingPassData)
+                        if parent.dismissOnSuccess { parent.dismiss() }
+                    } else {
+                        // It's a barcode but not a boarding pass, treat as generic
+                        parent.scannedData = .generic(payload)
+                        if parent.dismissOnSuccess { parent.dismiss() }
+                    }
                 }
             default:
                 break
@@ -382,6 +407,7 @@ struct ScannerView: UIViewControllerRepresentable {
 
 enum ScanResult: Equatable {
     case passport(PassportData)
+    case driversLicense(DriversLicenseData)
     case boardingPass(BoardingPassData)
     case generic(String)
 }
@@ -393,6 +419,19 @@ struct PassportData: Equatable {
     let firstName: String
     let lastName: String
     let nationality: String
+}
+
+struct DriversLicenseData: Equatable {
+    let licenseNumber: String?
+    let firstName: String?
+    let lastName: String?
+    let fullName: String?
+    let birthDate: Date?
+    let issueDate: Date?
+    let expiryDate: Date?
+    let address: String?
+    /// Intended for mapping to `DocumentFormView`'s "Issuing Country" picker.
+    let issuingCountry: String?
 }
 
 struct BoardingPassData: Equatable {
@@ -633,6 +672,302 @@ struct DocumentParser {
             classCode: classCode,
             rawPayload: payload
         )
+    }
+
+    // MARK: - Driver's License Parsing
+    /// Attempts to parse a US/Canada-style PDF417 barcode payload (AAMVA). Returns nil if it doesn't look like AAMVA.
+    static func parseUSDriversLicenseAAMVA(_ payload: String) -> DriversLicenseData? {
+        // Typical AAMVA payloads contain "ANSI " or "AAMVA" and element IDs like "DAQ", "DBB", "DBA".
+        let upper = payload.uppercased()
+        guard upper.contains("AAMVA") || upper.contains("ANSI") || upper.contains("DL") else { return nil }
+        guard upper.contains("DAQ") || upper.contains("DBB") || upper.contains("DBA") || upper.contains("DCS") else { return nil }
+        
+        let fields = aamvaFieldMap(from: payload)
+        
+        let licenseNumber = fields["DAQ"]?.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        let firstName = fields["DAC"]?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let lastName = fields["DCS"]?.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        let fullName: String?
+        if let f = firstName, let l = lastName, !f.isEmpty, !l.isEmpty {
+            fullName = "\(f) \(l)"
+        } else if let daa = fields["DAA"]?.trimmingCharacters(in: .whitespacesAndNewlines), !daa.isEmpty {
+            fullName = daa
+        } else {
+            fullName = nil
+        }
+        
+        let birthDate = parseDLDate(fields["DBB"])
+        let issueDate = parseDLDate(fields["DBD"])
+        let expiryDate = parseDLDate(fields["DBA"])
+        
+        // Address components (best effort)
+        let street = fields["DAG"]?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let city = fields["DAI"]?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let state = fields["DAJ"]?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let zip = fields["DAK"]?.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        var addressParts: [String] = []
+        if let street, !street.isEmpty { addressParts.append(street) }
+        var cityLine: [String] = []
+        if let city, !city.isEmpty { cityLine.append(city) }
+        if let state, !state.isEmpty { cityLine.append(state) }
+        if let zip, !zip.isEmpty { cityLine.append(zip) }
+        if !cityLine.isEmpty { addressParts.append(cityLine.joined(separator: " ")) }
+        let address = addressParts.isEmpty ? nil : addressParts.joined(separator: "\n")
+        
+        // For US/CA AAMVA we can safely set issuing country to United States (or Canada if we detect it).
+        let issuingCountry: String? = (upper.contains("CAN") || upper.contains("CANADA")) ? "Canada" : "United States"
+        
+        // Must have at least a license number or a name to be considered a success.
+        if (licenseNumber?.isEmpty ?? true) && (fullName?.isEmpty ?? true) { return nil }
+        
+        return DriversLicenseData(
+            licenseNumber: licenseNumber,
+            firstName: firstName,
+            lastName: lastName,
+            fullName: fullName,
+            birthDate: birthDate,
+            issueDate: issueDate,
+            expiryDate: expiryDate,
+            address: address,
+            issuingCountry: issuingCountry
+        )
+    }
+    
+    /// Best-effort OCR parsing for UK/EU (and other) licenses from recognized text.
+    static func parseDriversLicenseText(_ text: String) -> DriversLicenseData? {
+        let normalized = normalizeOCRText(text)
+        let upper = normalized.uppercased()
+        
+        // UK photocard: look for "DRIVING LICENCE" and the driver number pattern.
+        let looksUK = upper.contains("DRIVING LICENCE") || upper.contains("DRIVING LICENSE") || upper.contains("DVLA") || upper.contains("UNITED KINGDOM")
+        let ukNumber = extractUKDriverNumber(fromUpperText: upper)
+        
+        // EU: look for multiple-language "DRIVING LICENCE" and common field markers (1.,2.,3.,4A,4B,5,8).
+        let looksEU = upper.contains("PERMIS") || upper.contains("FAHRERLAUBNIS") || upper.contains("PATENTE") || upper.contains("PERMESSO") || upper.contains("RIJBEWIJS") || upper.contains("FÜHRERSCHEIN")
+        let euNumber = extractLabeledNumber(fromUpperText: upper)
+        
+        let issuingCountry: String? = looksUK ? "United Kingdom" : (looksEU ? nil : nil)
+        
+        // Dates (best effort)
+        let birthDate = extractDate(fromUpperText: upper, hints: ["DOB", "BIRTH", "DATE OF BIRTH", "3", "3.", "BORN"])
+        let issueDate = extractDate(fromUpperText: upper, hints: ["ISSUE", "ISSUED", "4A", "4A.", "DATE OF ISSUE"])
+        let expiryDate = extractDate(fromUpperText: upper, hints: ["EXP", "EXPIRES", "VALID", "4B", "4B.", "VALID UNTIL", "DATE OF EXPIRY", "DATE OF EXPIRATION"])
+        
+        // Name heuristics:
+        // - If we see "1." and "2." (EU format), prefer those.
+        // - Otherwise fall back to a "SURNAME" / "GIVEN" style.
+        let (firstName, lastName, fullName) = extractName(fromUpperText: upper)
+        
+        // Address heuristics (often labeled 8 or "ADDRESS")
+        let address = extractAddress(fromUpperText: upper)
+        
+        // License number preference: UK pattern, then labeled number, else nil.
+        let licenseNumber = (ukNumber ?? euNumber)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // If we didn’t find anything distinguishing, return nil to avoid false positives.
+        let hasSignal = (licenseNumber?.isEmpty == false) || (fullName?.isEmpty == false) || birthDate != nil || expiryDate != nil
+        guard hasSignal else { return nil }
+        
+        return DriversLicenseData(
+            licenseNumber: licenseNumber,
+            firstName: firstName,
+            lastName: lastName,
+            fullName: fullName,
+            birthDate: birthDate,
+            issueDate: issueDate,
+            expiryDate: expiryDate,
+            address: address,
+            issuingCountry: issuingCountry
+        )
+    }
+    
+    private static func aamvaFieldMap(from payload: String) -> [String: String] {
+        // Split on common record separators and newlines.
+        let separators = CharacterSet(charactersIn: "\u{001E}\u{001F}\r\n")
+        let rawParts = payload.components(separatedBy: separators)
+        var map: [String: String] = [:]
+        
+        for part in rawParts {
+            guard part.count >= 3 else { continue }
+            let key = String(part.prefix(3)).uppercased()
+            let value = String(part.dropFirst(3))
+            
+            // Only accept likely AAMVA element IDs (Dxx).
+            if key.count == 3, key.hasPrefix("D"), key.unicodeScalars.allSatisfy({ CharacterSet.uppercaseLetters.union(.decimalDigits).contains($0) }) {
+                if map[key] == nil {
+                    map[key] = value
+                }
+            }
+        }
+        
+        return map
+    }
+    
+    private static func parseDLDate(_ raw: String?) -> Date? {
+        guard var s = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty else { return nil }
+        // Strip non-digits
+        s = s.filter(\.isNumber)
+        guard s.count == 8 else { return nil }
+        
+        // Try YYYYMMDD then MMDDYYYY.
+        let f1 = DateFormatter()
+        f1.timeZone = TimeZone(secondsFromGMT: 0)
+        f1.dateFormat = "yyyyMMdd"
+        if let d = f1.date(from: s) { return d }
+        
+        let f2 = DateFormatter()
+        f2.timeZone = TimeZone(secondsFromGMT: 0)
+        f2.dateFormat = "MMddyyyy"
+        return f2.date(from: s)
+    }
+    
+    private static func normalizeOCRText(_ text: String) -> String {
+        // Keep line structure but normalize common OCR confusions.
+        return text
+            .replacingOccurrences(of: "\t", with: " ")
+            .replacingOccurrences(of: "—", with: "-")
+            .replacingOccurrences(of: "–", with: "-")
+            .replacingOccurrences(of: "•", with: " ")
+    }
+    
+    private static func extractUKDriverNumber(fromUpperText upper: String) -> String? {
+        // UK driver number is typically 16+ chars: 5 letters + 6 digits + 2 letters + 3 digits (often)
+        // We use a loose pattern to reduce false negatives with OCR errors.
+        let pattern = #"\b[A-Z]{5}[0-9]{6}[A-Z0-9]{5,8}\b"#
+        return firstRegexMatch(in: upper, pattern: pattern)
+    }
+    
+    private static func extractLabeledNumber(fromUpperText upper: String) -> String? {
+        // EU often labels the license number as "5." or just "5" on the card.
+        // Try "5" label, "LICENCE NO", "LICENSE NO", "NUMERO", etc.
+        let patterns = [
+            #"(?:\b5\.?\s*)([A-Z0-9]{6,})"#,
+            #"(?:LICEN[CS]E\s*NO\.?\s*)([A-Z0-9]{6,})"#,
+            #"(?:DOCUMENT\s*NO\.?\s*)([A-Z0-9]{6,})"#,
+            #"(?:NUM[EÉ]RO\s*DE\s*PERMIS\s*:?\s*)([A-Z0-9]{6,})"#
+        ]
+        for p in patterns {
+            if let m = firstRegexCapture(in: upper, pattern: p, group: 1) { return m }
+        }
+        return nil
+    }
+    
+    private static func extractDate(fromUpperText upper: String, hints: [String]) -> Date? {
+        // Find lines containing any hint, then parse the first date-like token.
+        let lines = upper.components(separatedBy: .newlines)
+        let candidateLines = lines.filter { line in
+            hints.contains(where: { h in line.contains(h) })
+        }
+        
+        for line in candidateLines {
+            if let d = parseDateFromLine(line) { return d }
+        }
+        
+        // Fallback: any date in the entire text (avoid overly eager).
+        return nil
+    }
+    
+    private static func parseDateFromLine(_ line: String) -> Date? {
+        // Support common formats: DD.MM.YYYY, DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD.
+        let patterns = [
+            #"\b(\d{2})[./-](\d{2})[./-](\d{4})\b"#, // DMY
+            #"\b(\d{4})[./-](\d{2})[./-](\d{2})\b"#  // YMD
+        ]
+        
+        if let m = regexGroups(in: line, pattern: patterns[0], groupCount: 3) {
+            let dd = m[0], mm = m[1], yyyy = m[2]
+            return parseDateWithFormats("\(dd)/\(mm)/\(yyyy)", formats: ["dd/MM/yyyy"])
+        }
+        if let m = regexGroups(in: line, pattern: patterns[1], groupCount: 3) {
+            let yyyy = m[0], mm = m[1], dd = m[2]
+            return parseDateWithFormats("\(yyyy)-\(mm)-\(dd)", formats: ["yyyy-MM-dd"])
+        }
+        
+        // Sometimes OCR yields 8-digit date without separators.
+        if let raw = firstRegexMatch(in: line, pattern: #"\b\d{8}\b"#) {
+            return parseDLDate(raw)
+        }
+        
+        return nil
+    }
+    
+    private static func parseDateWithFormats(_ str: String, formats: [String]) -> Date? {
+        for format in formats {
+            let f = DateFormatter()
+            f.timeZone = TimeZone(secondsFromGMT: 0)
+            f.dateFormat = format
+            if let d = f.date(from: str) { return d }
+        }
+        return nil
+    }
+    
+    private static func extractName(fromUpperText upper: String) -> (String?, String?, String?) {
+        // EU format often uses:
+        // 1. Surname
+        // 2. Given name(s)
+        let surname = firstRegexCapture(in: upper, pattern: #"(?:\b1\.?\s*)([A-Z][A-Z\s'\-]{1,})"#, group: 1)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let given = firstRegexCapture(in: upper, pattern: #"(?:\b2\.?\s*)([A-Z][A-Z\s'\-]{1,})"#, group: 1)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        if let s = surname, !s.isEmpty, let g = given, !g.isEmpty {
+            return (g, s, "\(g) \(s)")
+        }
+        
+        // Generic labels
+        let s2 = firstRegexCapture(in: upper, pattern: #"(?:SURNAME|LAST\s*NAME)\s*:?\s*([A-Z][A-Z\s'\-]{1,})"#, group: 1)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let g2 = firstRegexCapture(in: upper, pattern: #"(?:GIVEN\s*NAMES?|FIRST\s*NAME)\s*:?\s*([A-Z][A-Z\s'\-]{1,})"#, group: 1)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        if let s2, !s2.isEmpty, let g2, !g2.isEmpty {
+            return (g2, s2, "\(g2) \(s2)")
+        }
+        
+        return (nil, nil, nil)
+    }
+    
+    private static func extractAddress(fromUpperText upper: String) -> String? {
+        // Look for a labeled ADDRESS block.
+        if let addr = firstRegexCapture(in: upper, pattern: #"(?:ADDRESS|ADDR)\s*:?\s*([A-Z0-9 ,.'\-\n]{10,})"#, group: 1) {
+            return addr.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        
+        // EU sometimes labels as "8." address.
+        if let addr = firstRegexCapture(in: upper, pattern: #"(?:\b8\.?\s*)([A-Z0-9 ,.'\-\n]{10,})"#, group: 1) {
+            return addr.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        
+        return nil
+    }
+    
+    private static func firstRegexMatch(in text: String, pattern: String) -> String? {
+        guard let r = try? NSRegularExpression(pattern: pattern, options: []) else { return nil }
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        guard let m = r.firstMatch(in: text, options: [], range: range) else { return nil }
+        guard let rr = Range(m.range, in: text) else { return nil }
+        return String(text[rr])
+    }
+    
+    private static func firstRegexCapture(in text: String, pattern: String, group: Int) -> String? {
+        guard let r = try? NSRegularExpression(pattern: pattern, options: []) else { return nil }
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        guard let m = r.firstMatch(in: text, options: [], range: range) else { return nil }
+        guard group < m.numberOfRanges else { return nil }
+        guard let rr = Range(m.range(at: group), in: text) else { return nil }
+        return String(text[rr])
+    }
+    
+    private static func regexGroups(in text: String, pattern: String, groupCount: Int) -> [String]? {
+        guard let r = try? NSRegularExpression(pattern: pattern, options: []) else { return nil }
+        let range = NSRange(text.startIndex..<text.endIndex, in: text)
+        guard let m = r.firstMatch(in: text, options: [], range: range) else { return nil }
+        guard m.numberOfRanges >= groupCount + 1 else { return nil }
+        var out: [String] = []
+        for i in 1...groupCount {
+            guard let rr = Range(m.range(at: i), in: text) else { return nil }
+            out.append(String(text[rr]))
+        }
+        return out
     }
 }
 

@@ -856,7 +856,15 @@ struct DocumentFormView: View {
             }
             // SCANNER SHEET
             .sheet(isPresented: $showScanner) {
-                ScannerView(scannedData: $scannedData, recognizedDataTypes: scannerDataTypes, mode: (type == .passport) ? .passport : (type == .boardingPass ? .boardingPass : .barcode))
+                ScannerView(
+                    scannedData: $scannedData,
+                    recognizedDataTypes: scannerDataTypes,
+                    mode: (type == .passport)
+                        ? .passport
+                        : (type == .driversLicense)
+                            ? .driversLicense
+                            : (type == .boardingPass ? .boardingPass : .barcode)
+                )
             }
             .alert("Scanner Unavailable", isPresented: $showScannerUnavailableAlert) {
                 Button("OK", role: .cancel) { }
@@ -972,7 +980,7 @@ struct DocumentFormView: View {
             
             Section(header: Text("Quick-add")) {
                 // Scan (Passport / Boarding Pass / Event / Hotel Key)
-                if type == .passport || type == .boardingPass || type == .event || type == .hotelKeyCard {
+                if type == .passport || type == .driversLicense || type == .boardingPass || type == .event || type == .hotelKeyCard {
                     Button(action: {
                         CameraPermission.ensureAuthorized { status in
                             switch status {
@@ -1668,6 +1676,12 @@ struct DocumentFormView: View {
         switch type {
         case .passport:
             return [.text(textContentType: nil)]
+        case .driversLicense:
+            // US: PDF417 barcode on the back (AAMVA). UK/EU: OCR text on the front.
+            return [
+                .barcode(symbologies: [.pdf417]),
+                .text(textContentType: nil)
+            ]
         case .boardingPass, .event, .hotelKeyCard:
             return [.barcode(symbologies: [.qr, .aztec, .pdf417, .code128, .code39, .ean8, .ean13, .upce])]
         default:
@@ -1694,6 +1708,38 @@ struct DocumentFormView: View {
             
             if let dob = data.birthDate { birthDate = dob }
             if let exp = data.expiryDate { expiryDate = exp }
+            
+        case .driversLicense(let data):
+            if let name = data.fullName, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                holderName = name
+            } else {
+                let f = data.firstName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                let l = data.lastName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                let combined = "\(f) \(l)".trimmingCharacters(in: .whitespacesAndNewlines)
+                if !combined.isEmpty {
+                    holderName = combined
+                }
+            }
+            
+            if let license = data.licenseNumber, !license.isEmpty {
+                detailValue = license.uppercased()
+            }
+            if let addr = data.address, !addr.isEmpty {
+                address = addr
+            }
+            if let dob = data.birthDate { birthDate = dob }
+            if let issue = data.issueDate { issueDate = issue }
+            if let exp = data.expiryDate { expiryDate = exp }
+            
+            if let issuing = data.issuingCountry?.trimmingCharacters(in: .whitespacesAndNewlines), !issuing.isEmpty {
+                if let matchedCountry = countries.first(where: { $0.localizedCaseInsensitiveCompare(issuing) == .orderedSame }) {
+                    title = matchedCountry
+                    nationality = matchedCountry
+                } else {
+                    title = issuing
+                    nationality = issuing
+                }
+            }
             
         case .boardingPass(let data):
             holderName = data.name

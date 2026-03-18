@@ -55,6 +55,8 @@ struct QuickScanView: View {
             switch result {
             case .passport:
                 addRequest = QuickScanAddRequest(type: .passport, scanResult: result)
+            case .driversLicense:
+                addRequest = QuickScanAddRequest(type: .driversLicense, scanResult: result)
             case .boardingPass:
                 addRequest = QuickScanAddRequest(type: .boardingPass, scanResult: result)
             case .generic(let payload):

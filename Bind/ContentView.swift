@@ -288,7 +288,6 @@ struct TravelDocsWalletView: View {
                             Button(action: { startAdd(.prescription) }) { Label("Prescription", systemImage: "pills") }
                             Button(action: { startAdd(.vaccineRecord) }) { Label("Vaccination", systemImage: "syringe") }
                             Button(action: { startAdd(.medicalAlert) }) { Label("Blood & Allergies", systemImage: "staroflife") }
-                            Button(action: { startAdd(.insurance) }) { Label("Insurance", systemImage: "cross.case") }
                         } header: {
                             Text("Health")
                                 .font(.subheadline)
@@ -309,6 +308,7 @@ struct TravelDocsWalletView: View {
                         }
                         
                         Section {
+                            Button(action: { startAdd(.insurance) }) { Label("Insurance", systemImage: "cross.case") }
                             Button(action: { startAdd(.birthCertificate) }) { Label("Birth Certificate", systemImage: "stroller.fill") }
                             Button(action: { startAdd(.marriageCertificate) }) { Label("Marriage Certificate", systemImage: "figure.and.child.holdinghands") }
                             Button(action: { startAdd(.rewardsCard) }) { Label("Rewards Card", systemImage: "star.fill") }
