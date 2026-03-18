@@ -10,18 +10,6 @@ private struct QuickScanAddRequest: Identifiable {
     let scanResult: ScanResult
 }
 
-// MARK: - Generic Barcode Type Picker Options
-private let genericBarcodeTypes: [(TravelDocument.DocumentType, String)] = [
-    (.rewardsCard, "Rewards Card"),
-    (.insurance, "Insurance"),
-    (.event, "Event Ticket"),
-    (.studentID, "Student ID"),
-    (.prescription, "Prescription"),
-    (.nationalInsurance, "National Insurance"),
-    (.visa, "Visa"),
-    (.idCard, "ID Card"),
-]
-
 // MARK: - Quick Scan View
 struct QuickScanView: View {
     @Binding var documents: [TravelDocument]
@@ -29,29 +17,58 @@ struct QuickScanView: View {
     
     @State private var scannedData: ScanResult?
     @State private var addRequest: QuickScanAddRequest?
-    @State private var pendingGenericPayload: String?
     @State private var showScannerUnavailableAlert = false
     @State private var showCameraPermissionAlert = false
+    @State private var isScannerPaused = false
+    @State private var scannerMode: ScannerView.ScanMode = .quickScan
     
-    private static let quickScanDataTypes: Set<DataScannerViewController.RecognizedDataType> = [
-        .text(textContentType: nil),
-        .barcode(symbologies: [.qr, .aztec, .pdf417, .code128, .code39, .ean8, .ean13, .upce])
-    ]
+    private var recognizedDataTypes: Set<DataScannerViewController.RecognizedDataType> {
+        switch scannerMode {
+        case .passport:
+            // Match "Scan Passport" behavior: text-only MRZ focus.
+            return [.text(textContentType: nil)]
+        case .quickScan:
+            // Prefer QR/barcodes for tickets/boarding passes; keep text enabled so we can
+            // detect and auto-switch into Passport mode and also support DL front-text.
+            return [
+                .barcode(symbologies: [.qr, .aztec, .pdf417, .code128, .code39, .ean8, .ean13, .upce]),
+                .text(textContentType: nil)
+            ]
+        default:
+            return [
+                .barcode(symbologies: [.qr, .aztec, .pdf417, .code128, .code39, .ean8, .ean13, .upce]),
+                .text(textContentType: nil)
+            ]
+        }
+    }
     
     var body: some View {
         Group {
             if ScannerView.isSupported {
                 ScannerView(
                     scannedData: $scannedData,
-                    recognizedDataTypes: Self.quickScanDataTypes,
+                    recognizedDataTypes: recognizedDataTypes,
                     dismissOnSuccess: false,
-                    mode: .quickScan
+                    isPaused: $isScannerPaused,
+                    mode: scannerMode,
+                    onHint: { hint in
+                        // When the camera starts recognizing passport MRZ patterns,
+                        // switch into the dedicated Passport scanner UI/logic.
+                        if hint == .passportCandidate, scannerMode == .quickScan {
+                            scannerMode = .passport
+                        }
+                    }
                 )
+                // Force scanner recreation when switching modes so the overlay + mode-specific
+                // behavior matches "Scan Passport" exactly.
+                .id(scannerMode)
                 .ignoresSafeArea()
             }
         }
         .onChange(of: scannedData) { _, result in
             guard let result = result else { return }
+            // Freeze the camera the moment we have a result so the sheet can't flap.
+            isScannerPaused = true
             switch result {
             case .passport:
                 addRequest = QuickScanAddRequest(type: .passport, scanResult: result)
@@ -60,7 +77,8 @@ struct QuickScanView: View {
             case .boardingPass:
                 addRequest = QuickScanAddRequest(type: .boardingPass, scanResult: result)
             case .generic(let payload):
-                pendingGenericPayload = payload
+                // Default generic barcodes/QRs to an Event card (common "ticket" use-case).
+                addRequest = QuickScanAddRequest(type: .event, scanResult: .generic(payload))
             }
         }
         .sheet(item: $addRequest, onDismiss: { addRequest = nil }) { request in
@@ -69,20 +87,8 @@ struct QuickScanView: View {
                 dismiss()
             }
         }
-        .sheet(isPresented: Binding(
-            get: { pendingGenericPayload != nil },
-            set: { if !$0 { pendingGenericPayload = nil } }
-        )) {
-            if let payload = pendingGenericPayload {
-                GenericBarcodeTypePickerView(payload: payload) { selectedType in
-                    addRequest = QuickScanAddRequest(type: selectedType, scanResult: .generic(payload))
-                    pendingGenericPayload = nil
-                } onCancel: {
-                    pendingGenericPayload = nil
-                }
-            }
-        }
         .onAppear {
+            scannerMode = .quickScan
             if !ScannerView.isSupported {
                 showScannerUnavailableAlert = true
             } else {
@@ -114,72 +120,6 @@ struct QuickScanView: View {
             Button("Not Now", role: .cancel) { }
         } message: {
             Text("Bind needs access to your camera to quickly scan documents. You can enable this in Settings.")
-        }
-    }
-}
-
-// MARK: - Generic Barcode Type Picker
-private struct GenericBarcodeTypePickerView: View {
-    let payload: String
-    let onSelect: (TravelDocument.DocumentType) -> Void
-    let onCancel: () -> Void
-    
-    @Environment(\.dismiss) var dismiss
-    
-    var body: some View {
-        NavigationView {
-            List {
-                Section {
-                    Text(payload)
-                        .font(.system(.body, design: .monospaced))
-                        .lineLimit(2)
-                        .truncationMode(.tail)
-                } header: {
-                    Text("Scanned")
-                }
-                
-                Section {
-                    ForEach(genericBarcodeTypes, id: \.0) { type, label in
-                        Button(action: {
-                            onSelect(type)
-                        }) {
-                            HStack {
-                                Image(systemName: iconForType(type))
-                                    .foregroundColor(.accentColor)
-                                    .frame(width: 28)
-                                Text(label)
-                                    .foregroundColor(.primary)
-                            }
-                        }
-                    }
-                } header: {
-                    Text("What type of card?")
-                }
-            }
-            .navigationTitle("Add Card")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        onCancel()
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-    
-    private func iconForType(_ type: TravelDocument.DocumentType) -> String {
-        switch type {
-        case .rewardsCard: return "star.fill"
-        case .insurance: return "cross.case.fill"
-        case .event: return "ticket.fill"
-        case .studentID: return "graduationcap.fill"
-        case .prescription: return "pills.fill"
-        case .nationalInsurance: return "number.square.fill"
-        case .visa: return "checkmark.seal.fill"
-        case .idCard: return "person.text.rectangle.fill"
-        default: return "doc.fill"
         }
     }
 }

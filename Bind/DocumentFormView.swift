@@ -1805,9 +1805,13 @@ struct DocumentFormView: View {
                 }
             }
         case .generic(let payload):
-            // Auto-recognition for general tickets
+            // Generic payload can come from barcode/QR *or* OCR text (Quick Scan).
             detailValue = payload
-            barcodePayload = payload
+            
+            // Only attach a barcode payload for types that actually render/expect a barcode.
+            if type == .event || type == .rewardsCard || type == .hotelKeyCard {
+                barcodePayload = payload
+            }
 
             // Simple heuristics for ticket data
             // If it's a long alphanumeric string, it's likely a confirmation code

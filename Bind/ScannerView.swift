@@ -10,6 +10,8 @@ struct ScannerView: UIViewControllerRepresentable {
     // The types of items we want to scan
     let recognizedDataTypes: Set<DataScannerViewController.RecognizedDataType>
     var dismissOnSuccess: Bool = true
+    /// When true, the camera stops scanning and ignores further recognitions.
+    var isPaused: Binding<Bool> = .constant(false)
     
     enum ScanMode {
         case passport
@@ -20,6 +22,13 @@ struct ScannerView: UIViewControllerRepresentable {
     }
     
     let mode: ScanMode
+    
+    enum ScanHint: Equatable {
+        case passportCandidate
+    }
+    
+    /// Emits non-final hints (e.g. "this looks like a passport") so the caller can switch modes/UI.
+    var onHint: ((ScanHint) -> Void)? = nil
     
     func makeUIViewController(context: Context) -> DataScannerViewController {
         let scanner = DataScannerViewController(
@@ -120,7 +129,7 @@ struct ScannerView: UIViewControllerRepresentable {
             label.text = "Align the boarding pass barcode to scan"
             exampleLabel.isHidden = true
         } else if mode == .quickScan {
-            label.text = "Scan a passport, barcode, or QR code"
+            label.text = "Scan any card/document, QR code, or barcode"
             exampleLabel.isHidden = true
         } else {
             label.text = "Align any ticket barcode or QR code"
@@ -168,8 +177,14 @@ struct ScannerView: UIViewControllerRepresentable {
     }
     
     func updateUIViewController(_ uiViewController: DataScannerViewController, context: Context) {
-        if !uiViewController.isScanning {
-            try? uiViewController.startScanning()
+        if isPaused.wrappedValue {
+            if uiViewController.isScanning {
+                try? uiViewController.stopScanning()
+            }
+        } else {
+            if !uiViewController.isScanning {
+                try? uiViewController.startScanning()
+            }
         }
     }
     
@@ -188,6 +203,16 @@ struct ScannerView: UIViewControllerRepresentable {
         var instructionContainer: UIView?
         var overlayView: UIView?
         var mode: ScanMode = .passport
+        private var hasCapturedResult: Bool = false
+        
+        // Drivers License: accumulate barcode + OCR into one result
+        private var pendingDriversLicense: DriversLicenseData?
+        private var finalizeDriversLicenseWorkItem: DispatchWorkItem?
+        
+        // Passport: accumulate MRZ lines before parsing
+        private var pendingPassportText: String = ""
+        private var finalizePassportWorkItem: DispatchWorkItem?
+        private var hasSentPassportHint: Bool = false
         
         init(parent: ScannerView) {
             self.parent = parent
@@ -312,35 +337,69 @@ struct ScannerView: UIViewControllerRepresentable {
         
         // Auto-scan logic
         func dataScanner(_ dataScanner: DataScannerViewController, didAdd addedItems: [RecognizedItem], allItems: [RecognizedItem]) {
-            if let item = addedItems.first {
+            if let item = preferredItem(from: addedItems, allItems: allItems) {
                 process(item)
             }
         }
         
         func dataScanner(_ dataScanner: DataScannerViewController, didUpdate updatedItems: [RecognizedItem], allItems: [RecognizedItem]) {
-            if let item = updatedItems.first {
+            if let item = preferredItem(from: updatedItems, allItems: allItems) {
                 process(item)
             }
         }
         
+        private func preferredItem(from changedItems: [RecognizedItem], allItems: [RecognizedItem]) -> RecognizedItem? {
+            // In quick scan, prefer barcodes over text to reliably pick up boarding passes / tickets.
+            if mode == .quickScan {
+                if let b = changedItems.first(where: { if case .barcode = $0 { return true } else { return false } }) { return b }
+                if let b = allItems.first(where: { if case .barcode = $0 { return true } else { return false } }) { return b }
+                return changedItems.first
+            }
+            return changedItems.first
+        }
+        
         func process(_ item: RecognizedItem) {
+            if hasCapturedResult { return }
+            if parent.isPaused.wrappedValue { return }
+            
             switch item {
             case .text(let text):
                 // Mode-specific parsing
                 switch mode {
                 case .passport:
                     if let passportData = DocumentParser.parsePassportMRZ(text.transcript) {
+                        hasCapturedResult = true
                         parent.scannedData = .passport(passportData)
                         if parent.dismissOnSuccess { parent.dismiss() }
                         return
                     }
-                case .driversLicense:
+                case .driversLicense, .quickScan:
+                    // In quick scan, attempt Passport MRZ before other text parsing.
+                    if mode == .quickScan {
+                        if let passportData = DocumentParser.parsePassportMRZ(text.transcript) {
+                            hasCapturedResult = true
+                            parent.scannedData = .passport(passportData)
+                            if parent.dismissOnSuccess { parent.dismiss() }
+                            return
+                        }
+                        
+                        // Accumulate MRZ-like text (often arrives fragmented across frames).
+                        if text.transcript.contains("P<") || text.transcript.contains("<<") {
+                            if !hasSentPassportHint {
+                                hasSentPassportHint = true
+                                DispatchQueue.main.async { [weak self] in
+                                    self?.parent.onHint?(.passportCandidate)
+                                }
+                            }
+                            handlePassportTextCandidate(text.transcript)
+                        }
+                    }
+                    
                     if let dlData = DocumentParser.parseDriversLicenseText(text.transcript) {
-                        parent.scannedData = .driversLicense(dlData)
-                        if parent.dismissOnSuccess { parent.dismiss() }
+                        handleDriversLicenseCandidate(dlData)
                         return
                     }
-                case .boardingPass, .barcode, .quickScan:
+                case .boardingPass, .barcode:
                     break
                 }
                 
@@ -364,7 +423,7 @@ struct ScannerView: UIViewControllerRepresentable {
                         case .boardingPass:
                             text = "Align the boarding pass barcode to scan"
                         case .quickScan:
-                            text = "Scan a passport, barcode, or QR code"
+                            text = "Scan any card/document, QR code, or barcode"
                         case .barcode:
                             text = "Align any ticket barcode or QR code"
                         }
@@ -379,19 +438,21 @@ struct ScannerView: UIViewControllerRepresentable {
                 
             case .barcode(let barcode):
                 if let payload = barcode.payloadStringValue {
-                    // Attempt to parse Drivers License first when in that mode (US PDF417/AAMVA).
-                    if mode == .driversLicense, let dlData = DocumentParser.parseUSDriversLicenseAAMVA(payload) {
-                        parent.scannedData = .driversLicense(dlData)
-                        if parent.dismissOnSuccess { parent.dismiss() }
+                    // Attempt to parse Drivers License first (US PDF417/AAMVA).
+                    if (mode == .driversLicense || mode == .quickScan),
+                       let dlData = DocumentParser.parseUSDriversLicenseAAMVA(payload) {
+                        handleDriversLicenseCandidate(dlData)
                         return
                     }
                     
                     // Attempt to parse Boarding Pass
                     if let boardingPassData = DocumentParser.parseBoardingPass(payload) {
+                        hasCapturedResult = true
                         parent.scannedData = .boardingPass(boardingPassData)
                         if parent.dismissOnSuccess { parent.dismiss() }
                     } else {
                         // It's a barcode but not a boarding pass, treat as generic
+                        hasCapturedResult = true
                         parent.scannedData = .generic(payload)
                         if parent.dismissOnSuccess { parent.dismiss() }
                     }
@@ -399,6 +460,116 @@ struct ScannerView: UIViewControllerRepresentable {
             default:
                 break
             }
+        }
+        
+        private func handleDriversLicenseCandidate(_ candidate: DriversLicenseData) {
+            // Merge fields from multiple recognitions (barcode + OCR).
+            pendingDriversLicense = mergeDriversLicenseData(base: pendingDriversLicense, incoming: candidate)
+            
+            // If we have enough, emit immediately; otherwise, wait briefly for the other source.
+            if let merged = pendingDriversLicense, isDriversLicenseComplete(merged) {
+                finalizeDriversLicense(merged)
+                return
+            }
+            
+            // Reset short debounce window on each new DL candidate.
+            finalizeDriversLicenseWorkItem?.cancel()
+            let work = DispatchWorkItem { [weak self] in
+                guard let self else { return }
+                if let merged = self.pendingDriversLicense {
+                    self.finalizeDriversLicense(merged)
+                }
+            }
+            finalizeDriversLicenseWorkItem = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2, execute: work)
+        }
+        
+        private func finalizeDriversLicense(_ data: DriversLicenseData) {
+            if hasCapturedResult { return }
+            hasCapturedResult = true
+            finalizeDriversLicenseWorkItem?.cancel()
+            finalizeDriversLicenseWorkItem = nil
+            
+            parent.scannedData = .driversLicense(data)
+            if parent.dismissOnSuccess { parent.dismiss() }
+        }
+        
+        private func isDriversLicenseComplete(_ data: DriversLicenseData) -> Bool {
+            let hasLicenseNumber = !(data.licenseNumber?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            let hasFullName = !(data.fullName?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            let hasFirst = !(data.firstName?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            let hasLast = !(data.lastName?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            let hasName = hasFullName || (hasFirst && hasLast)
+            return hasLicenseNumber && hasName
+        }
+        
+        private func mergeDriversLicenseData(base: DriversLicenseData?, incoming: DriversLicenseData) -> DriversLicenseData {
+            func pick(_ a: String?, _ b: String?) -> String? {
+                let aa = a?.trimmingCharacters(in: .whitespacesAndNewlines)
+                if let aa, !aa.isEmpty { return aa }
+                let bb = b?.trimmingCharacters(in: .whitespacesAndNewlines)
+                if let bb, !bb.isEmpty { return bb }
+                return nil
+            }
+            
+            guard let base else { return incoming }
+            return DriversLicenseData(
+                licenseNumber: pick(base.licenseNumber, incoming.licenseNumber),
+                firstName: pick(base.firstName, incoming.firstName),
+                lastName: pick(base.lastName, incoming.lastName),
+                fullName: pick(base.fullName, incoming.fullName),
+                birthDate: base.birthDate ?? incoming.birthDate,
+                issueDate: base.issueDate ?? incoming.issueDate,
+                expiryDate: base.expiryDate ?? incoming.expiryDate,
+                address: pick(base.address, incoming.address),
+                issuingCountry: pick(base.issuingCountry, incoming.issuingCountry)
+            )
+        }
+        
+        private func handlePassportTextCandidate(_ transcript: String) {
+            // Keep a small rolling buffer of recent lines. We only need the MRZ, not full-page OCR.
+            let cleaned = transcript
+                .components(separatedBy: .newlines)
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+                .suffix(6)
+                .joined(separator: "\n")
+            
+            if !cleaned.isEmpty {
+                if pendingPassportText.isEmpty {
+                    pendingPassportText = cleaned
+                } else {
+                    // Append and keep the tail to avoid unbounded growth.
+                    pendingPassportText = (pendingPassportText + "\n" + cleaned)
+                        .components(separatedBy: .newlines)
+                        .suffix(12)
+                        .joined(separator: "\n")
+                }
+            }
+            
+            // Try immediately on the aggregated buffer.
+            if let passportData = DocumentParser.parsePassportMRZ(pendingPassportText) {
+                hasCapturedResult = true
+                finalizePassportWorkItem?.cancel()
+                finalizePassportWorkItem = nil
+                parent.scannedData = .passport(passportData)
+                if parent.dismissOnSuccess { parent.dismiss() }
+                return
+            }
+            
+            // Otherwise debounce briefly to allow the second MRZ line to arrive.
+            finalizePassportWorkItem?.cancel()
+            let work = DispatchWorkItem { [weak self] in
+                guard let self else { return }
+                if self.hasCapturedResult { return }
+                if let passportData = DocumentParser.parsePassportMRZ(self.pendingPassportText) {
+                    self.hasCapturedResult = true
+                    self.parent.scannedData = .passport(passportData)
+                    if self.parent.dismissOnSuccess { self.parent.dismiss() }
+                }
+            }
+            finalizePassportWorkItem = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2, execute: work)
         }
     }
 }
