@@ -115,8 +115,10 @@ struct TutorialBubbleOverlay: View {
     // Energetic bounce pop-in (start small, overshoot slightly, settle)
     @State private var bubbleScale: CGFloat = 0.72
     @State private var bubbleOpacity: Double = 0.0
+    @State private var bubbleOffsetY: CGFloat = 14
     // Lock tap-to-dismiss for first couple of seconds
     @State private var canDismiss: Bool = false
+    @State private var isDismissing: Bool = false
 
     private let bubblePadding: CGFloat = 20
     private let maxBubbleWidth: CGFloat = 280
@@ -141,19 +143,21 @@ struct TutorialBubbleOverlay: View {
             .contentShape(Rectangle())
             .onTapGesture {
                 if canDismiss {
-                    onDismiss()
+                    triggerDismiss()
                 }
             }
             .onAppear {
-                withAnimation(.easeInOut(duration: 1.8)) {
+                withAnimation(.easeInOut(duration: 0.55)) {
                     overlayOpacity = 1.0
                 }
                 bubbleScale = 0.72
                 bubbleOpacity = 0.0
-                // Single energetic bounce: small → slight overshoot → settle (clean, noticeable)
-                withAnimation(.spring(response: 0.36, dampingFraction: 0.66)) {
+                bubbleOffsetY = 14
+                // Single energetic bounce: small + float-up → slight overshoot → settle (playful, noticeable)
+                withAnimation(.spring(response: 0.38, dampingFraction: 0.62)) {
                     bubbleOpacity = 1.0
                     bubbleScale = 1.0
+                    bubbleOffsetY = 0
                 }
                 canDismiss = false
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
@@ -161,7 +165,7 @@ struct TutorialBubbleOverlay: View {
                 }
                 if let delay = autoDismissAfter {
                     DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                        onDismiss()
+                        triggerDismiss()
                     }
                 }
             }
@@ -193,7 +197,27 @@ struct TutorialBubbleOverlay: View {
             )
             .scaleEffect(bubbleScale)
             .opacity(bubbleOpacity)
+            .offset(y: bubbleOffsetY)
             .position(x: bubbleRect.midX, y: bubbleRect.midY)
+    }
+
+    private func triggerDismiss() {
+        guard !isDismissing else { return }
+        isDismissing = true
+        canDismiss = false
+
+        withAnimation(.easeOut(duration: 0.22)) {
+            overlayOpacity = 0.0
+        }
+        withAnimation(.spring(response: 0.30, dampingFraction: 0.88)) {
+            bubbleOpacity = 0.0
+            bubbleScale = 0.84
+            bubbleOffsetY = 12
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.24) {
+            onDismiss()
+        }
     }
 
     private func positionedBubble(safeSize: CGSize, targetMid: CGPoint) -> (CGRect, Edge) {

@@ -933,120 +933,107 @@ struct DocumentFormView: View {
     // MARK: - Quick-add Section (Scan, Take Photo, Choose Photo)
     @ViewBuilder
     private var quickAddSection: some View {
-        Section(header: Text("Quick-add")) {
-            // Photo preview when image exists
+        Group {
+            // Keep the photo preview in its own section so "Scan Passport" becomes the
+            // first row of the Quick-add section (restoring standard grouped rounding/spacing).
             if shouldShowPhotoUpload, let imageData = documentImage, let uiImage = UIImage(data: imageData) {
-                ZStack(alignment: .topTrailing) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxHeight: 200)
-                        .frame(maxWidth: .infinity)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .onTapGesture { }
-                    
-                    Button {
-                        withAnimation(.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.3)) { documentImage = nil }
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(.black)
-                            .padding(8)
-                            .background(Circle().fill(.white))
-                            .shadow(color: .black.opacity(0.15), radius: 3, x: 0, y: 1)
+                Section {
+                    ZStack(alignment: .topTrailing) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxHeight: 200)
+                            .frame(maxWidth: .infinity)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .onTapGesture { }
+                        
+                        Button {
+                            withAnimation(.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.3)) { documentImage = nil }
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(.black)
+                                .padding(8)
+                                .background(Circle().fill(.white))
+                                .shadow(color: .black.opacity(0.15), radius: 3, x: 0, y: 1)
+                        }
+                        .padding(10)
+                        .buttonStyle(.borderless)
                     }
-                    .padding(10)
-                    .buttonStyle(.borderless)
+                    .padding(12)
+                    .listRowBackground(
+                        RoundedRectangle(cornerRadius: 26)
+                            .fill(Color(uiColor: .secondarySystemGroupedBackground))
+                            .padding(.bottom, 2)
+                    )
+                    .listRowSeparator(.hidden)
                 }
-                .padding(12)
-                .listRowBackground(
-                    RoundedRectangle(cornerRadius: 26)
-                        .fill(Color(uiColor: .secondarySystemGroupedBackground))
-                        .padding(.bottom, 2)
-                )
-                .listRowSeparator(.hidden)
             }
             
-            // Scan (Passport / Boarding Pass / Event / Hotel Key)
-            if type == .passport || type == .boardingPass || type == .event || type == .hotelKeyCard {
-                Button(action: {
-                    CameraPermission.ensureAuthorized { status in
-                        switch status {
-                        case .granted:
-                            if ScannerView.isSupported {
-                                showScanner = true
-                            } else {
+            Section(header: Text("Quick-add")) {
+                // Scan (Passport / Boarding Pass / Event / Hotel Key)
+                if type == .passport || type == .boardingPass || type == .event || type == .hotelKeyCard {
+                    Button(action: {
+                        CameraPermission.ensureAuthorized { status in
+                            switch status {
+                            case .granted:
+                                if ScannerView.isSupported {
+                                    showScanner = true
+                                } else {
+                                    showScannerUnavailableAlert = true
+                                }
+                            case .noCamera:
                                 showScannerUnavailableAlert = true
+                            case .denied, .restricted:
+                                showCameraPermissionAlert = true
                             }
-                        case .noCamera:
-                            showScannerUnavailableAlert = true
-                        case .denied, .restricted:
-                            showCameraPermissionAlert = true
                         }
-                    }
-                }) {
-                    HStack {
-                        Image(systemName: "camera.viewfinder")
-                        Text(type == .hotelKeyCard ? "Scan Hotel Key" : "Scan \(type.displayName)")
-                    }
-                    .foregroundColor(.blue)
-                }
-                if type == .event {
-                    PhotosPicker(
-                        selection: $barcodeScreenshotItem,
-                        matching: .images,
-                        photoLibrary: .shared()
-                    ) {
+                    }) {
                         HStack {
-                            if isExtractingBarcode { ProgressView().padding(.trailing, 6) }
-                            Image(systemName: "photo.badge.plus")
-                            Text(isExtractingBarcode ? "Reading…" : "Import barcode from screenshot")
+                            Image(systemName: "camera.viewfinder")
+                            Text(type == .hotelKeyCard ? "Scan Hotel Key" : "Scan \(type.displayName)")
                         }
                         .foregroundColor(.blue)
                     }
-                    .disabled(isExtractingBarcode)
-                    if barcodePayload != nil {
-                        Label("Barcode will appear on card", systemImage: "checkmark.circle.fill")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-            
-            // Take Photo
-            if shouldShowPhotoUpload {
-                Button(action: {
-                    CameraPermission.ensureAuthorized { status in
-                        switch status {
-                        case .granted:
-                            showCamera = true
-                        case .noCamera:
-                            showScannerUnavailableAlert = true
-                        case .denied, .restricted:
-                            showCameraPermissionAlert = true
-                        }
-                    }
-                }) {
-                    HStack {
-                        Image(systemName: "camera.fill")
-                        Text("Take Photo")
-                    }
-                    .foregroundColor(.blue)
                 }
                 
-                // Choose Photo
-                PhotosPicker(
-                    selection: $selectedPhotoItem,
-                    matching: .images,
-                    photoLibrary: .shared()
-                ) {
-                    HStack {
-                        Image(systemName: "photo.on.rectangle")
-                        Text(documentImage == nil ? "Choose Photo" : "Change Photo")
+                // Take Photo
+                if shouldShowPhotoUpload {
+                    Button(action: {
+                        CameraPermission.ensureAuthorized { status in
+                            switch status {
+                            case .granted:
+                                showCamera = true
+                            case .noCamera:
+                                showScannerUnavailableAlert = true
+                            case .denied, .restricted:
+                                showCameraPermissionAlert = true
+                            }
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "camera.fill")
+                            Text("Take Photo")
+                        }
+                        .foregroundColor(.blue)
                     }
-                    .foregroundColor(.blue)
+                    
+                    // Choose / Change Photo
+                    PhotosPicker(
+                        selection: $selectedPhotoItem,
+                        matching: .images,
+                        photoLibrary: .shared()
+                    ) {
+                        HStack {
+                            Image(systemName: "photo.on.rectangle")
+                            Text(documentImage == nil ? "Choose Photo" : "Change Photo")
+                        }
+                        .foregroundColor(.blue)
+                    }
                 }
-                if type == .rewardsCard {
+                
+                // Import barcode from screenshot (Event / Rewards Card)
+                if type == .event || type == .rewardsCard {
                     PhotosPicker(
                         selection: $barcodeScreenshotItem,
                         matching: .images,
@@ -1060,6 +1047,7 @@ struct DocumentFormView: View {
                         .foregroundColor(.blue)
                     }
                     .disabled(isExtractingBarcode)
+                    
                     if barcodePayload != nil {
                         Label("Barcode will appear on card", systemImage: "checkmark.circle.fill")
                             .font(.caption)
