@@ -1571,7 +1571,12 @@ struct DocumentFormView: View {
             case .idCard, .nationalInsurance:
                 TextField("Full Name", text: $holderName)
                     .textInputAutocapitalization(.words)
-                TextField(type == .idCard ? "ID Number" : "National ID Number", text: $detailValue)
+                TextField(
+                    type == .idCard
+                    ? "ID Number"
+                    : (type == .nationalInsurance && nationality == "United States" ? "Social Security Number" : "National ID Number"),
+                    text: $detailValue
+                )
                     .textInputAutocapitalization(.characters)
                     .onChange(of: detailValue) { newValue in
                         detailValue = newValue.uppercased()
@@ -1798,7 +1803,7 @@ struct DocumentFormView: View {
             case .idCard:
                 return "ID Number"
             case .nationalInsurance:
-                return "National ID Number"
+                return nationality == "United States" ? "Social Security Number" : "National ID Number"
         case .petInsurance:
             return "Policy Number"
         case .petVaccineRecord:
@@ -1852,7 +1857,7 @@ struct DocumentFormView: View {
             finalSubtitle = "National ID"
 
         case .nationalInsurance:
-            finalSubtitle = "National ID Number"
+            finalSubtitle = nationality == "United States" ? "Social Security Number" : "National ID Number"
 
         case .studentID:
             finalSubtitle = "Student ID"

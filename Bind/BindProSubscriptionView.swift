@@ -4,6 +4,7 @@ import SwiftUI
 struct BindProSubscriptionView: View {
     let documents: [TravelDocument]
     @State private var showProBenefitsSheet = false
+    @State private var showCancelSubscriptionAlert = false
     @StateObject private var subscriptionManager = SubscriptionManager.shared
     
     var body: some View {
@@ -93,10 +94,18 @@ struct BindProSubscriptionView: View {
             
             #if DEBUG
             Section {
-                Button("Demote to Free Plan (Test)") {
-                    SubscriptionManager.shared.downgradeToFree()
+                Button("Cancel and Return to Free") {
+                    showCancelSubscriptionAlert = true
                 }
                 .foregroundColor(.red)
+                .alert("Cancel subscription?", isPresented: $showCancelSubscriptionAlert) {
+                    Button("Cancel", role: .cancel) {}
+                    Button("Cancel subscription") {
+                        subscriptionManager.cancelProSubscription()
+                    }
+                } message: {
+                    Text("You’ll keep Pro access until your current billing period ends.")
+                }
             }
             #endif
         }

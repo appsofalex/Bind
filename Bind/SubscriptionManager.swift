@@ -1,6 +1,7 @@
 import Foundation
 import StoreKit
 import SwiftUI
+import UIKit
 internal import Combine
 
 /// Product ID for the yearly Pro subscription. Must match the subscription created in App Store Connect
@@ -158,5 +159,17 @@ class SubscriptionManager: ObservableObject {
     /// For testing only. In production, Pro status is driven by StoreKit entitlements.
     func downgradeToFree() {
         isPro = false
+    }
+    
+    /// Cancels the user's Pro subscription via Apple's subscription management UI.
+    ///
+    /// StoreKit does not provide an API that programmatically cancels a subscription on behalf
+    /// of the user. The correct flow is to ask the user to cancel in Settings / App Store,
+    /// while your app continues showing Pro until StoreKit entitlements update.
+    func cancelProSubscription() {
+        // Opens in App Store app when possible (subscription management), not Safari.
+        if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
+            UIApplication.shared.open(url)
+        }
     }
 }
