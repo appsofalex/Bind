@@ -1,4 +1,8 @@
 import SwiftUI
+import PhotosUI
+import UniformTypeIdentifiers
+import PDFKit
+import Vision
 
 // MARK: - MAIN WALLET VIEW
 struct TravelDocsWalletView: View {
@@ -14,6 +18,21 @@ struct TravelDocsWalletView: View {
     @State private var showQuickScanSheet = false
     @State private var showUpgradeSheet = false // Direct upgrade sheet (e.g. from Settings)
     @State private var selectedTypeToAdd: TravelDocument.DocumentType? = nil
+
+    // QUICK SCAN MENU IMPORTS
+    @State private var showImportPDFPicker = false
+    @State private var showImportPhotoPicker = false
+    @State private var importPhotoItem: PhotosPickerItem? = nil
+    @State private var isImportingFromQuickScanMenu = false
+    @State private var importAddRequest: ImportAddRequest? = nil
+    @State private var pendingImportedTextPayload: String? = nil
+    @State private var importErrorMessage: String? = nil
+
+    private struct ImportAddRequest: Identifiable {
+        let id = UUID()
+        let type: TravelDocument.DocumentType
+        let scanResult: ScanResult
+    }
     
     // PREFERENCES
     @AppStorage("isHapticsEnabled") private var isHapticsEnabled = true
@@ -383,19 +402,44 @@ struct TravelDocsWalletView: View {
                         HStack {
                             Spacer()
                             
-                            // Quick Scan Button
-                            Button(action: {
-                                showQuickScanSheet = true
-                            }) {
-                                Image(systemName: "camera.fill")
-                                    .font(.system(size: 20))
-                                    .foregroundColor(.primary)
-                                    .frame(width: 44, height: 44)
-                                    .background(.ultraThinMaterial)
-                                    .clipShape(Circle())
-                                    .shadow(radius: 5)
+                            // Quick Scan Button (Menu)
+                            Menu {
+                                Button {
+                                    showQuickScanSheet = true
+                                } label: {
+                                    Label("Quick Scan", systemImage: "camera.fill")
+                                }
+
+                                Button {
+                                    showImportPDFPicker = true
+                                } label: {
+                                    Label("Import PDF", systemImage: "doc.fill")
+                                }
+                                .disabled(isImportingFromQuickScanMenu)
+
+                                Button {
+                                    showImportPhotoPicker = true
+                                } label: {
+                                    Label("Import Photo", systemImage: "photo.fill")
+                                }
+                                .disabled(isImportingFromQuickScanMenu)
+                            } label: {
+                                ZStack {
+                                    Image(systemName: "camera.fill")
+                                        .font(.system(size: 20))
+                                        .foregroundColor(.primary)
+                                        .frame(width: 44, height: 44)
+                                        .background(.ultraThinMaterial)
+                                        .clipShape(Circle())
+                                        .shadow(radius: 5)
+
+                                    if isImportingFromQuickScanMenu {
+                                        ProgressView()
+                                            .tint(.primary)
+                                    }
+                                }
+                                .reportTutorialFrame(tag: 3)
                             }
-                            .reportTutorialFrame(tag: 3)
                             
                             Spacer()
                             
@@ -482,7 +526,7 @@ struct TravelDocsWalletView: View {
         // MARK: - TUTORIAL BUBBLES (first-time prompts)
         if showFirstCardTutorial {
             TutorialBubbleOverlay(
-                message: "These are your cards. Add up to six and watch them stack up here.",
+                message: "This is where your cards will live. Add up to six, and watch them stack.",
                 targetFrame: .zero,
                 pointerEdge: .bottom,
                 onDismiss: {
@@ -523,7 +567,7 @@ struct TravelDocsWalletView: View {
         }
         if showQuickScanTutorial {
             TutorialBubbleOverlay(
-                message: "Tap the camera to quickly add a card by scanning a barcode or ticket.",
+                message: "Tap the camera to quickly scan, or import a card from a screenshot or file.",
                 targetFrame: quickScanButtonFrame,
                 pointerEdge: .trailing,
                 onDismiss: {
@@ -541,20 +585,6 @@ struct TravelDocsWalletView: View {
                 onDismiss: {
                     hasSeenReorderTutorial = true
                     showReorderTutorial = false
-                }
-            )
-            .zIndex(300)
-        }
-        if showAddMenuTutorial {
-            TutorialBubbleOverlay(
-                message: "Scroll to explore all the card categories!",
-                targetFrame: .zero,
-                preferredVerticalFraction: 0.80,
-                preferredPointerEdge: .top,
-                autoDismissAfter: 4.0,
-                onDismiss: {
-                    hasSeenAddMenuTutorial = true
-                    showAddMenuTutorial = false
                 }
             )
             .zIndex(300)
@@ -679,6 +709,66 @@ struct TravelDocsWalletView: View {
         // MARK: - QUICK SCAN SHEET
         .sheet(isPresented: $showQuickScanSheet) {
             QuickScanView(documents: $documents)
+        }
+        // MARK: - IMPORT -> ADD SHEET
+        .sheet(item: $importAddRequest, onDismiss: { importAddRequest = nil }) { request in
+            DocumentFormView(type: request.type, initialScanResult: request.scanResult) { newDoc in
+                withAnimation {
+                    documents.append(newDoc)
+                    bumpLeastRecentActiveIfOverLimit()
+                    dragOffset = 0
+                    let count = documents.filter(\.isActive).count
+                    let offset = centeredScrollOffset(for: count)
+                    baseScrollOffset = offset
+                    scrollOffsetForNewCard = offset
+                }
+            }
+        }
+        // MARK: - IMPORT TYPE PICKER (fallback)
+        .sheet(isPresented: Binding(
+            get: { pendingImportedTextPayload != nil },
+            set: { if !$0 { pendingImportedTextPayload = nil } }
+        )) {
+            if let payload = pendingImportedTextPayload {
+                ImportTypePickerView(payload: payload) { selectedType in
+                    importAddRequest = ImportAddRequest(type: selectedType, scanResult: .generic(payload))
+                    pendingImportedTextPayload = nil
+                } onCancel: {
+                    pendingImportedTextPayload = nil
+                }
+            }
+        }
+        // MARK: - FILES (PDF) + PHOTOS (IMAGE) PICKERS
+        .fileImporter(
+            isPresented: $showImportPDFPicker,
+            allowedContentTypes: [.pdf],
+            allowsMultipleSelection: false
+        ) { result in
+            switch result {
+            case .success(let urls):
+                guard let url = urls.first else { return }
+                Task { await handleImportedPDF(url) }
+            case .failure(let error):
+                importErrorMessage = error.localizedDescription
+            }
+        }
+        .photosPicker(
+            isPresented: $showImportPhotoPicker,
+            selection: $importPhotoItem,
+            matching: .images,
+            photoLibrary: .shared()
+        )
+        .onChange(of: importPhotoItem) { _, item in
+            guard let item else { return }
+            Task { await handleImportedPhoto(item) }
+        }
+        .alert("Import failed", isPresented: Binding(
+            get: { importErrorMessage != nil },
+            set: { if !$0 { importErrorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(importErrorMessage ?? "Unknown error.")
         }
         // MARK: - REORDER STACK SHEET (exposé-style grid)
         .sheet(isPresented: $showReorderStackSheet) {
@@ -893,6 +983,146 @@ struct TravelDocsWalletView: View {
         // Changed Check: Count total documents instead of just active ones
         selectedTypeToAdd = type
     }
+
+    // MARK: - QUICK SCAN MENU IMPORT LOGIC
+
+    @MainActor
+    private func handleImportedPDF(_ url: URL) async {
+        guard !isImportingFromQuickScanMenu else { return }
+        isImportingFromQuickScanMenu = true
+        defer { isImportingFromQuickScanMenu = false }
+
+        do {
+            let text = try await extractTextFromPDF(url)
+            try await routeImportedTextToAddFlow(text)
+        } catch {
+            importErrorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    private func handleImportedPhoto(_ item: PhotosPickerItem) async {
+        guard !isImportingFromQuickScanMenu else { return }
+        isImportingFromQuickScanMenu = true
+        defer { isImportingFromQuickScanMenu = false }
+
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self),
+                  let uiImage = UIImage(data: data) else {
+                throw ImportError.unreadableImage
+            }
+
+            let text = try await recognizeText(in: uiImage)
+            try await routeImportedTextToAddFlow(text)
+        } catch {
+            importErrorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    private func routeImportedTextToAddFlow(_ text: String) async throws {
+        let payload = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !payload.isEmpty else {
+            throw ImportError.noTextFound
+        }
+
+        if let suggested = suggestDocumentType(from: payload) {
+            importAddRequest = ImportAddRequest(type: suggested, scanResult: .generic(payload))
+        } else {
+            pendingImportedTextPayload = payload
+        }
+    }
+
+    private func suggestDocumentType(from text: String) -> TravelDocument.DocumentType? {
+        let t = text.lowercased()
+
+        // Boarding pass (common phrases)
+        if t.contains("boarding pass") || (t.contains("boarding") && t.contains("gate")) || (t.contains("flight") && t.contains("seat")) {
+            return .boardingPass
+        }
+
+        // Event ticket (common phrases)
+        if t.contains("ticket") || t.contains("admit one") || t.contains("section") || t.contains("row") || t.contains("seat") || t.contains("venue") {
+            return .event
+        }
+
+        // Rewards / membership
+        if t.contains("member") && (t.contains("number") || t.contains("id")) {
+            return .rewardsCard
+        }
+
+        // Insurance
+        if t.contains("policy") || t.contains("insurance") || t.contains("member id") {
+            return .insurance
+        }
+
+        return nil
+    }
+
+    private enum ImportError: LocalizedError {
+        case noTextFound
+        case unreadablePDF
+        case unreadableImage
+        case ocrFailed
+
+        var errorDescription: String? {
+            switch self {
+            case .noTextFound:
+                return "No readable text was found in that file."
+            case .unreadablePDF:
+                return "That PDF couldn’t be read."
+            case .unreadableImage:
+                return "That photo couldn’t be read."
+            case .ocrFailed:
+                return "Text recognition failed."
+            }
+        }
+    }
+
+    private func extractTextFromPDF(_ url: URL) async throws -> String {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+
+        guard let doc = PDFDocument(url: url) else { throw ImportError.unreadablePDF }
+
+        if let embedded = doc.string?.trimmingCharacters(in: .whitespacesAndNewlines), !embedded.isEmpty {
+            return embedded
+        }
+
+        // Fallback: OCR first page image (useful for scanned PDFs)
+        guard let page = doc.page(at: 0) else { throw ImportError.noTextFound }
+        let image = page.thumbnail(of: CGSize(width: 2000, height: 2000), for: .mediaBox)
+        let ocr = try await recognizeText(in: image)
+        return ocr
+    }
+
+    private func recognizeText(in image: UIImage) async throws -> String {
+        guard let cgImage = image.cgImage else { throw ImportError.ocrFailed }
+
+        return try await withCheckedThrowingContinuation { continuation in
+            let request = VNRecognizeTextRequest { request, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                let observations = (request.results as? [VNRecognizedTextObservation]) ?? []
+                let strings = observations.compactMap { $0.topCandidates(1).first?.string }
+                let joined = strings.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+                continuation.resume(returning: joined)
+            }
+
+            request.recognitionLevel = .accurate
+            request.usesLanguageCorrection = true
+
+            let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+            do {
+                try handler.perform([request])
+            } catch {
+                continuation.resume(throwing: error)
+            }
+        }
+    }
     
     private func shareExpandedCard() {
         guard let doc = documents.first(where: { $0.id == selectedID }) else { return }
@@ -976,6 +1206,74 @@ struct TravelDocsWalletView: View {
     /// Order of active card ids as they appear on the stack (newest/front first) for the reorder sheet.
     private func visualOrderForReorderSheet() -> [UUID] {
         stackOrderedDocuments.map(\.id)
+    }
+}
+
+// MARK: - Import Type Picker (fallback)
+private struct ImportTypePickerView: View {
+    let payload: String
+    let onSelect: (TravelDocument.DocumentType) -> Void
+    let onCancel: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    // Keep this list focused on types where text import is most likely useful.
+    private let options: [(TravelDocument.DocumentType, String, String)] = [
+        (.event, "Event", "ticket.fill"),
+        (.boardingPass, "Boarding Pass", "airplane"),
+        (.insurance, "Insurance", "cross.case"),
+        (.rewardsCard, "Rewards Card", "star.fill"),
+        (.idCard, "National ID", "person.text.rectangle"),
+        (.studentID, "Student ID", "graduationcap"),
+        (.visa, "Visa", "checkmark.seal"),
+        (.carRental, "Car Rental", "car.2.fill"),
+        (.hotelKeyCard, "Hotel Key Card", "key.fill"),
+        (.passport, "Passport", "globe"),
+        (.driversLicense, "Driver's License", "car")
+    ]
+
+    var body: some View {
+        NavigationView {
+            List {
+                Section {
+                    Text(payload)
+                        .font(.system(.body, design: .monospaced))
+                        .lineLimit(4)
+                        .truncationMode(.tail)
+                } header: {
+                    Text("Imported")
+                }
+
+                Section {
+                    ForEach(options, id: \.0) { type, label, icon in
+                        Button {
+                            onSelect(type)
+                            dismiss()
+                        } label: {
+                            HStack {
+                                Image(systemName: icon)
+                                    .foregroundColor(.accentColor)
+                                    .frame(width: 28)
+                                Text(label)
+                                    .foregroundColor(.primary)
+                            }
+                        }
+                    }
+                } header: {
+                    Text("What type of card?")
+                }
+            }
+            .navigationTitle("Add Card")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        onCancel()
+                        dismiss()
+                    }
+                }
+            }
+        }
     }
 }
 

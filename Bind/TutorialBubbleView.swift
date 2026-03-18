@@ -96,6 +96,8 @@ struct TutorialBubbleOverlay: View {
     let message: String
     var targetFrame: CGRect = .zero
     var pointerEdge: Edge = .bottom
+    /// When false, renders as a simple rounded rectangle (no spike).
+    var showsPointer: Bool = true
     /// When no target: 0 = top, 0.5 = center, 1 = bottom. Default 0.28 for card stack; use ~0.45 for sheet.
     var preferredVerticalFraction: Double = 0.28
     /// When no target: which edge the spike is on. Default .bottom (spike points down). Use .top for spike on top pointing up.
@@ -175,10 +177,12 @@ struct TutorialBubbleOverlay: View {
     @ViewBuilder
     private func bubbleView(safeSize: CGSize, targetMid: CGPoint) -> some View {
         let (bubbleRect, edge): (CGRect, Edge) = positionedBubble(safeSize: safeSize, targetMid: targetMid)
-        let pointerTipXLocal: CGFloat? = (targetFrame.size.width > 0 && (edge == .bottom || edge == .top))
+        let pointerTipXLocal: CGFloat? = (showsPointer && targetFrame.size.width > 0 && (edge == .bottom || edge == .top))
             ? (targetMid.x - bubbleRect.minX + pointerTipOffsetX)
             : nil
-        let textVerticalOffset: CGFloat = edge == .bottom ? -pointerSize / 2 : (edge == .top ? pointerSize / 2 : 0)
+        let textVerticalOffset: CGFloat = showsPointer
+            ? (edge == .bottom ? -pointerSize / 2 : (edge == .top ? pointerSize / 2 : 0))
+            : 0
 
         Text(message)
             .font(.subheadline)
@@ -190,11 +194,17 @@ struct TutorialBubbleOverlay: View {
             .padding(bubblePadding)
             .offset(y: textVerticalOffset)
             .frame(width: bubbleRect.width, height: bubbleRect.height)
-            .background(
-                SpeechBubbleShape(pointerEdge: edge, pointerTipX: pointerTipXLocal, cornerRadius: 16, pointerSize: pointerSize, pointerInset: 24)
-                    .fill(Color(.secondarySystemBackground))
-                    .shadow(color: .black.opacity(0.12), radius: 10, x: 0, y: 3)
-            )
+            .background {
+                if showsPointer {
+                    SpeechBubbleShape(pointerEdge: edge, pointerTipX: pointerTipXLocal, cornerRadius: 16, pointerSize: pointerSize, pointerInset: 24)
+                        .fill(Color(.secondarySystemBackground))
+                        .shadow(color: .black.opacity(0.12), radius: 10, x: 0, y: 3)
+                } else {
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color(.secondarySystemBackground))
+                        .shadow(color: .black.opacity(0.12), radius: 10, x: 0, y: 3)
+                }
+            }
             .scaleEffect(bubbleScale)
             .opacity(bubbleOpacity)
             .offset(y: bubbleOffsetY)
@@ -225,6 +235,7 @@ struct TutorialBubbleOverlay: View {
         let edge: Edge
         let bubbleW = min(maxBubbleWidth, safeSize.width - 48)
         let bubbleH: CGFloat = max(bubbleMinHeight, 88)
+        let effectivePointerSize: CGFloat = showsPointer ? pointerSize : 0
 
         if !hasTarget {
             let x = (safeSize.width - bubbleW) / 2
@@ -232,7 +243,7 @@ struct TutorialBubbleOverlay: View {
             if let count = listItemCount, count > 0 {
                 let listTop: CGFloat = 100
                 let listRowHeight: CGFloat = 52
-                let gap = gapFromTarget + pointerSize
+                let gap = gapFromTarget + effectivePointerSize
                 if listBubbleAboveFirstRow {
                     edge = .bottom
                     y = listTop - gap - bubbleH / 2
@@ -254,7 +265,7 @@ struct TutorialBubbleOverlay: View {
             }
         }
 
-        let gap = gapFromTarget + pointerSize
+        let gap = gapFromTarget + effectivePointerSize
         let inBottomBar = targetMid.y > safeSize.height * 0.72
 
         if inBottomBar {
