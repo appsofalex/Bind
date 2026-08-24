@@ -24,6 +24,9 @@ struct SettingsView: View {
     @State private var showSubscriptionAlert = false
     @State private var subscriptionAlertMessage: String?
     
+    /// Flip to `true` to show the Membership / Bind Pro section again.
+    private let isMembershipUIVisible = false
+    
     var body: some View {
         NavigationView {
             Form {
@@ -80,73 +83,75 @@ struct SettingsView: View {
                     }
                 }
                 
-                // MARK: - BIND PRO
-                Section {
-                    if subscriptionManager.isPro {
-                        NavigationLink(destination: BindProSubscriptionView(documents: documents)) {
-                            HStack {
-                                Image(systemName: "creditcard.fill")
-                                    .foregroundColor(.gray)
-                                    .font(.title2)
-                                VStack(alignment: .leading) {
-                                    Text("Bind Pro Active")
-                                        .font(.headline)
-                                    Text("Thank you for your support!")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                            .padding(.vertical, 4)
-                        }
-                    } else {
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack {
-                                Image(systemName: "creditcard.fill")
-                                    .foregroundColor(.gray)
-                                    .font(.title2)
-                                Text("Bind Pro")
-                                    .font(.headline)
-                            }
-                            
-                            Text("Unlock customisable card colours, cloud sync, and quick access personalization.")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            
-                            Button(action: {
-                                showUpgradeSheet = true
-                            }) {
-                                Text("Upgrade to Pro")
-                                    .font(.headline)
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 50)
-                                    .background(Color.blue)
-                                    .clipShape(Capsule())
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                            
-                            Button(action: {
-                                Task {
-                                    await subscriptionManager.restorePurchases()
-                                    
-                                    if let error = subscriptionManager.purchaseError {
-                                        subscriptionAlertMessage = error
-                                        showSubscriptionAlert = true
-                                        subscriptionManager.purchaseError = nil
+                // MARK: - BIND PRO (hidden for now; Pro code kept intact)
+                if isMembershipUIVisible {
+                    Section {
+                        if subscriptionManager.isPro {
+                            NavigationLink(destination: BindProSubscriptionView(documents: documents)) {
+                                HStack {
+                                    Image(systemName: "creditcard.fill")
+                                        .foregroundColor(.gray)
+                                        .font(.title2)
+                                    VStack(alignment: .leading) {
+                                        Text("Bind Pro Active")
+                                            .font(.headline)
+                                        Text("Thank you for your support!")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
                                     }
                                 }
-                            }) {
-                                Text(subscriptionManager.isPurchasing ? "Restoring…" : "Restore Purchases")
-                                    .font(.subheadline)
-                                    .foregroundColor(.blue)
-                                    .frame(maxWidth: .infinity, alignment: .center)
+                                .padding(.vertical, 4)
                             }
-                            .padding(.top, 8)
+                        } else {
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack {
+                                    Image(systemName: "creditcard.fill")
+                                        .foregroundColor(.gray)
+                                        .font(.title2)
+                                    Text("Bind Pro")
+                                        .font(.headline)
+                                }
+                                
+                                Text("Unlock customisable card colours, cloud sync, and quick access personalization.")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                
+                                Button(action: {
+                                    showUpgradeSheet = true
+                                }) {
+                                    Text("Upgrade to Pro")
+                                        .font(.headline)
+                                        .foregroundColor(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 50)
+                                        .background(Color.blue)
+                                        .clipShape(Capsule())
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                                
+                                Button(action: {
+                                    Task {
+                                        await subscriptionManager.restorePurchases()
+                                        
+                                        if let error = subscriptionManager.purchaseError {
+                                            subscriptionAlertMessage = error
+                                            showSubscriptionAlert = true
+                                            subscriptionManager.purchaseError = nil
+                                        }
+                                    }
+                                }) {
+                                    Text(subscriptionManager.isPurchasing ? "Restoring…" : "Restore Purchases")
+                                        .font(.subheadline)
+                                        .foregroundColor(.blue)
+                                        .frame(maxWidth: .infinity, alignment: .center)
+                                }
+                                .padding(.top, 8)
+                            }
+                            .padding(.vertical, 8)
                         }
-                        .padding(.vertical, 8)
+                    } header: {
+                        Text("Membership")
                     }
-                } header: {
-                    Text("Membership")
                 }
                 
                 // MARK: - DATA
